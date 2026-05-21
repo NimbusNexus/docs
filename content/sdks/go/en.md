@@ -15,7 +15,7 @@ An idiomatic Go client. Context-aware, no runtime dependencies, generated from t
 ## Install (when shipped) {#install}
 
 ```bash
-go get github.com/nimbusnexus/nimbusnexus-go
+go get github.com/NimbusNexus/nimbusnexus-go
 ```
 
 ## Quick usage {#quick}
@@ -29,7 +29,7 @@ import (
     "os"
     "time"
 
-    nn "github.com/nimbusnexus/nimbusnexus-go"
+    nn "github.com/NimbusNexus/nimbusnexus-go"
 )
 
 func main() {
@@ -89,7 +89,7 @@ client := nn.NewClient(nn.Config{
 ## Webhook verification helper {#webhooks}
 
 ```go
-import "github.com/nimbusnexus/nimbusnexus-go/webhooks"
+import "github.com/NimbusNexus/nimbusnexus-go/webhooks"
 
 func handleWebhook(w http.ResponseWriter, r *http.Request) {
     body, err := io.ReadAll(r.Body)

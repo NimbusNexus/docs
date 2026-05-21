@@ -342,6 +342,18 @@
             "en": "Public keys registered on the project and injected into VMs at boot."
           },
           "published": true
+        },
+        {
+          "path": "api/vm-interfaces",
+          "kind": "reference",
+          "openapiTag": "vm-interfaces",
+          "title": {
+            "en": "VM interfaces"
+          },
+          "description": {
+            "en": "Attach and detach network interfaces on a running VM."
+          },
+          "published": true
         }
       ]
     },
@@ -438,6 +450,18 @@
           },
           "description": {
             "en": "Scheduled and on-demand backups with deduplication, retention policies, and cross-region restore."
+          },
+          "published": true
+        },
+        {
+          "path": "api/scheduled-backups",
+          "kind": "reference",
+          "openapiTag": "scheduled-backups",
+          "title": {
+            "en": "Scheduled backups"
+          },
+          "description": {
+            "en": "Recurring backup schedules — daily, weekly, custom. Separate from on-demand backups."
           },
           "published": true
         }
@@ -602,6 +626,54 @@
             "en": "Managed L4 / L7 traffic distribution across a pool of backend VMs."
           },
           "published": true
+        },
+        {
+          "path": "api/network-ports",
+          "kind": "reference",
+          "openapiTag": "network-ports",
+          "title": {
+            "en": "Network ports"
+          },
+          "description": {
+            "en": "L2/L3 ports on a network. The primitive VM interfaces and load balancers bind to."
+          },
+          "published": true
+        },
+        {
+          "path": "api/address-groups",
+          "kind": "reference",
+          "openapiTag": "address-groups",
+          "title": {
+            "en": "Address groups"
+          },
+          "description": {
+            "en": "Named sets of CIDRs reusable across security group rules."
+          },
+          "published": true
+        },
+        {
+          "path": "api/network-sharing",
+          "kind": "reference",
+          "openapiTag": "network-sharing",
+          "title": {
+            "en": "Network sharing"
+          },
+          "description": {
+            "en": "Share a network between projects in the same workspace."
+          },
+          "published": true
+        },
+        {
+          "path": "api/qos-policies",
+          "kind": "reference",
+          "openapiTag": "qos-policies",
+          "title": {
+            "en": "QoS policies"
+          },
+          "description": {
+            "en": "Bandwidth limits, DSCP marking, and minimum-bandwidth guarantees on network ports."
+          },
+          "published": true
         }
       ]
     },
@@ -647,6 +719,18 @@
           },
           "description": {
             "en": "A, AAAA, CNAME, MX, TXT, SRV, NS records inside a zone."
+          },
+          "published": true
+        },
+        {
+          "path": "api/reverse-dns",
+          "kind": "reference",
+          "openapiTag": "reverse-dns",
+          "title": {
+            "en": "Reverse DNS (PTR records)"
+          },
+          "description": {
+            "en": "PTR records for floating IPs — the hostname that reverse-resolves your IP."
           },
           "published": true
         }
@@ -713,6 +797,42 @@
             "en": "Built-in and custom roles, plus the role-assignment endpoints that grant a user a role on a project."
           },
           "published": true
+        },
+        {
+          "path": "api/workspaces",
+          "kind": "reference",
+          "openapiTag": "workspaces",
+          "title": {
+            "en": "Workspaces"
+          },
+          "description": {
+            "en": "The isolation tier above projects. A workspace contains projects; projects contain resources."
+          },
+          "published": true
+        },
+        {
+          "path": "api/user-groups",
+          "kind": "reference",
+          "openapiTag": "user-groups",
+          "title": {
+            "en": "User groups"
+          },
+          "description": {
+            "en": "Groups of users for shared role assignment. Useful when teams grow."
+          },
+          "published": true
+        },
+        {
+          "path": "api/cross-project-trusts",
+          "kind": "reference",
+          "openapiTag": "cross-project-trusts",
+          "title": {
+            "en": "Cross-project trusts"
+          },
+          "description": {
+            "en": "Time-bounded permission grants between projects."
+          },
+          "published": true
         }
       ]
     },
@@ -741,6 +861,140 @@
           },
           "description": {
             "en": "Per-project limits on VMs, vCPU, RAM, storage, floating IPs, and other resources."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
+      "id": "api-account-controls",
+      "title": {
+        "en": "Account controls",
+        "de": "Account-Steuerung",
+        "es": "Controles de cuenta",
+        "fr": "Contrôles du compte",
+        "pt": "Controles da conta",
+        "uk": "Керування акаунтом"
+      },
+      "items": [
+        {
+          "path": "api/account-overview",
+          "kind": "reference",
+          "openapiTag": "account-overview",
+          "title": {
+            "en": "Account overview"
+          },
+          "description": {
+            "en": "Top-level account metadata — owner, billing contact, region access, plan tier."
+          },
+          "published": true
+        },
+        {
+          "path": "api/two-factor-auth",
+          "kind": "reference",
+          "openapiTag": "two-factor-auth",
+          "title": {
+            "en": "Two-factor authentication"
+          },
+          "description": {
+            "en": "TOTP and WebAuthn second factors on your account."
+          },
+          "published": true
+        },
+        {
+          "path": "api/notifications",
+          "kind": "reference",
+          "openapiTag": "notifications",
+          "title": {
+            "en": "Notifications"
+          },
+          "description": {
+            "en": "Per-account notification preferences."
+          },
+          "published": true
+        },
+        {
+          "path": "api/phone-verification",
+          "kind": "reference",
+          "openapiTag": "phone-verification",
+          "title": {
+            "en": "Phone verification"
+          },
+          "description": {
+            "en": "Verify a phone number for SMS-based 2FA and account recovery."
+          },
+          "published": true
+        },
+        {
+          "path": "api/region-requests",
+          "kind": "reference",
+          "openapiTag": "region-requests",
+          "title": {
+            "en": "Region requests"
+          },
+          "description": {
+            "en": "Request access to a region, or a quota uplift in a region you already have."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
+      "id": "api-billing",
+      "title": {
+        "en": "Billing",
+        "de": "Abrechnung",
+        "es": "Facturación",
+        "fr": "Facturation",
+        "pt": "Faturação",
+        "uk": "Білінг"
+      },
+      "items": [
+        {
+          "path": "api/subscriptions",
+          "kind": "reference",
+          "openapiTag": "subscriptions",
+          "title": {
+            "en": "Subscriptions"
+          },
+          "description": {
+            "en": "Plan tier, billing cycle, upgrade and downgrade endpoints."
+          },
+          "published": true
+        },
+        {
+          "path": "api/invoices",
+          "kind": "reference",
+          "openapiTag": "invoices",
+          "title": {
+            "en": "Invoices"
+          },
+          "description": {
+            "en": "Monthly invoices — list, fetch, view the breakdown."
+          },
+          "published": true
+        },
+        {
+          "path": "api/payment-methods",
+          "kind": "reference",
+          "openapiTag": "payment-methods",
+          "title": {
+            "en": "Payment methods"
+          },
+          "description": {
+            "en": "Saved cards, ACH accounts, and default-payment configuration."
+          },
+          "published": true
+        },
+        {
+          "path": "api/pricing-data",
+          "kind": "reference",
+          "openapiTag": "pricing-data",
+          "title": {
+            "en": "Pricing data"
+          },
+          "description": {
+            "en": "Programmatic access to the canonical price list. Read-only."
           },
           "published": true
         }
