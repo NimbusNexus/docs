@@ -1,0 +1,561 @@
+{
+  "version": 1,
+  "sections": [
+    {
+      "id": "get-started",
+      "title": {
+        "en": "Get started",
+        "de": "Erste Schritte",
+        "es": "Empezar",
+        "fr": "Commencer",
+        "pt": "Começar",
+        "uk": "Початок"
+      },
+      "items": [
+        {
+          "path": "quickstart",
+          "kind": "quickstart",
+          "title": {
+            "en": "Quickstart",
+            "de": "Schnellstart",
+            "es": "Inicio rápido",
+            "fr": "Démarrage rapide",
+            "pt": "Início rápido",
+            "uk": "Швидкий старт"
+          },
+          "description": {
+            "en": "Generate an API key, pick a region, and create your first VM in three requests."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
+      "id": "concepts",
+      "title": {
+        "en": "Concepts",
+        "de": "Konzepte",
+        "es": "Conceptos",
+        "fr": "Concepts",
+        "pt": "Conceitos",
+        "uk": "Концепції"
+      },
+      "items": [
+        {
+          "path": "authentication",
+          "kind": "concept",
+          "title": {
+            "en": "Authentication",
+            "de": "Authentifizierung",
+            "es": "Autenticación",
+            "fr": "Authentification",
+            "pt": "Autenticação",
+            "uk": "Автентифікація"
+          },
+          "description": {
+            "en": "API keys, scopes, project boundaries, and how to rotate credentials safely."
+          },
+          "published": true
+        },
+        {
+          "path": "conventions",
+          "kind": "concept",
+          "title": {
+            "en": "Conventions",
+            "de": "Konventionen",
+            "es": "Convenciones",
+            "fr": "Conventions",
+            "pt": "Convenções",
+            "uk": "Угоди"
+          },
+          "description": {
+            "en": "Patterns the API follows everywhere — resource ids, pagination, errors, idempotency, long-running operations."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
+      "id": "api-compute",
+      "title": {
+        "en": "Compute",
+        "de": "Compute",
+        "es": "Cómputo",
+        "fr": "Calcul",
+        "pt": "Computação",
+        "uk": "Обчислення"
+      },
+      "items": [
+        {
+          "path": "api/vms",
+          "kind": "reference",
+          "openapiTag": "vms",
+          "title": {
+            "en": "Virtual machines",
+            "de": "Virtuelle Maschinen",
+            "es": "Máquinas virtuales",
+            "fr": "Machines virtuelles",
+            "pt": "Máquinas virtuais",
+            "uk": "Віртуальні машини"
+          },
+          "description": {
+            "en": "Provision, inspect, resize, and destroy VMs."
+          },
+          "published": true
+        },
+        {
+          "path": "api/vm-sizes",
+          "kind": "reference",
+          "openapiTag": "vm-sizes",
+          "title": {
+            "en": "VM sizes",
+            "de": "VM-Größen",
+            "es": "Tamaños de VM",
+            "fr": "Tailles de VM",
+            "pt": "Tamanhos de VM",
+            "uk": "Розміри VM"
+          },
+          "description": {
+            "en": "Catalog of compute shapes across the gp, co, mo, and gx families."
+          },
+          "published": true
+        },
+        {
+          "path": "api/vm-images",
+          "kind": "reference",
+          "openapiTag": "vm-images",
+          "title": {
+            "en": "VM images",
+            "de": "VM-Images",
+            "es": "Imágenes de VM",
+            "fr": "Images VM",
+            "pt": "Imagens de VM",
+            "uk": "Образи VM"
+          },
+          "description": {
+            "en": "OS boot images — public templates plus project-owned custom images."
+          },
+          "published": true
+        },
+        {
+          "path": "api/ssh-keys",
+          "kind": "reference",
+          "openapiTag": "ssh-keys",
+          "title": {
+            "en": "SSH keys",
+            "de": "SSH-Schlüssel",
+            "es": "Claves SSH",
+            "fr": "Clés SSH",
+            "pt": "Chaves SSH",
+            "uk": "SSH-ключі"
+          },
+          "description": {
+            "en": "Public keys registered on the project and injected into VMs at boot."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
+      "id": "api-storage",
+      "title": {
+        "en": "Storage",
+        "de": "Speicher",
+        "es": "Almacenamiento",
+        "fr": "Stockage",
+        "pt": "Armazenamento",
+        "uk": "Сховище"
+      },
+      "items": [
+        {
+          "path": "api/block-storage",
+          "kind": "reference",
+          "openapiTag": "block-storage",
+          "title": {
+            "en": "Block storage",
+            "de": "Blockspeicher",
+            "es": "Almacenamiento en bloques",
+            "fr": "Stockage en blocs",
+            "pt": "Armazenamento em blocos",
+            "uk": "Блочне сховище"
+          },
+          "description": {
+            "en": "Persistent NVMe volumes attached to VMs. Three tiers, live resize, snapshots."
+          },
+          "published": true
+        },
+        {
+          "path": "api/object-storage",
+          "kind": "reference",
+          "openapiTag": "object-storage",
+          "title": {
+            "en": "Object storage",
+            "de": "Objektspeicher",
+            "es": "Almacenamiento de objetos",
+            "fr": "Stockage objet",
+            "pt": "Armazenamento de objetos",
+            "uk": "Об'єктне сховище"
+          },
+          "description": {
+            "en": "S3-compatible buckets with three storage classes and free in-region transfer to VMs."
+          },
+          "published": true
+        },
+        {
+          "path": "api/cold-storage",
+          "kind": "reference",
+          "openapiTag": "cold-storage",
+          "title": {
+            "en": "Cold storage",
+            "de": "Cold Storage",
+            "es": "Almacenamiento en frío",
+            "fr": "Stockage froid",
+            "pt": "Armazenamento frio",
+            "uk": "Холодне сховище"
+          },
+          "description": {
+            "en": "Archive-tier storage with the cheapest per-GB rate and separately-metered retrieval."
+          },
+          "published": true
+        },
+        {
+          "path": "api/snapshots",
+          "kind": "reference",
+          "openapiTag": "snapshots",
+          "title": {
+            "en": "Snapshots",
+            "de": "Snapshots",
+            "es": "Snapshots",
+            "fr": "Snapshots",
+            "pt": "Snapshots",
+            "uk": "Снепшоти"
+          },
+          "description": {
+            "en": "Point-in-time copies of VMs, block volumes, and managed databases."
+          },
+          "published": true
+        },
+        {
+          "path": "api/backups",
+          "kind": "reference",
+          "openapiTag": "backups",
+          "title": {
+            "en": "Backups",
+            "de": "Backups",
+            "es": "Backups",
+            "fr": "Sauvegardes",
+            "pt": "Backups",
+            "uk": "Резервні копії"
+          },
+          "description": {
+            "en": "Scheduled and on-demand backups with deduplication, retention policies, and cross-region restore."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
+      "id": "api-databases",
+      "title": {
+        "en": "Databases",
+        "de": "Datenbanken",
+        "es": "Bases de datos",
+        "fr": "Bases de données",
+        "pt": "Bancos de dados",
+        "uk": "Бази даних"
+      },
+      "items": [
+        {
+          "path": "api/managed-databases",
+          "kind": "reference",
+          "openapiTag": "databases",
+          "title": {
+            "en": "Managed databases",
+            "de": "Verwaltete Datenbanken",
+            "es": "Bases de datos gestionadas",
+            "fr": "Bases de données managées",
+            "pt": "Bancos de dados gerenciados",
+            "uk": "Керовані бази даних"
+          },
+          "description": {
+            "en": "Managed Postgres, MySQL, MongoDB, Redis, Kafka, and OpenSearch — provision, snapshot, restore."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
+      "id": "api-networking",
+      "title": {
+        "en": "Networking",
+        "de": "Netzwerk",
+        "es": "Red",
+        "fr": "Réseau",
+        "pt": "Rede",
+        "uk": "Мережа"
+      },
+      "items": [
+        {
+          "path": "api/regions",
+          "kind": "reference",
+          "openapiTag": "regions",
+          "title": {
+            "en": "Regions",
+            "de": "Regionen",
+            "es": "Regiones",
+            "fr": "Régions",
+            "pt": "Regiões",
+            "uk": "Регіони"
+          },
+          "description": {
+            "en": "Geographic locations NimbusNexus serves, with live + pre-launch status."
+          },
+          "published": true
+        },
+        {
+          "path": "api/floating-ips",
+          "kind": "reference",
+          "openapiTag": "floating-ips",
+          "title": {
+            "en": "Floating IPs",
+            "de": "Floating-IPs",
+            "es": "IPs flotantes",
+            "fr": "IPs flottantes",
+            "pt": "IPs flutuantes",
+            "uk": "Плаваючі IP"
+          },
+          "description": {
+            "en": "Region-scoped public IPs that can be detached from one VM and reattached to another."
+          },
+          "published": true
+        },
+        {
+          "path": "api/networks",
+          "kind": "reference",
+          "openapiTag": "networks",
+          "title": {
+            "en": "Networks",
+            "de": "Netzwerke",
+            "es": "Redes",
+            "fr": "Réseaux",
+            "pt": "Redes",
+            "uk": "Мережі"
+          },
+          "description": {
+            "en": "L2 broadcast domains that VMs and load balancers attach to. The base primitive of a project's VPC."
+          },
+          "published": true
+        },
+        {
+          "path": "api/subnets",
+          "kind": "reference",
+          "openapiTag": "subnets",
+          "title": {
+            "en": "Subnets",
+            "de": "Subnetze",
+            "es": "Subredes",
+            "fr": "Sous-réseaux",
+            "pt": "Sub-redes",
+            "uk": "Підмережі"
+          },
+          "description": {
+            "en": "IP-address blocks carved out of a network. Each subnet has its own CIDR, gateway, and DHCP policy."
+          },
+          "published": true
+        },
+        {
+          "path": "api/security-groups",
+          "kind": "reference",
+          "openapiTag": "security-groups",
+          "title": {
+            "en": "Security groups",
+            "de": "Sicherheitsgruppen",
+            "es": "Grupos de seguridad",
+            "fr": "Groupes de sécurité",
+            "pt": "Grupos de segurança",
+            "uk": "Групи безпеки"
+          },
+          "description": {
+            "en": "Stateful firewall rule sets applied to VM network interfaces."
+          },
+          "published": true
+        },
+        {
+          "path": "api/routers",
+          "kind": "reference",
+          "openapiTag": "routers",
+          "title": {
+            "en": "Routers",
+            "de": "Router",
+            "es": "Routers",
+            "fr": "Routeurs",
+            "pt": "Roteadores",
+            "uk": "Маршрутизатори"
+          },
+          "description": {
+            "en": "Connect tenant subnets to the project's external gateway."
+          },
+          "published": true
+        },
+        {
+          "path": "api/load-balancers",
+          "kind": "reference",
+          "openapiTag": "load-balancers",
+          "title": {
+            "en": "Load balancers",
+            "de": "Load Balancer",
+            "es": "Balanceadores de carga",
+            "fr": "Répartiteurs de charge",
+            "pt": "Balanceadores de carga",
+            "uk": "Балансувальники навантаження"
+          },
+          "description": {
+            "en": "Managed L4 / L7 traffic distribution across a pool of backend VMs."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
+      "id": "api-dns",
+      "title": {
+        "en": "DNS",
+        "de": "DNS",
+        "es": "DNS",
+        "fr": "DNS",
+        "pt": "DNS",
+        "uk": "DNS"
+      },
+      "items": [
+        {
+          "path": "api/dns-zones",
+          "kind": "reference",
+          "openapiTag": "dns-zones",
+          "title": {
+            "en": "DNS zones",
+            "de": "DNS-Zonen",
+            "es": "Zonas DNS",
+            "fr": "Zones DNS",
+            "pt": "Zonas DNS",
+            "uk": "DNS-зони"
+          },
+          "description": {
+            "en": "Authoritative DNS zones hosted on NimbusNexus nameservers."
+          },
+          "published": true
+        },
+        {
+          "path": "api/dns-records",
+          "kind": "reference",
+          "openapiTag": "dns-records",
+          "title": {
+            "en": "DNS records",
+            "de": "DNS-Einträge",
+            "es": "Registros DNS",
+            "fr": "Enregistrements DNS",
+            "pt": "Registros DNS",
+            "uk": "DNS-записи"
+          },
+          "description": {
+            "en": "A, AAAA, CNAME, MX, TXT, SRV, NS records inside a zone."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
+      "id": "api-identity",
+      "title": {
+        "en": "Identity & access",
+        "de": "Identität & Zugriff",
+        "es": "Identidad y acceso",
+        "fr": "Identité et accès",
+        "pt": "Identidade e acesso",
+        "uk": "Ідентифікація та доступ"
+      },
+      "items": [
+        {
+          "path": "api/users",
+          "kind": "reference",
+          "openapiTag": "users",
+          "title": {
+            "en": "Users",
+            "de": "Benutzer",
+            "es": "Usuarios",
+            "fr": "Utilisateurs",
+            "pt": "Usuários",
+            "uk": "Користувачі"
+          },
+          "description": {
+            "en": "Identity records inside a project — assign roles, generate API keys, assume trusts."
+          },
+          "published": true
+        },
+        {
+          "path": "api/projects",
+          "kind": "reference",
+          "openapiTag": "projects",
+          "title": {
+            "en": "Projects",
+            "de": "Projekte",
+            "es": "Proyectos",
+            "fr": "Projets",
+            "pt": "Projetos",
+            "uk": "Проєкти"
+          },
+          "description": {
+            "en": "The unit of isolation for resources, billing, and access control."
+          },
+          "published": true
+        },
+        {
+          "path": "api/roles",
+          "kind": "reference",
+          "openapiTag": "roles",
+          "title": {
+            "en": "Roles",
+            "de": "Rollen",
+            "es": "Roles",
+            "fr": "Rôles",
+            "pt": "Funções",
+            "uk": "Ролі"
+          },
+          "description": {
+            "en": "Built-in and custom roles, plus the role-assignment endpoints that grant a user a role on a project."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
+      "id": "api-account",
+      "title": {
+        "en": "Account",
+        "de": "Konto",
+        "es": "Cuenta",
+        "fr": "Compte",
+        "pt": "Conta",
+        "uk": "Обліковий запис"
+      },
+      "items": [
+        {
+          "path": "api/quotas",
+          "kind": "reference",
+          "openapiTag": "quotas",
+          "title": {
+            "en": "Quotas",
+            "de": "Kontingente",
+            "es": "Cuotas",
+            "fr": "Quotas",
+            "pt": "Cotas",
+            "uk": "Квоти"
+          },
+          "description": {
+            "en": "Per-project limits on VMs, vCPU, RAM, storage, floating IPs, and other resources."
+          },
+          "published": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+name: Lint
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Markdown lint
+        run: npm run lint:markdown
+
+      - name: Frontmatter validation
+        run: npm run lint:frontmatter
+
+      - name: Placeholder validation
+        run: npm run lint:placeholders
+
+      - name: Link check
+        uses: lycheeverse/lychee-action@v2
+        with:
+          # Internal /docs/* links resolve at render time in the
+          # frontend, not from the .md files themselves — skip them.
+          # External http(s) URLs do get checked.
+          args: --no-progress --exclude '^/docs/' --exclude-loopback 'content/**/*.md'
+          fail: true

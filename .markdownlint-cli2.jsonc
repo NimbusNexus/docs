@@ -1,0 +1,18 @@
+{
+  // Rules at https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+  "config": {
+    "default": true,
+    // Allow up to 120-char lines — fits most modern code editors without
+    // forcing artificial wrapping mid-sentence.
+    "MD013": { "line_length": 120, "tables": false, "code_blocks": false },
+    // We use `## H2 {#anchor}` syntax — markdownlint sees the trailing
+    // braces as an HTML element and warns by default.
+    "MD033": { "allowed_elements": ["a", "br", "details", "summary"] },
+    // First line doesn't have to be a top-level heading — frontmatter
+    // comes first.
+    "MD041": false,
+    // Allow inline HTML for occasional <details> / <summary> blocks.
+    "MD034": false
+  },
+  "globs": ["content/**/*.md"]
+}
