@@ -72,6 +72,195 @@
             "en": "Patterns the API follows everywhere — resource ids, pagination, errors, idempotency, long-running operations."
           },
           "published": true
+        },
+        {
+          "path": "webhooks",
+          "kind": "concept",
+          "title": {
+            "en": "Webhooks"
+          },
+          "description": {
+            "en": "Subscribe to resource lifecycle events. HMAC-signed POSTs to a URL you control."
+          },
+          "published": true
+        },
+        {
+          "path": "rate-limiting",
+          "kind": "concept",
+          "title": {
+            "en": "Rate limiting"
+          },
+          "description": {
+            "en": "Per-key request budgets, the headers we return, and the right backoff strategy."
+          },
+          "published": true
+        },
+        {
+          "path": "pagination",
+          "kind": "concept",
+          "title": {
+            "en": "Pagination"
+          },
+          "description": {
+            "en": "Cursor pagination on every list endpoint. Stable across inserts, no offset drift."
+          },
+          "published": true
+        },
+        {
+          "path": "idempotency",
+          "kind": "concept",
+          "title": {
+            "en": "Idempotency"
+          },
+          "description": {
+            "en": "Safe-to-retry mutating requests using the Idempotency-Key header."
+          },
+          "published": true
+        },
+        {
+          "path": "errors",
+          "kind": "concept",
+          "title": {
+            "en": "Errors"
+          },
+          "description": {
+            "en": "The error shape, the error codes that matter, and how to handle each."
+          },
+          "published": true
+        },
+        {
+          "path": "security",
+          "kind": "concept",
+          "title": {
+            "en": "Security model"
+          },
+          "description": {
+            "en": "How keys, scopes, projects, and audit logs combine to bound blast radius."
+          },
+          "published": true
+        },
+        {
+          "path": "versioning",
+          "kind": "concept",
+          "title": {
+            "en": "Versioning policy"
+          },
+          "description": {
+            "en": "How we evolve the API without breaking your code."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
+      "id": "guides",
+      "title": {
+        "en": "Guides",
+        "de": "Anleitungen",
+        "es": "Guías",
+        "fr": "Guides",
+        "pt": "Guias",
+        "uk": "Інструкції"
+      },
+      "items": [
+        {
+          "path": "guides/postgres-production",
+          "kind": "guide",
+          "title": {
+            "en": "Run a production Postgres in 10 minutes"
+          },
+          "description": {
+            "en": "Provision a managed Postgres with HA, backups, and zero-downtime upgrades — three API calls."
+          },
+          "published": true
+        },
+        {
+          "path": "guides/static-site",
+          "kind": "guide",
+          "title": {
+            "en": "Deploy a static site"
+          },
+          "description": {
+            "en": "Object storage as a hosting target — bucket, public read, custom domain, ~5 minutes."
+          },
+          "published": true
+        },
+        {
+          "path": "guides/migrate-from-rds",
+          "kind": "guide",
+          "title": {
+            "en": "Migrate from AWS RDS"
+          },
+          "description": {
+            "en": "Live-migrate Postgres or MySQL from RDS with zero data loss and ~30s downtime."
+          },
+          "published": true
+        },
+        {
+          "path": "guides/blue-green",
+          "kind": "guide",
+          "title": {
+            "en": "Blue/green deploys with floating IPs"
+          },
+          "description": {
+            "en": "Zero-downtime deploys by swinging a floating IP between two warm VMs."
+          },
+          "published": true
+        },
+        {
+          "path": "guides/multi-region",
+          "kind": "guide",
+          "title": {
+            "en": "Multi-region failover"
+          },
+          "description": {
+            "en": "DNS-level failover across two regions with health-checked routing."
+          },
+          "published": true
+        },
+        {
+          "path": "guides/monitoring-vms",
+          "kind": "guide",
+          "title": {
+            "en": "Monitor a VM fleet"
+          },
+          "description": {
+            "en": "Prometheus scrapes, NimbusNexus-emitted metrics, and the alerts that matter."
+          },
+          "published": true
+        },
+        {
+          "path": "guides/container-deploy",
+          "kind": "guide",
+          "title": {
+            "en": "Container deployment patterns"
+          },
+          "description": {
+            "en": "Single VM, systemd-managed Docker, behind a floating IP."
+          },
+          "published": true
+        },
+        {
+          "path": "guides/networking-setup",
+          "kind": "guide",
+          "title": {
+            "en": "Project networking setup"
+          },
+          "description": {
+            "en": "Networks, subnets, routers, and security groups — canonical wiring for a multi-tier app."
+          },
+          "published": true
+        },
+        {
+          "path": "guides/cost-optimization",
+          "kind": "guide",
+          "title": {
+            "en": "Optimizing your monthly bill"
+          },
+          "description": {
+            "en": "The five highest-leverage things to do if your invoice is bigger than you expected."
+          },
+          "published": true
         }
       ]
     },
@@ -552,6 +741,63 @@
           },
           "description": {
             "en": "Per-project limits on VMs, vCPU, RAM, storage, floating IPs, and other resources."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
+      "id": "sdks-cli",
+      "title": {
+        "en": "SDKs & CLI",
+        "de": "SDKs & CLI",
+        "es": "SDK y CLI",
+        "fr": "SDK et CLI",
+        "pt": "SDKs e CLI",
+        "uk": "SDK та CLI"
+      },
+      "items": [
+        {
+          "path": "sdks/typescript",
+          "kind": "sdk",
+          "title": {
+            "en": "TypeScript SDK"
+          },
+          "description": {
+            "en": "Typed client for the NimbusNexus REST API. ESM + CJS, Node 20+, browser-friendly."
+          },
+          "published": true
+        },
+        {
+          "path": "sdks/python",
+          "kind": "sdk",
+          "title": {
+            "en": "Python SDK"
+          },
+          "description": {
+            "en": "Typed Python client. Sync + async, Pydantic models, Python 3.11+."
+          },
+          "published": true
+        },
+        {
+          "path": "sdks/go",
+          "kind": "sdk",
+          "title": {
+            "en": "Go SDK"
+          },
+          "description": {
+            "en": "Idiomatic Go client. Context-aware, no dependencies, Go 1.22+."
+          },
+          "published": true
+        },
+        {
+          "path": "cli",
+          "kind": "cli",
+          "title": {
+            "en": "CLI"
+          },
+          "description": {
+            "en": "nimbus — the command-line interface for the REST API."
           },
           "published": true
         }

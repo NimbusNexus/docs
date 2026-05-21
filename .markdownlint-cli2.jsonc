@@ -30,7 +30,14 @@
     // ── Frontmatter on first line ────────────────────────────────────
     // Default rule expects the first line to be `# Heading`. Ours is
     // `---` (YAML frontmatter); that's correct, the rule is wrong.
-    "MD041": false
+    "MD041": false,
+
+    // ── Table cell padding ───────────────────────────────────────────
+    // Both `| a | b |` (padded) and `|a|b|` (compact) are valid GFM
+    // tables. We use both depending on the table — short tables read
+    // better compact, wide tables read better padded. Disabling this
+    // rule lets each table use whichever fits.
+    "MD060": false
   },
   "globs": ["content/**/*.md"]
 }
