@@ -14,7 +14,7 @@ A DNS zone is an authoritative domain hosted on NimbusNexus nameservers. Create 
 
 After creating a zone, the response carries the four nameservers you need to configure at your registrar:
 
-```
+```text
 {{DNS_NS1}}
 {{DNS_NS2}}
 {{DNS_NS3}}

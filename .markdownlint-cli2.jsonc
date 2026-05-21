@@ -2,17 +2,35 @@
   // Rules at https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
   "config": {
     "default": true,
-    // Allow up to 120-char lines — fits most modern code editors without
-    // forcing artificial wrapping mid-sentence.
-    "MD013": { "line_length": 120, "tables": false, "code_blocks": false },
-    // We use `## H2 {#anchor}` syntax — markdownlint sees the trailing
-    // braces as an HTML element and warns by default.
+
+    // ── Line length ──────────────────────────────────────────────────
+    // Prose docs read better with paragraphs as single long lines than
+    // with manually-wrapped soft breaks (which complicates diff review
+    // and copy-paste). Diff tooling and editors handle long lines fine.
+    "MD013": false,
+
+    // ── Multiple H1s ─────────────────────────────────────────────────
+    // Each page has `title:` in frontmatter AND `# Title` as the first
+    // body heading. The renderer treats them as one title (the body H1
+    // is what users actually see); markdownlint's default H1 rule
+    // doesn't account for that and flags every file. Disabled.
+    "MD025": false,
+
+    // ── Inline HTML ──────────────────────────────────────────────────
+    // Allow inline HTML for the occasional <details> / <summary> block
+    // and `<br>` in tables.
     "MD033": { "allowed_elements": ["a", "br", "details", "summary"] },
-    // First line doesn't have to be a top-level heading — frontmatter
-    // comes first.
-    "MD041": false,
-    // Allow inline HTML for occasional <details> / <summary> blocks.
-    "MD034": false
+
+    // ── Bare URLs ────────────────────────────────────────────────────
+    // We use bare URLs in places where a link label would be redundant
+    // ("see https://nimbusnexus.net/contact/support"). The renderer
+    // auto-links them.
+    "MD034": false,
+
+    // ── Frontmatter on first line ────────────────────────────────────
+    // Default rule expects the first line to be `# Heading`. Ours is
+    // `---` (YAML frontmatter); that's correct, the rule is wrong.
+    "MD041": false
   },
   "globs": ["content/**/*.md"]
 }

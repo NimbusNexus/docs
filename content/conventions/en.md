@@ -139,7 +139,7 @@ Most operations finish in under 60 seconds. The exception is VM image pulls on f
 
 All timestamps are **RFC 3339 / ISO 8601 in UTC** with the `Z` suffix:
 
-```
+```text
 2026-05-19T18:30:00Z
 ```
 

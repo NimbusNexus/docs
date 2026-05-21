@@ -30,7 +30,7 @@ We don't support: `ALIAS` / `ANAME` (CNAME-flattening at the apex) — use the C
 
 You can put multiple values in one record set:
 
-```
+```text
 www.example.com → A → 203.0.113.5
                   → 203.0.113.6
                   → 203.0.113.7

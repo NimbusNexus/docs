@@ -22,7 +22,7 @@ Three guarantees the project boundary gives you:
 
 Projects can have a parent project (organization tier and up). The hierarchy looks like:
 
-```
+```text
 acme-org (root)
 ├── acme-prod
 ├── acme-staging
