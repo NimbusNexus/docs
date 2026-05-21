@@ -3,3 +3,7 @@ node_modules
 *.log
 .env
 .env.local
+
+# IDE local config — JetBrains (.idea/), VS Code (.vscode/)
+.idea/
+.vscode/

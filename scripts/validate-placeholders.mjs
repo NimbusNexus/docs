@@ -9,8 +9,21 @@
  * Frontend-index repo. If you add a placeholder there, add it
  * here too.
  */
-import { readFileSync } from 'node:fs'
-import { glob } from 'node:fs/promises'
+import { readdirSync, readFileSync } from 'node:fs'
+import path from 'node:path'
+
+/**
+ * Recursive markdown-file walker. Same sync-IO approach as
+ * `validate-frontmatter.mjs` — no extra dep, works on Node 18+.
+ */
+function findMdFiles(dir, out = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name)
+    if (entry.isDirectory()) findMdFiles(p, out)
+    else if (entry.name.endsWith('.md')) out.push(p)
+  }
+  return out
+}
 
 const KNOWN = new Set([
   'ROOT_DOMAIN',
@@ -34,7 +47,7 @@ const PLACEHOLDER = /\{\{([A-Z][A-Z0-9_]*)\}\}/g
 
 let errorCount = 0
 
-for await (const file of glob('content/**/*.md')) {
+for (const file of findMdFiles('content')) {
   const raw = readFileSync(file, 'utf8')
   const unknownInThisFile = new Set()
 

@@ -1,24 +1,65 @@
 name: Lint
 
+# Mirrors the Node-version matrix + action versions used in
+# `Frontend-index/.github/workflows/ci.yml` and
+# `Frontend-auth/.github/workflows/ci.yml`. Differences:
+#
+#   - Docs has no application to build, test, or e2e — only Markdown
+#     validation. So the workflow is one job, four steps.
+#
+#   - No NPM_TOKEN / registry-url / scope. The docs repo has no
+#     `@nimbusnexus/*` private deps; only public packages from the
+#     npm registry. Adding the GitHub registry config here would just
+#     be cargo-cult.
+#
+#   - Same `24.15.0` floor + `current` canary pattern as the other
+#     frontends — gives early warning on upstream tooling breakage
+#     (markdownlint, gray-matter, lychee) before we bump the floor.
+
 on:
   pull_request:
     branches: [main]
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   lint:
+    # ─── Node version matrix ──────────────────────────────────────────
+    # Same pattern as Frontend-auth / Frontend-index: pinned floor as
+    # the required leg, `current` as a canary that surfaces upcoming
+    # tooling breakage without blocking merges.
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["24.15.0", "current"]
+        include:
+          - node-version: "24.15.0"
+            required: true
+          - node-version: "current"
+            required: false
+    continue-on-error: ${{ !matrix.required }}
 
-      - uses: actions/setup-node@v4
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: ${{ matrix.node-version }}
           cache: npm
 
       - name: Install
         run: npm ci
+
+      - name: Audit dependencies
+        # Fail on high/critical advisories. `--omit=dev` keeps dev-only
+        # tooling vulns out of the gate (we surface those via
+        # Dependabot instead) so a markdownlint CVE doesn't block a
+        # typo-fix PR.
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Markdown lint
         run: npm run lint:markdown

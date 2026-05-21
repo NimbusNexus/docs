@@ -6,10 +6,25 @@
  *
  * Exit 0 on success, 1 on any frontmatter error.
  */
-import { readFileSync } from 'node:fs'
-import { glob } from 'node:fs/promises'
+import { readdirSync, readFileSync } from 'node:fs'
+import path from 'node:path'
 import matter from 'gray-matter'
 import { z } from 'zod'
+
+/**
+ * Recursive markdown-file walker. Uses synchronous fs APIs so this
+ * script stays single-dep (no `glob` package) and avoids the
+ * Node-22-only `node:fs/promises#glob`. The content tree is tiny
+ * (tens of files), so sync IO has no measurable cost.
+ */
+function findMdFiles(dir, out = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name)
+    if (entry.isDirectory()) findMdFiles(p, out)
+    else if (entry.name.endsWith('.md')) out.push(p)
+  }
+  return out
+}
 
 const kindEnum = z.enum(['concept', 'reference', 'quickstart', 'guide', 'sdk', 'cli'])
 
@@ -35,7 +50,7 @@ const frontmatterSchema = z.object({
 
 let errorCount = 0
 
-for await (const file of glob('content/**/*.md')) {
+for (const file of findMdFiles('content')) {
   const raw = readFileSync(file, 'utf8')
   const parsed = matter(raw)
   const result = frontmatterSchema.safeParse(parsed.data)
@@ -44,8 +59,8 @@ for await (const file of glob('content/**/*.md')) {
     errorCount++
     console.error(`\n✗ ${file}`)
     for (const issue of result.error.issues) {
-      const path = issue.path.join('.') || '(root)'
-      console.error(`    ${path}: ${issue.message}`)
+      const issuePath = issue.path.join('.') || '(root)'
+      console.error(`    ${issuePath}: ${issue.message}`)
     }
   }
 }
