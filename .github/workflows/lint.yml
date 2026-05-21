@@ -70,6 +70,13 @@ jobs:
       - name: Placeholder validation
         run: npm run lint:placeholders
 
+      - name: Template-marker validation
+        # Rejects committed pages that still carry the leftover
+        # `<!-- TEMPLATE — copy this file ... -->` block from
+        # content/_templates/*. Catches "copy-paste, forget to delete
+        # the marker" before it ships to the rendered docs.
+        run: npm run lint:templates
+
       - name: Link check
         uses: lycheeverse/lychee-action@v2
         with:

@@ -13,10 +13,11 @@
     "url": "https://github.com/NimbusNexus/docs/issues"
   },
   "scripts": {
-    "lint": "npm run lint:markdown && npm run lint:frontmatter && npm run lint:placeholders && npm run lint:links",
+    "lint": "npm run lint:markdown && npm run lint:frontmatter && npm run lint:placeholders && npm run lint:templates && npm run lint:links",
     "lint:markdown": "markdownlint-cli2 'content/**/*.md'",
     "lint:frontmatter": "node scripts/validate-frontmatter.mjs",
     "lint:placeholders": "node scripts/validate-placeholders.mjs",
+    "lint:templates": "node scripts/validate-no-template-markers.mjs",
     "lint:links": "lychee --no-progress --offline 'content/**/*.md' || true"
   },
   "devDependencies": {

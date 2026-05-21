@@ -48,6 +48,14 @@ const PLACEHOLDER = /\{\{([A-Z][A-Z0-9_]*)\}\}/g
 let errorCount = 0
 
 for (const file of findMdFiles('content')) {
+  // Skip the templates directory. Templates aren't rendered, and
+  // they sometimes need to discuss the placeholder syntax meta-
+  // textually (e.g. "use `{{NAME}}` as a placeholder reference" in
+  // the README). Real content under content/ still gets validated
+  // normally; the templates themselves use only valid placeholders.
+  const relative = file.replaceAll(path.sep, '/')
+  if (relative.startsWith('content/_templates/')) continue
+
   const raw = readFileSync(file, 'utf8')
   const unknownInThisFile = new Set()
 

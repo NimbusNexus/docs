@@ -93,11 +93,34 @@ curl {{API_BASE_URL}}/v1/vms \
 
 ## Adding a new page
 
+**Start by copying a template.** Don't write a new page from scratch
+— the templates encode shape decisions (section anchors, intro
+length, "What's next" footer, kind-specific structure) that drive
+the sidebar nav, the right-rail TOC, and the rendered breadcrumb.
+
 1. **Pick the URL.** It's the file path. `content/api/load-balancers/en.md`
    becomes `/docs/api/load-balancers`. Multi-segment paths like
    `sdks/typescript` work — just nest the directory.
 
-2. **Add a manifest entry.** Open `manifest.json` and add your page
+2. **Pick a template by page kind:**
+
+   | Kind          | Template                       | For                                              |
+   |---------------|--------------------------------|--------------------------------------------------|
+   | `reference`   | `content/_templates/reference.md`  | API reference, one per resource                  |
+   | `concept`     | `content/_templates/concept.md`    | Conceptual explainers                            |
+   | `guide`       | `content/_templates/guide.md`      | Step-by-step worked-through tutorials            |
+   | `quickstart`  | `content/_templates/quickstart.md` | Onboarding flows ("run X in 5 minutes")          |
+   | `sdk`         | `content/_templates/sdk.md`        | Language-specific SDK docs                       |
+   | `cli`         | `content/_templates/cli.md`        | Command-line tool docs                           |
+
+   ```bash
+   cp content/_templates/reference.md content/api/load-balancers/en.md
+   ```
+
+   See [`content/_templates/README.md`](./content/_templates/README.md)
+   for the full per-kind structure breakdown.
+
+3. **Add a manifest entry.** Open `manifest.json` and add your page
    under the right section. Order in the file is the sidebar order.
 
    ```jsonc
@@ -106,20 +129,18 @@ curl {{API_BASE_URL}}/v1/vms \
      "title":       { "en": "Load balancers" },
      "description": { "en": "VIP-fronted load balancers across N targets." },
      "kind": "reference",
-     "openApiTag": "load_balancers",
+     "openapiTag": "load_balancers",
      "published": true
    }
    ```
 
-3. **Write the page.** Follow the shape above. Aim for:
-   - **Reference pages:** 200–400 words of narrative intro, then the
-     auto-generated endpoint cards take over.
-   - **Concept pages:** 600–1200 words. One question per H2. Code in
-     every section that benefits from it.
-   - **Quickstarts:** numbered steps. End with "you've done X" + next
-     steps.
+4. **Edit your new page.** Delete the top-line
+   `<!-- TEMPLATE — copy this file ... -->` block — the lint
+   workflow rejects any committed page outside `_templates/` that
+   still has it. Then fill in the body following the template's
+   inline guidance.
 
-4. **Validate.** `npm run lint`. If it passes, open a PR.
+5. **Validate.** `npm run lint`. If it passes, open a PR.
 
 ## Validation (what CI checks)
 
@@ -127,11 +148,15 @@ curl {{API_BASE_URL}}/v1/vms \
   the frontend uses).
 - **Markdownlint** — formatting consistency (heading spacing, list style,
   trailing whitespace, etc.).
+- **Placeholders** — every `{{NAME}}` references a known placeholder.
+- **Template markers** — committed pages outside `_templates/` must
+  not contain a leftover `<!-- TEMPLATE — copy this file ... -->`
+  block. Catches "copied a template, forgot to delete the marker"
+  before it ships.
 - **Link check** — every internal `/docs/...` and external `https://...`
   resolves. Catches cross-references that break when a page renames.
-- **Placeholders** — every `{{NAME}}` references a known placeholder.
 
-Run all four locally:
+Run all five locally:
 
 ```bash
 npm install
