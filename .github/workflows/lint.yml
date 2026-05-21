@@ -73,8 +73,37 @@ jobs:
       - name: Link check
         uses: lycheeverse/lychee-action@v2
         with:
-          # Internal /docs/* links resolve at render time in the
-          # frontend, not from the .md files themselves — skip them.
-          # External http(s) URLs do get checked.
-          args: --no-progress --exclude '^/docs/' --exclude-loopback 'content/**/*.md'
+          # Lychee config:
+          #
+          # --base https://nimbusnexus.net
+          #   Gives lychee a host so root-relative paths like
+          #   /docs/api/vms parse as URLs. Without this, lychee errors
+          #   ("Cannot convert path '/docs/...' to a URI") BEFORE any
+          #   --exclude pattern is applied — so excludes that target
+          #   /docs/ never get a chance to fire.
+          #
+          # --exclude '^https?://(www\.)?nimbusnexus\.net'
+          #   Skip our own domain. Internal cross-references (/docs/*,
+          #   /resources/*, /contact/*) are validated by the frontend's
+          #   render path via the docs manifest — that's the
+          #   authoritative check. Re-checking via HTTP from here just
+          #   races deploys: a docs PR can legitimately add a link to a
+          #   page that won't exist until the same PR ships.
+          #
+          # --exclude '\{\{[A-Z_]+\}\}'
+          #   Skip placeholder URLs like `{{API_BASE_URL}}/v1/vms`.
+          #   These are interpolated at render time by
+          #   `docsPlaceholders.ts` in the frontend; in the raw .md
+          #   they're literal strings that lychee can't and shouldn't
+          #   resolve.
+          #
+          # Everything else (github.com, creativecommons.org, etc.) is
+          # checked — that's where this step earns its keep, catching
+          # bit-rot on third-party links.
+          args: >-
+            --no-progress
+            --base https://nimbusnexus.net
+            --exclude '^https?://(www\.)?nimbusnexus\.net'
+            --exclude '\{\{[A-Z_]+\}\}'
+            'content/**/*.md'
           fail: true
