@@ -5,12 +5,12 @@ name: Lint
 # `Frontend-auth/.github/workflows/ci.yml`. Differences:
 #
 #   - Docs has no application to build, test, or e2e — only Markdown
-#     validation. So the workflow is one job, four steps.
+#     validation. So the workflow is one job: install, audit, then the
+#     lint + link checks.
 #
-#   - No NPM_TOKEN / registry-url / scope. The docs repo has no
-#     `@nimbusnexus/*` private deps; only public packages from the
-#     npm registry. Adding the GitHub registry config here would just
-#     be cargo-cult.
+#   - No private registry config needed: this repo uses only public
+#     npm deps (the fleet's private `@nimbusnexus/*` deps live in
+#     Nexus, not used here).
 #
 #   - Same `24.15.0` floor + `current` canary pattern as the other
 #     frontends — gives early warning on upstream tooling breakage
@@ -56,9 +56,9 @@ jobs:
 
       - name: Audit dependencies
         # Fail on high/critical advisories. `--omit=dev` keeps dev-only
-        # tooling vulns out of the gate (we surface those via
-        # Dependabot instead) so a markdownlint CVE doesn't block a
-        # typo-fix PR.
+        # tooling vulns out of the gate (dev-only advisories are
+        # accepted here — docs-only repo; no dependabot config) so a
+        # markdownlint CVE doesn't block a typo-fix PR.
         run: npm audit --omit=dev --audit-level=high
 
       - name: Markdown lint
