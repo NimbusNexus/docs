@@ -32,6 +32,7 @@ const KNOWN = new Set([
   'API_HOST',
   'AUTH_BASE_URL',
   'AUTH_HOST',
+  'WEBHOOKS_BASE_URL',
   'STATUS_URL',
   'STATUS_HOST',
   'DNS_NS1',

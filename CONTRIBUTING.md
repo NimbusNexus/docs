@@ -66,6 +66,7 @@ stays in sync with the apex domain and other canonical values:
 | `{{API_BASE_URL}}`            | `https://api.nimbusnexus.net`                  |
 | `{{API_HOST}}`                | `api.nimbusnexus.net`                          |
 | `{{AUTH_BASE_URL}}`           | `https://auth.nimbusnexus.net`                 |
+| `{{WEBHOOKS_BASE_URL}}`       | `https://webhooks.nimbusnexus.net`             |
 | `{{STATUS_URL}}`              | `https://status.nimbusnexus.net`               |
 | `{{DNS_NS1}}`–`{{DNS_NS4}}`   | `ns1.dns.nimbusnexus.net` … `ns4.dns.nim…`     |
 | `{{S3_ENDPOINT_US_EAST_1}}`   | `https://s3.us-east-1.nimbusnexus.net`         |

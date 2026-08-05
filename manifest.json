@@ -77,10 +77,10 @@
           "path": "webhooks",
           "kind": "concept",
           "title": {
-            "en": "Webhooks"
+            "en": "Platform webhooks"
           },
           "description": {
-            "en": "Subscribe to resource lifecycle events. HMAC-signed POSTs to a URL you control."
+            "en": "Subscribe to your infrastructure's lifecycle events. HMAC-signed POSTs to a URL you control."
           },
           "published": true
         },
@@ -1052,6 +1052,69 @@
           },
           "description": {
             "en": "nimbus — the command-line interface for the REST API."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
+      "id": "product-webhooks",
+      "title": {
+        "en": "Webhooks (product)"
+      },
+      "items": [
+        {
+          "path": "product-webhooks",
+          "kind": "concept",
+          "title": {
+            "en": "Overview"
+          },
+          "description": {
+            "en": "The managed webhook platform — publish once, and we sign, retry, and replay every delivery to your subscribers."
+          },
+          "published": true
+        },
+        {
+          "path": "product-webhooks/quickstart",
+          "kind": "quickstart",
+          "title": {
+            "en": "Quickstart"
+          },
+          "description": {
+            "en": "Register an endpoint, publish an event, and verify the signed delivery."
+          },
+          "published": true
+        },
+        {
+          "path": "product-webhooks/signatures",
+          "kind": "concept",
+          "title": {
+            "en": "Signature verification"
+          },
+          "description": {
+            "en": "The signing contract for delivered webhooks — headers, the HMAC construction, and the three rules for checking it."
+          },
+          "published": true
+        },
+        {
+          "path": "product-webhooks/sdks",
+          "kind": "sdk",
+          "title": {
+            "en": "SDKs"
+          },
+          "description": {
+            "en": "Typed clients for Python, TypeScript, and Go — verify, publish, buffer, and manage from code."
+          },
+          "published": true
+        },
+        {
+          "path": "product-webhooks/cli",
+          "kind": "cli",
+          "title": {
+            "en": "CLI"
+          },
+          "description": {
+            "en": "nn-webhooks — a single static binary for publishing events and draining the dead-letter queue."
           },
           "published": true
         }
