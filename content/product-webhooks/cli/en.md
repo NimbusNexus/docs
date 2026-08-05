@@ -48,7 +48,7 @@ For CI, skip the file entirely:
 ```bash
 export NN_WEBHOOKS_URL={{WEBHOOKS_BASE_URL}}
 export NN_WEBHOOKS_API_KEY=whsk_...
-nn-webhooks deliveries --status dead
+nn-webhooks deliveries list --status dead
 ```
 
 Precedence is `--api-key`, then `$NN_WEBHOOKS_API_KEY`, then the profile — and `whoami` reports **which one won**. That matters more than it sounds: a stale environment variable silently shadowing the profile you just wrote is the usual confusion, and a bare "configured" cannot explain it.
