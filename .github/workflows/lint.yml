@@ -104,13 +104,23 @@ jobs:
           #   they're literal strings that lychee can't and shouldn't
           #   resolve.
           #
-          # Everything else (github.com, creativecommons.org, etc.) is
-          # checked — that's where this step earns its keep, catching
-          # bit-rot on third-party links.
+          # --exclude '^https?://(www\.)?npmjs\.com'
+          #   npmjs.com sits behind bot protection and answers 403 to any
+          #   automated request — including with a browser User-Agent — so
+          #   a perfectly good package page is unverifiable from CI and
+          #   fails the run. Excluded rather than dropped, because the link
+          #   is the one a reader actually wants. Package existence is
+          #   still checkable by hand against registry.npmjs.org, which
+          #   does answer 200.
+          #
+          # Everything else (github.com, pypi.org, creativecommons.org,
+          # etc.) is checked — that's where this step earns its keep,
+          # catching bit-rot on third-party links.
           args: >-
             --no-progress
             --base https://nimbusnexus.net
             --exclude '^https?://(www\.)?nimbusnexus\.net'
+            --exclude '^https?://(www\.)?npmjs\.com'
             --exclude '\{\{[A-Z_]+\}\}'
             'content/**/*.md'
           fail: true
