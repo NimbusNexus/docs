@@ -1,14 +1,16 @@
 ---
-title: Webhooks
-description: Subscribe to resource lifecycle events. HMAC-signed POSTs to a URL you control.
+title: Platform webhooks
+description: Subscribe to your infrastructure's lifecycle events. HMAC-signed POSTs to a URL you control.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-08-05
 kind: concept
 ---
 
-# Webhooks
+# Platform webhooks
 
-Webhooks are how NimbusNexus notifies your systems when something changes — a VM finishes provisioning, a snapshot completes, an invoice is generated. You register a URL; we POST a JSON payload to it every time the matching event fires.
+Platform webhooks are how NimbusNexus notifies your systems when something changes — a VM finishes provisioning, a snapshot completes, an invoice is generated. You register a URL; we POST a JSON payload to it every time the matching event fires.
+
+> **Looking for the Webhooks product?** If you want to send webhooks to *your own* customers — publish an event and have us sign, retry, and replay each delivery — that is a separate product, documented at [Webhooks (product)](/docs/product-webhooks). This page covers only the notifications NimbusNexus sends *you* about your own infrastructure. **The two use different signing headers**, so verification code is not interchangeable.
 
 Webhooks let you react to state changes without polling. Polling works, but it's wasteful at scale (most requests return "nothing changed") and slow at low scale (you only learn about a change on the next poll tick). Webhooks invert the model — we tell you the moment something happens.
 
