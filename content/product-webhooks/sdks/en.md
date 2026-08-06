@@ -159,8 +159,8 @@ All clients implement one signing contract: `HMAC-SHA256(secret, "<timestamp>." 
 | Python | `nn-webhooks-sdk` | Published — [PyPI](https://pypi.org/project/nn-webhooks-sdk/), 0.5.2 |
 | TypeScript | `@nimbusnexus/webhooks-sdk` | Published — [npm](https://www.npmjs.com/package/@nimbusnexus/webhooks-sdk), 0.5.2 |
 | Go | `github.com/NimbusNexus/webhooks-go` | Published — [GitHub](https://github.com/NimbusNexus/webhooks-go), v0.5.2 |
-| Java | `net.nimbusnexus:nn-webhooks-sdk` | Written and tested; not yet on Maven Central |
-| PHP | `nimbusnexus/nn-webhooks-sdk` | Written and tested; not yet on Packagist |
+| Java | `net.nimbusnexus:webhooks-sdk` | Written and tested; not yet on Maven Central |
+| PHP | `nimbusnexus/webhooks-sdk` | Written and tested; not yet on Packagist |
 
 Until Java and PHP publish, call the REST API directly — the [signature page](/docs/product-webhooks/signatures) has everything needed to verify deliveries in any language, and it is about twenty lines.
 
