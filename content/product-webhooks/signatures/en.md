@@ -16,7 +16,7 @@ This page is the contract. If you use one of the [SDKs](/docs/product-webhooks/s
 
 | Header | Contents |
 |---|---|
-| `X-Webhook-Signature` | `sha256=<hex>` — the HMAC you verify |
+| `X-Webhook-Signature` | `sha256=<hex>` — the HMAC you verify. **Several comma-separated tokens during a secret rotation**; see [rules](#rules) |
 | `X-Webhook-Timestamp` | Unix seconds; part of the signature and the replay window |
 | `X-Webhook-Event-Id` | The event id, matching `id` in the body — use it to deduplicate |
 | `X-Webhook-Event-Type` | The event type |
@@ -42,7 +42,9 @@ The body itself is compact, sorted-key JSON, serialized once at publish time and
 
 Frameworks that eagerly parse JSON usually expose the original separately: `request.body` in Flask, `req.rawBody` with an Express verify hook, `await request.body()` in FastAPI.
 
-**2. Compare in constant time.** Use `hmac.compare_digest`, `crypto.timingSafeEqual`, `hmac.Equal` — not `==`. A byte-by-byte comparison that returns early leaks, through timing, how much of a guessed signature was correct, which turns forgery into a tractable search. The cost of doing it right is nothing; the cost of doing it wrong is not obvious from testing, because a wrong implementation passes every functional test.
+**2. Compare in constant time — against every token.** Use `hmac.compare_digest`, `crypto.timingSafeEqual`, `hmac.Equal` — not `==`. A byte-by-byte comparison that returns early leaks, through timing, how much of a guessed signature was correct, which turns forgery into a tractable search. The cost of doing it right is nothing; the cost of doing it wrong is not obvious from testing, because a wrong implementation passes every functional test.
+
+Split the header on `,` first and accept if **any** token matches. Normally there is exactly one token, so this looks redundant — but during a signing-secret rotation we sign with both the new and the previous secret and send `sha256=<a>,sha256=<b>`. A verifier that compares the whole header value against a single expected token matches neither, and rejects **every** delivery for the length of the overlap. The official SDKs all split; a hand-rolled verifier is the one that gets this wrong.
 
 **3. Reject stale timestamps.** If `X-Webhook-Timestamp` is more than **300 seconds** from your clock, reject the delivery regardless of whether the HMAC checks out. Without this, a captured delivery stays replayable forever. With it, the exposure is bounded to five minutes even if a payload is intercepted.
 
@@ -68,8 +70,12 @@ def verify(secret: str, raw_body: bytes, signature: str, timestamp: str) -> bool
         secret.encode(), f"{timestamp}.".encode() + raw_body, hashlib.sha256
     ).hexdigest()
 
-    # Rule 2 — constant-time comparison.
-    return hmac.compare_digest(expected, signature)
+    # Rule 2 — constant-time comparison against EVERY token. One token normally; several,
+    # comma-separated, while a rotation overlap is in effect.
+    return any(
+        hmac.compare_digest(expected, token.strip())
+        for token in signature.split(",")
+    )
 ```
 
 ## Responding {#responding}
@@ -87,7 +93,9 @@ curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/endpoints/ep_3f9a/rotate-secret \
   -H "Authorization: Bearer $ADMIN_KEY"
 ```
 
-The new secret is returned once. Deliveries in flight at the moment of rotation were signed with the old one, so a handler that switches instantly will reject them; accept both for a few minutes, then drop the old.
+The new secret is returned once. You do **not** need to run two secrets in your handler: for roughly 24 hours after a rotation we sign each delivery with both the new and the previous secret and send both tokens in one header, `sha256=<new>,sha256=<previous>`. A verifier that follows [rule 2](#rules) and checks every token keeps working throughout, whichever secret it holds, so you can switch to the new one immediately.
+
+The corollary is the trap: a verifier that compares the whole header value works fine right up until the first rotation, then rejects everything for a day. If you rotate and deliveries start failing verification in bulk, that comparison is the first thing to check.
 
 ## What's next {#next-steps}
 

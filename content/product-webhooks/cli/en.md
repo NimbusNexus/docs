@@ -15,7 +15,7 @@ That is the whole reason it is written in Go. An operator draining a dead-letter
 ## Install {#install}
 
 ```bash
-# macOS / Linux
+# macOS — the tap ships a cask, and Homebrew installs casks only on macOS
 brew install nimbusnexus/tap/nn-webhooks
 ```
 
@@ -36,7 +36,7 @@ nn-webhooks configure     # prompts for the API URL and key
 nn-webhooks whoami        # what would be used, and where it came from
 ```
 
-Credentials live in `$XDG_CONFIG_HOME/nn-webhooks/credentials.json`, mode `0600`, as **named profiles** — so a second deployment is a flag rather than overwriting the first:
+Credentials live in `$XDG_CONFIG_HOME/nn-webhooks/credentials.json` — or `~/.config/nn-webhooks/credentials.json` when `XDG_CONFIG_HOME` is unset, which it is by default on macOS — mode `0600`, as **named profiles**, so a second deployment is a flag rather than overwriting the first:
 
 ```bash
 nn-webhooks --profile staging configure --url {{WEBHOOKS_BASE_URL}}
@@ -72,7 +72,7 @@ nn-webhooks deliveries redeliver dlv_456
 
 nn-webhooks keys create --name ci --scope publish
 
-nn-webhooks verify --secret whsec_... --signature sha256=... < body.json
+nn-webhooks verify --secret whsec_... --signature sha256=... --timestamp 1785984800 < body.json
 ```
 
 Subscriptions are given as `kind:pattern`, repeatable — `--subscribe prefix:deploy.` or
@@ -86,7 +86,7 @@ nn-webhooks deliveries list --status dead | jq -r '.items[].id' | \
   xargs -n1 nn-webhooks deliveries redeliver
 ```
 
-`nn-webhooks verify` checks a webhook you received — useful for confirming a handler's rejection is the signature and not the framework's body handling, which is the more common culprit.
+`nn-webhooks verify` checks a webhook you received — useful for confirming a handler's rejection is the signature and not the framework's body handling, which is the more common culprit. Pass `--timestamp`: without it the HMAC is computed over the body alone, which never matches a real delivery, so every check fails. It prints `ok`/`failed` rather than JSON, and exits 0/1.
 
 ## Versions {#versions}
 
