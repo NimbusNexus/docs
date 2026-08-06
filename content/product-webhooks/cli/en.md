@@ -8,6 +8,8 @@ kind: cli
 
 # Webhooks CLI
 
+> **Looking for `nimbus`?** That is the CLI for the NimbusNexus cloud platform — VMs, storage, networking — documented at [CLI](/docs/cli). This page covers `nn-webhooks`, which drives the webhook-delivery product only.
+
 `nn-webhooks` is the command-line interface for [NimbusNexus Webhooks](/docs/product-webhooks). One static binary — no runtime, no virtualenv, nothing to install first.
 
 That is the whole reason it is written in Go. An operator draining a dead-letter queue at 3am is often on a box that has nothing on it, and "first install a language runtime" is not an acceptable step in an incident.
@@ -21,7 +23,7 @@ brew install nimbusnexus/tap/nn-webhooks
 
 ```bash
 # any platform — archives and checksums.txt are attached to each release
-curl -sSLO https://github.com/NimbusNexus/webhooks-go/releases/download/v0.5.1/nn-webhooks_0.5.1_linux_amd64.tar.gz
+curl -sSLO https://github.com/NimbusNexus/webhooks-go/releases/download/v0.5.2/nn-webhooks_0.5.2_linux_amd64.tar.gz
 ```
 
 ```bash

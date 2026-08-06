@@ -12,6 +12,8 @@ kind: sdk
 
 A typed TypeScript client that wraps the v1 REST API. ESM + CJS dual-publish, Node 20+, runs in the browser. Generated from the live OpenAPI spec, so types stay in sync with the API by construction.
 
+> **Sending webhooks to your own customers?** That is the separate [Webhooks product](/docs/product-webhooks), which has its own published TypeScript SDK — [`@nimbusnexus/webhooks-sdk`](/docs/product-webhooks/sdks). This page is the client for the NimbusNexus cloud API.
+
 ## Install (when shipped) {#install}
 
 ```bash
