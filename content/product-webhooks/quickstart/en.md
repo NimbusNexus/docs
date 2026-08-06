@@ -53,17 +53,19 @@ curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/events \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: order-123-created" \
   -d '{
-        "type": "order.created",
+        "event_type": "order.created",
         "payload": {"order_id": "ord_123", "total": 4200}
       }'
 ```
+
+The field is `event_type`, not `type` — `type` is the field name inside the *delivered* envelope, which is a different object. Sending `type` here is a `422`.
 
 The response tells you what the publish produced:
 
 ```json
 {
   "event_uid": "evt_7c21…",
-  "type": "order.created",
+  "event_type": "order.created",
   "deliveries_created": 1
 }
 ```
@@ -89,11 +91,12 @@ def handle(request):
     if abs(int(time.time()) - int(timestamp)) > 300:
         return Response(status_code=400)
 
-    # 2. Recompute and compare in constant time.
+    # 2. Recompute and compare in constant time. The header carries one token normally, but
+    #    several comma-separated ones during a secret rotation — accept if ANY matches.
     expected = "sha256=" + hmac.new(
         secret.encode(), f"{timestamp}.".encode() + raw_body, hashlib.sha256
     ).hexdigest()
-    if not hmac.compare_digest(expected, signature):
+    if not any(hmac.compare_digest(expected, t.strip()) for t in signature.split(",")):
         return Response(status_code=400)
 
     # 3. Only now is the payload trustworthy.

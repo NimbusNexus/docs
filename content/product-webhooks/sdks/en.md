@@ -56,14 +56,14 @@ ok := webhooks.Verify(secret, body, r.Header.Get("X-Webhook-Signature"),
     &webhooks.VerifyOptions{Timestamp: &ts})
 ```
 
-Always pass the timestamp. Omitting it computes the signature over the body alone and silently drops replay protection — the call still returns `true` for a captured delivery replayed a week later.
+Always pass the timestamp. Omitting it computes the signature over the body alone, which never matches what we send — so verification fails for *everything*, not just replays. If `verify` returns false for deliveries you believe are genuine, a missing timestamp is the first thing to check.
 
 ## Publish an event {#publish}
 
 For *producers*. Transient failures — connection errors, `429`, `5xx` — are retried with backoff, and a `429` honours `Retry-After`. Other `4xx` raise.
 
 ```python
-from nn_webhooks import Client, WebhookdAPIError
+from nn_webhooks import Client, WebhooksAPIError
 
 with Client("{{WEBHOOKS_BASE_URL}}", api_key="whsk_…") as wh:
     try:
@@ -73,7 +73,7 @@ with Client("{{WEBHOOKS_BASE_URL}}", api_key="whsk_…") as wh:
             idempotency_key="order-123",     # makes the publish safe to retry
         )
         print(event.event_uid, event.deliveries_created)
-    except WebhookdAPIError as e:
+    except WebhooksAPIError as e:
         print(e.status_code, e.code, e.message)
 ```
 
@@ -92,9 +92,15 @@ event, err := client.Publish(ctx, "order.created",
 from nn_webhooks import Client, SQLiteStore
 
 store = SQLiteStore("outbox.db")
-with Client("{{WEBHOOKS_BASE_URL}}", api_key="whsk_…", store=store) as wh:
-    record_id = wh.enqueue("order.created", {"order_id": "ord_123"})   # no network
-    wh.start_drainer(interval_seconds=5)                               # ships in background
+
+# Construct for the process lifetime — NOT in a `with` block. Closing the client stops the
+# drainer, so a `with` that exits immediately would shut down the thread you just started.
+wh = Client("{{WEBHOOKS_BASE_URL}}", api_key="whsk_…", store=store)
+wh.start_drainer(interval_seconds=5)          # ships in the background
+
+wh.enqueue("order.created", {"order_id": "ord_123"})   # returns at once, no network
+...
+wh.close()                                     # at shutdown; also stops the drainer
 ```
 
 Every send carries `Idempotency-Key = record.id`, so re-draining after a crash never double-publishes. A record that keeps failing is retried with capped exponential backoff up to `max_attempts` (default 10), then flagged dead and handed to an optional `on_dead` callback.
@@ -107,7 +113,7 @@ Every send carries `Idempotency-Key = record.id`, so re-draining after a crash n
 | `RedisStore(url)` | Yes | `pip install 'nn-webhooks-sdk[redis]'` |
 | `PostgresStore(dsn)` | Yes | `pip install 'nn-webhooks-sdk[postgres]'` |
 
-The core package stays dependency-free; the Redis and Postgres stores import their driver lazily, only when constructed.
+No store needs a dependency beyond the SDK itself — Python's only runtime dependency is `httpx` — and the Redis and Postgres stores import their driver lazily, only when constructed.
 
 ## Manage endpoints and keys {#manage}
 

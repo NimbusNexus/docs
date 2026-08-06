@@ -32,7 +32,9 @@ This product is that surrounding machinery. It also ingests in the other directi
 | **Delivery** | One attempt-tracked send of one event to one matching endpoint. Signed, retried, observable. |
 | **Signing secret** | Per-endpoint secret used to HMAC-sign every delivery. Shown **once**, at creation. |
 
-Publishing an event matches it against every enabled endpoint whose subscriptions cover that type, and creates one delivery per match. Fanning one event out to ten endpoints is still one event — which is also how it is metered.
+Publishing an event matches it against every enabled endpoint whose subscriptions cover that type, and creates one delivery per match.
+
+Two meters run over that, and the difference matters when you size a plan. One publish is always one **event**, and that fan-out-neutral count is what `GET /v1/usage` reports as `messages_used`. But the **enforced** monthly quota counts *deliveries* — one per matching endpoint — so fanning a single event out to ten endpoints consumes ten. The per-event meter is recorded and will become the billing unit; the delivery quota is the ceiling that actually rejects a publish today.
 
 ## How a delivery behaves {#delivery}
 
@@ -40,7 +42,7 @@ Publishing an event matches it against every enabled endpoint whose subscription
 - **At-least-once.** Retries are real; the same event can arrive twice. Deduplicate on the event id, which travels in both the body and the `X-Webhook-Event-Id` header.
 - **Retries back off.** Failed deliveries retry with exponential backoff up to the endpoint's `max_attempts`. An endpoint can carry a custom `retry_schedule` — an explicit list of delays in seconds — when the default curve doesn't suit the far end.
 - **Exhausted deliveries are kept, not dropped.** They land in the dead-letter queue, where you can filter and replay them in bulk once the receiver is healthy.
-- **Persistently failing endpoints are disabled** automatically and the owner is emailed with the reason. Re-enabling is explicit.
+- **Persistently failing endpoints are disabled** automatically, with the reason recorded. We emit an `endpoint.disabled` operational webhook to the workspace's operational endpoints, and email the operational contact if one is configured — so wire up the operational webhook rather than relying on the email. Re-enabling is explicit.
 
 ## Publishing safely {#publishing}
 
