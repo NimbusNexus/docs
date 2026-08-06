@@ -12,6 +12,8 @@ kind: sdk
 
 A typed Python client. Sync + async (httpx-backed), Python 3.11+, full Pydantic models for every response shape.
 
+> **Sending webhooks to your own customers?** That is the separate [Webhooks product](/docs/product-webhooks), which has its own published Python SDK — [`nn-webhooks-sdk`](/docs/product-webhooks/sdks). This page is the client for the NimbusNexus cloud API.
+
 ## Install (when shipped) {#install}
 
 ```bash

@@ -88,14 +88,21 @@ client := nn.NewClient(nn.Config{
 
 ## Webhook verification helper {#webhooks}
 
+This verifies [platform webhooks](/docs/webhooks) — the notifications NimbusNexus sends you about
+your own infrastructure, signed with `NN-` headers. It is **not** the helper for the
+[Webhooks product](/docs/product-webhooks), which signs with `X-Webhook-` headers and ships its own
+Go module; the two expose a same-named `Verify` with different signatures, so a snippet from the
+wrong page compiles nowhere useful. The import below is aliased `nnwebhooks` to keep which is which
+visible at the call site.
+
 ```go
-import "github.com/NimbusNexus/nimbusnexus-go/webhooks"
+import nnwebhooks "github.com/NimbusNexus/nimbusnexus-go/webhooks"
 
 func handleWebhook(w http.ResponseWriter, r *http.Request) {
     body, err := io.ReadAll(r.Body)
     if err != nil { http.Error(w, "bad body", 400); return }
 
-    ok := webhooks.Verify(webhooks.VerifyParams{
+    ok := nnwebhooks.Verify(nnwebhooks.VerifyParams{
         Body:      body,
         Timestamp: r.Header.Get("NN-Timestamp"),
         Signature: r.Header.Get("NN-Signature"),
@@ -178,6 +185,7 @@ The SDK is being generated from the OpenAPI spec but hasn't been published yet. 
 ## What's next {#next-steps}
 
 - [Authentication](/docs/authentication) — what `APIKey` does on the wire.
-- [Webhooks](/docs/webhooks) — what `webhooks.Verify` is checking.
+- [Platform webhooks](/docs/webhooks) — what `nnwebhooks.Verify` is checking.
+- [Webhooks (product)](/docs/product-webhooks) — the separate webhook-delivery product, with its own Go module and signing headers.
 - [Pagination](/docs/pagination) — what the iterators are walking.
 - [Errors](/docs/errors) — the codes that map to the typed error types above.

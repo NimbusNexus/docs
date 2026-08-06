@@ -12,6 +12,8 @@ kind: cli
 
 `nimbus` is the official command-line interface. A single static binary, no runtime dependencies, available for macOS (Intel + Apple Silicon), Linux (amd64 + arm64), and Windows.
 
+> **Looking for `nn-webhooks`?** That is the CLI for the separate [Webhooks product](/docs/product-webhooks) — a different binary, already published, documented at [Webhooks CLI](/docs/product-webhooks/cli). This page covers `nimbus`, the cloud-platform CLI.
+
 ## Install (when shipped) {#install}
 
 ```bash

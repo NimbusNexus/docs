@@ -8,9 +8,11 @@ kind: sdk
 
 # Webhooks SDKs
 
-> **Status: published.** Python, TypeScript, and Go are on their public registries at 0.5.1. Java and PHP are written and tested but not yet published — see [where it stands](#status).
+> **Status: published.** Python, TypeScript, and Go are on their public registries at 0.5.2. Java and PHP are written and tested but not yet published — see [where it stands](#status).
 
 Official clients for [NimbusNexus Webhooks](/docs/product-webhooks). Each one covers the same four jobs, so a team using two languages gets the same behaviour in both.
+
+> **Looking for the cloud-platform SDKs?** Those are separate clients for VMs, storage and networking — [Python](/docs/sdks/python), [TypeScript](/docs/sdks/typescript), [Go](/docs/sdks/go). In Go the two are easy to confuse: both expose a `Verify`, with different signatures and different signing headers, so the samples here alias the import `nnwh` to keep the provenance visible.
 
 The highest-value piece is `verify`. Signature checking is security-critical, easy to get subtly wrong, and wrong in a way that passes every functional test — the SDKs implement [the full contract](/docs/product-webhooks/signatures) including the constant-time comparison and the replay window.
 
@@ -49,11 +51,11 @@ if (!ok) return res.status(400).end();
 ```
 
 ```go
-import webhooks "github.com/NimbusNexus/webhooks-go"
+import nnwh "github.com/NimbusNexus/webhooks-go"
 
 ts, _ := strconv.ParseInt(r.Header.Get("X-Webhook-Timestamp"), 10, 64)
-ok := webhooks.Verify(secret, body, r.Header.Get("X-Webhook-Signature"),
-    &webhooks.VerifyOptions{Timestamp: &ts})
+ok := nnwh.Verify(secret, body, r.Header.Get("X-Webhook-Signature"),
+    &nnwh.VerifyOptions{Timestamp: &ts})
 ```
 
 Always pass the timestamp. Omitting it computes the signature over the body alone, which never matches what we send — so verification fails for *everything*, not just replays. If `verify` returns false for deliveries you believe are genuine, a missing timestamp is the first thing to check.
@@ -78,10 +80,10 @@ with Client("{{WEBHOOKS_BASE_URL}}", api_key="whsk_…") as wh:
 ```
 
 ```go
-client := webhooks.New("{{WEBHOOKS_BASE_URL}}", "whsk_…")
+client := nnwh.New("{{WEBHOOKS_BASE_URL}}", "whsk_…")
 event, err := client.Publish(ctx, "order.created",
     map[string]any{"order_id": "ord_123", "total": 4200},
-    &webhooks.PublishOptions{IdempotencyKey: "order-123"})
+    &nnwh.PublishOptions{IdempotencyKey: "order-123"})
 ```
 
 ## Durable buffering {#outbox}
@@ -154,9 +156,9 @@ All clients implement one signing contract: `HMAC-SHA256(secret, "<timestamp>." 
 
 | Language | Package | Status |
 |---|---|---|
-| Python | `nn-webhooks-sdk` | Published — [PyPI](https://pypi.org/project/nn-webhooks-sdk/), 0.5.1 |
-| TypeScript | `@nimbusnexus/webhooks-sdk` | Published — [npm](https://www.npmjs.com/package/@nimbusnexus/webhooks-sdk), 0.5.1 |
-| Go | `github.com/NimbusNexus/webhooks-go` | Published — [GitHub](https://github.com/NimbusNexus/webhooks-go), v0.5.1 |
+| Python | `nn-webhooks-sdk` | Published — [PyPI](https://pypi.org/project/nn-webhooks-sdk/), 0.5.2 |
+| TypeScript | `@nimbusnexus/webhooks-sdk` | Published — [npm](https://www.npmjs.com/package/@nimbusnexus/webhooks-sdk), 0.5.2 |
+| Go | `github.com/NimbusNexus/webhooks-go` | Published — [GitHub](https://github.com/NimbusNexus/webhooks-go), v0.5.2 |
 | Java | `net.nimbusnexus:nn-webhooks-sdk` | Written and tested; not yet on Maven Central |
 | PHP | `nimbusnexus/nn-webhooks-sdk` | Written and tested; not yet on Packagist |
 
