@@ -1119,6 +1119,47 @@
           "published": true
         }
       ]
+    },
+    {
+      "id": "product-inboxes",
+      "title": {
+        "en": "Inboxes (product)"
+      },
+      "items": [
+        {
+          "path": "product-inboxes",
+          "kind": "concept",
+          "title": {
+            "en": "Overview"
+          },
+          "description": {
+            "en": "Disposable email addresses for testing — allocate an address, receive real mail at it, and read it back over an API."
+          },
+          "published": true
+        },
+        {
+          "path": "product-inboxes/quickstart",
+          "kind": "quickstart",
+          "title": {
+            "en": "Quickstart"
+          },
+          "description": {
+            "en": "Allocate a disposable address, send it a message, and read the message back — three requests."
+          },
+          "published": true
+        },
+        {
+          "path": "product-inboxes/addresses",
+          "kind": "concept",
+          "title": {
+            "en": "Addresses and the phrase"
+          },
+          "description": {
+            "en": "Why a disposable address refuses mail whose subject lacks its phrase, and how expiry, retention and release differ."
+          },
+          "published": true
+        }
+      ]
     }
   ]
 }
