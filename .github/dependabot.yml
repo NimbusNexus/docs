@@ -1,0 +1,40 @@
+version: 2
+
+# KEEP THE ACTION VERSIONS CURRENT — the half actionlint deliberately does not do.
+#
+# actionlint checks that a workflow is CORRECT: syntax, expressions, runner labels, shellcheck over
+# `run:` blocks. It has no opinion whatsoever on whether `actions/setup-node@v5` should be `@v7`.
+# Nothing in this estate watched that, and the cost was visible. GitHub began retiring the Node 20
+# runner; every action still declaring `using: node20` started emitting a deprecation warning; and
+# it surfaced only because a human happened to read an annotation in an unrelated repo's build.
+# Eighteen call sites across seven repos then needed a hand sweep.
+#
+# MAJORS ARE TAKEN HERE, on purpose. There is no caret-range alternative for an action tag — a tag
+# IS the version — and actions move by major (v4 -> v6), so pinning a major and never bumping it is
+# precisely the stale state this file exists to prevent. Nor is "bump one major" a safe rule:
+# actions/upload-artifact@v5 is ALSO node20, so only @v7 actually cleared the warning. The bump has
+# to follow the runtime, not a counter.
+#
+# GROUPED INTO ONE PR, because a pull request per action per week is a review queue nobody reads,
+# and a queue nobody reads is the same as no monitoring at all. One grouped PR is a single "are
+# these safe" decision — which means it wants reading rather than rubber-stamping. CI runs on it.
+#
+# ONE ENTRY IS THE WHOLE SURFACE HERE: `/` covers .github/workflows, and lint.yml is all of it —
+# actions/checkout, actions/setup-node, lycheeverse/lychee-action. The ecosystem does NOT recurse,
+# so if a composite action ever lands in .github/actions/<name>/, its own `uses:` lines stay
+# invisible until that directory is listed as a second update entry.
+#
+# ACTIONS ONLY, deliberately. An npm lane here would be a separate decision about review load, and
+# one this file has not made — the repos that do run npm tune it carefully (majors ignored, groups
+# built by hand). A lane added in passing would be a claim this change cannot keep.
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    labels:
+      - dependencies
+      - ci
