@@ -59,7 +59,38 @@ jobs:
         # tooling vulns out of the gate (dev-only advisories are
         # accepted here — docs-only repo; no dependabot config) so a
         # markdownlint CVE doesn't block a typo-fix PR.
-        run: npm audit --omit=dev --audit-level=high
+        # ⚠ MUST FAIL ON FINDINGS, NOT ON npm BEING UNREACHABLE. On 2026-09-04 npm's advisory
+        # service was down for hours — the registry was fine (installs worked, package fetches
+        # returned 200 in a second) but POSTs to /-/npm/v1/security/advisories/bulk accepted the
+        # connection and never answered, while a GET on the same path returned 405 in 0.27s.
+        # Healthy gateway, dead backend, and npm's status page said "All Systems Operational"
+        # throughout because it monitors the registry, not advisory lookup. Four repos' merges were
+        # blocked by it, this one among them, each run burning five minutes timing out first.
+        #
+        # A gate that fails that way buys NO security: a hang and a clean audit are
+        # indistinguishable to it, so what it enforces is "npm answered".
+        #
+        # THE EXIT CODE CANNOT TELL THE TWO APART — npm exits 1 for both — hence the message match.
+        # Anything unrecognised STILL FAILS, and the warning says SKIPPED rather than passed so a
+        # green run is never read as a clean audit. One retry first, because the outage flapped.
+        #
+        # The shared rail (gh-workflows ci-node-nexus.yml) owns this for repos that call it; this
+        # workflow is bespoke, so it carries its own copy. Keep the two in step.
+        run: |
+          run_audit() { npm audit --omit=dev --audit-level=high 2>&1; }
+          out=$(run_audit) && rc=0 || rc=$?
+          if [ "$rc" -ne 0 ]; then
+            sleep 15
+            out=$(run_audit) && rc=0 || rc=$?
+          fi
+          printf '%s\n' "$out"
+          if [ "$rc" -ne 0 ]; then
+            if printf '%s' "$out" | grep -qiE 'audit endpoint returned an error|Service Unavailable|network timeout|ENOTFOUND|ETIMEDOUT|ECONNRESET|EAI_AGAIN|socket hang up'; then
+              echo "::warning::npm audit could not reach npm's advisory service — the vulnerability check was SKIPPED for this run, not passed."
+            else
+              exit "$rc"
+            fi
+          fi
 
       - name: Markdown lint
         run: npm run lint:markdown
