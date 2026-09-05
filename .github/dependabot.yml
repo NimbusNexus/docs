@@ -24,6 +24,10 @@ version: 2
 # so if a composite action ever lands in .github/actions/<name>/, its own `uses:` lines stay
 # invisible until that directory is listed as a second update entry.
 #
+# A NEW WORKFLOW DOES NOT NEED A NEW ENTRY, but it does need its actions to be real marketplace
+# pins for this lane to do anything: `/` already covers every file in .github/workflows, so a second
+# workflow landing there is picked up automatically.
+#
 # ACTIONS ONLY, deliberately. An npm lane here would be a separate decision about review load, and
 # one this file has not made — the repos that do run npm tune it carefully (majors ignored, groups
 # built by hand). A lane added in passing would be a claim this change cannot keep.
