@@ -15,6 +15,23 @@ name: Lint
 #   - Same `24.15.0` floor + `current` canary pattern as the other
 #     frontends — gives early warning on upstream tooling breakage
 #     (markdownlint, gray-matter, lychee) before we bump the floor.
+#
+# `name: Lint` ON LINE 1 IS FREE TO CHANGE TODAY, and this note exists to say so precisely, because
+# the obvious assumption is the opposite. Nothing server-side depends on it:
+# `gh api repos/NimbusNexus/docs/branches/main/protection` returns 404 "Branch not protected"
+# (checked 2026-09-05), so there is no required status check — and a required check would name the
+# JOB (`lint (24.15.0, true)`) rather than this workflow in any case.
+#
+# ⚠ THE THING THAT WOULD MAKE IT LOAD-BEARING is a release gate that asks "did CI pass on the branch
+# head" before cutting anything, because the only handle the Actions API gives such a gate is the
+# workflow NAME. This repo has no such gate on `main` today. If one is added, it resolves this
+# workflow by name and the two move in the SAME commit — the estate's rails spell that setting
+# `CI_WORKFLOW`, and it would have to read `Lint`, not the estate's usual `CI`, because this
+# workflow lints Markdown and runs no tests.
+#
+# THE `push:` TRIGGER BELOW IS WHAT MAKES THAT POSSIBLE AT ALL. A branch-head gate needs a run
+# against the merge commit, which is a SHA no pull_request run ever tested. A repo that lints only
+# on `pull_request` has no green branch head to point at, so keep both triggers.
 
 on:
   pull_request:
@@ -56,9 +73,17 @@ jobs:
 
       - name: Audit dependencies
         # Fail on high/critical advisories. `--omit=dev` keeps dev-only
-        # tooling vulns out of the gate (dev-only advisories are
-        # accepted here — docs-only repo; no dependabot config) so a
-        # markdownlint CVE doesn't block a typo-fix PR.
+        # tooling vulns out of the gate so a markdownlint CVE doesn't
+        # block a typo-fix PR.
+        #
+        # "no dependabot config" USED TO BE THE REST OF THIS SENTENCE
+        # and is no longer true — .github/dependabot.yml has existed
+        # since ebeb049. The substance survives the correction, which
+        # is why the `--omit=dev` choice stands: that config runs a
+        # github-actions lane ONLY, and says so deliberately. So there
+        # is still nothing else watching this repo's dev dependencies,
+        # and skipping them here is an accepted risk on a docs-only
+        # repo rather than a gap something downstream covers.
         # ⚠ MUST FAIL ON FINDINGS, NOT ON npm BEING UNREACHABLE. On 2026-09-04 npm's advisory
         # service was down for hours — the registry was fine (installs worked, package fetches
         # returned 200 in a second) but POSTs to /-/npm/v1/security/advisories/bulk accepted the
