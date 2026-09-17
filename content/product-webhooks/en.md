@@ -2,7 +2,7 @@
 title: Webhooks (product)
 description: The managed webhook platform — publish an event once, and we sign, retry, and replay every delivery to your subscribers.
 publishedAt: 2026-08-05
-updatedAt: 2026-08-05
+updatedAt: 2026-09-17
 kind: concept
 ---
 
@@ -54,7 +54,13 @@ For producers that cannot tolerate losing an event when the API is unreachable, 
 
 ## Getting access {#access}
 
-The product is sold with an onboarding conversation rather than self-serve signup today — [talk to us](/contact/sales) and we will provision your workspace and an initial admin key.
+The product is sold with an onboarding conversation rather than self-serve signup today — [talk to us](/contact/sales) and we will provision your workspace.
+
+Keys are not issued with the workspace, and the Webhooks API does not issue them. You mint one yourself in your NimbusNexus account console, under **API keys**, choosing **Webhooks** as the product — Identity is the single API-key issuer across the estate. An Identity-issued key is a JWT, so it begins `eyJ` rather than carrying a product prefix. It is presented exactly as before: `Authorization: Bearer <key>`, or `X-API-Key: <key>`.
+
+Choose the scope when you mint it. `admin` is full control; `publish` can produce events and read nothing; `read` can read everything and produce nothing. `publish` and `read` are disjoint rather than a ladder — a `publish` key cannot list deliveries, and a `read` key cannot publish, so a job that does both needs `admin`. A key can also be confined to a single project at mint time.
+
+> **An existing `whsk_…` key no longer authenticates.** The `whsk_` family is gone, and a request carrying one is refused like any other unrecognised credential. If you are holding one, mint a replacement in the account console.
 
 ## What's next {#next-steps}
 
