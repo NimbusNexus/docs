@@ -2,7 +2,7 @@
 title: Webhooks quickstart
 description: Register an endpoint, publish an event, and verify the signed delivery — three requests and a handler.
 publishedAt: 2026-08-05
-updatedAt: 2026-08-05
+updatedAt: 2026-09-17
 kind: quickstart
 ---
 
@@ -10,7 +10,9 @@ kind: quickstart
 
 From nothing to a verified delivery. You will register a receiving endpoint, publish an event to it, and check the signature on the webhook that arrives.
 
-You need an admin-scoped API key. Keys look like `whsk_…` and are issued when your workspace is provisioned; the [product overview](/docs/product-webhooks) covers how to get one.
+You need an admin-scoped API key. Mint one in your NimbusNexus account console, under **API keys**, choosing **Webhooks** as the product and `admin` as the scope; the [product overview](/docs/product-webhooks#access) covers the scopes and what the key looks like.
+
+If you are holding a key that begins `whsk_…`, it no longer authenticates — Webhooks stopped issuing its own keys, and a request carrying one is refused as an unrecognised credential. Mint a replacement before you start.
 
 Every path below is relative to `{{WEBHOOKS_BASE_URL}}`.
 

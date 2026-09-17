@@ -2,7 +2,7 @@
 title: Webhooks SDKs
 description: Typed clients for Python, TypeScript, and Go — verify incoming webhooks, publish events, and manage endpoints from code.
 publishedAt: 2026-08-05
-updatedAt: 2026-08-05
+updatedAt: 2026-09-17
 kind: sdk
 ---
 
@@ -64,10 +64,12 @@ Always pass the timestamp. Omitting it computes the signature over the body alon
 
 For *producers*. Transient failures — connection errors, `429`, `5xx` — are retried with backoff, and a `429` honours `Retry-After`. Other `4xx` raise.
 
+The key is minted in your NimbusNexus account console — see [Getting access](/docs/product-webhooks#access). A `whsk_…` key from before the change is refused as an unrecognised credential, and no SDK checks the key's shape, so the failure surfaces as a `401` from the API rather than an error at construction.
+
 ```python
 from nn_webhooks import Client, WebhooksAPIError
 
-with Client("{{WEBHOOKS_BASE_URL}}", api_key="whsk_…") as wh:
+with Client("{{WEBHOOKS_BASE_URL}}", api_key=WEBHOOKS_API_KEY) as wh:
     try:
         event = wh.publish(
             "order.created",
@@ -80,7 +82,7 @@ with Client("{{WEBHOOKS_BASE_URL}}", api_key="whsk_…") as wh:
 ```
 
 ```go
-client := nnwh.New("{{WEBHOOKS_BASE_URL}}", "whsk_…")
+client := nnwh.New("{{WEBHOOKS_BASE_URL}}", webhooksAPIKey)
 event, err := client.Publish(ctx, "order.created",
     map[string]any{"order_id": "ord_123", "total": 4200},
     &nnwh.PublishOptions{IdempotencyKey: "order-123"})
@@ -97,7 +99,7 @@ store = SQLiteStore("outbox.db")
 
 # Construct for the process lifetime — NOT in a `with` block. Closing the client stops the
 # drainer, so a `with` that exits immediately would shut down the thread you just started.
-wh = Client("{{WEBHOOKS_BASE_URL}}", api_key="whsk_…", store=store)
+wh = Client("{{WEBHOOKS_BASE_URL}}", api_key=WEBHOOKS_API_KEY, store=store)
 wh.start_drainer(interval_seconds=5)          # ships in the background
 
 wh.enqueue("order.created", {"order_id": "ord_123"})   # returns at once, no network
@@ -117,7 +119,7 @@ Every send carries `Idempotency-Key = record.id`, so re-draining after a crash n
 
 No store needs a dependency beyond the SDK itself — Python's only runtime dependency is `httpx` — and the Redis and Postgres stores import their driver lazily, only when constructed.
 
-## Manage endpoints and keys {#manage}
+## Manage endpoints {#manage}
 
 The same client wraps the control plane, with an admin-scoped key:
 
@@ -135,7 +137,9 @@ for d in wh.list_deliveries(status="dead")["items"]:   # drain the dead-letter q
     wh.redeliver(d["id"])
 ```
 
-List methods return `{"items": [...], "next_offset": int | None}`; deletes and revokes return nothing on a `204`.
+List methods return `{"items": [...], "next_offset": int | None}`; deletes return nothing on a `204`.
+
+The key-management methods — `create_api_key`/`revoke_api_key` in Python, `createApiKey`/`revokeApiKey` in TypeScript, Java and PHP, `CreateAPIKey`/`RevokeAPIKey` in Go — are still on the client, but the `/v1/api-keys` routes they call were removed, so calling one now fails with a `404`; mint keys in the account console instead.
 
 ## Targeting a project {#projects}
 

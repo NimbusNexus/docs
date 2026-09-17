@@ -2,7 +2,7 @@
 title: Webhooks CLI
 description: nn-webhooks — a single static binary for publishing events, managing endpoints, and draining the dead-letter queue.
 publishedAt: 2026-08-05
-updatedAt: 2026-08-05
+updatedAt: 2026-09-17
 kind: cli
 ---
 
@@ -38,6 +38,8 @@ nn-webhooks configure     # prompts for the API URL and key
 nn-webhooks whoami        # what would be used, and where it came from
 ```
 
+`nn-webhooks keys create` and `keys revoke` are still in the binary and still listed in `--help`, but the `/v1/api-keys` routes behind them were removed, so both now fail with a `404`. Mint a key in your NimbusNexus account console, under **API keys**, choosing **Webhooks** as the product — see [Getting access](/docs/product-webhooks#access). A `whsk_…` key from before the change no longer authenticates, so a profile still holding one needs reconfiguring with a replacement.
+
 Credentials live in `$XDG_CONFIG_HOME/nn-webhooks/credentials.json` — or `~/.config/nn-webhooks/credentials.json` when `XDG_CONFIG_HOME` is unset, which it is by default on macOS — mode `0600`, as **named profiles**, so a second deployment is a flag rather than overwriting the first:
 
 ```bash
@@ -49,7 +51,7 @@ For CI, skip the file entirely:
 
 ```bash
 export NN_WEBHOOKS_URL={{WEBHOOKS_BASE_URL}}
-export NN_WEBHOOKS_API_KEY=whsk_...
+export NN_WEBHOOKS_API_KEY="<your-api-key>"
 nn-webhooks deliveries list --status dead
 ```
 
@@ -71,8 +73,6 @@ nn-webhooks endpoints enable ep_123
 
 nn-webhooks deliveries list --status dead
 nn-webhooks deliveries redeliver dlv_456
-
-nn-webhooks keys create --name ci --scope publish
 
 nn-webhooks verify --secret whsec_... --signature sha256=... --timestamp 1785984800 < body.json
 ```
