@@ -62,6 +62,12 @@ The [playground](/inboxes) gives you an address with no account at all — one a
 
 Beyond that, register for Inboxes and you get a workspace on the free plan: one address at a time, a 24-hour retention window, and dashboard reading. Programmatic access arrives with a paid plan; pricing is on the [Inboxes page](/inboxes).
 
+Keys are not issued with the workspace, and the Inboxes API does not issue them. You mint one yourself in your NimbusNexus account console, under **API keys**, choosing **Inboxes** as the product — Identity is the single API-key issuer across the estate. An Identity-issued key is a JWT, so it begins `eyJ` rather than carrying a product prefix. Present it as `Authorization: Bearer <key>`, or `X-API-Key: <key>`.
+
+Choose the scope when you mint it: `admin` can create and delete addresses as well as read, `read` can only read. Unlike Webhooks, an Inboxes key cannot be confined to a single project — the product does not yet honour that, so the account console does not offer it and the issuer refuses to mint one.
+
+> **An existing `inbx_…` key no longer authenticates.** Inboxes used to issue keys of its own with that prefix; the family is gone and a request carrying one is refused like any other unrecognised credential. If you are holding one, mint a replacement in the account console.
+
 ## What's next {#next-steps}
 
 - [Quickstart](/docs/product-inboxes/quickstart) — allocate an address, send it a message, read it back.
