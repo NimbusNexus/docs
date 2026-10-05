@@ -2,7 +2,7 @@
 title: Idempotency
 description: Safe-to-retry mutating requests using the Idempotency-Key header.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-10-05
 kind: concept
 ---
 
@@ -49,7 +49,9 @@ So two requests share a cached response only if **all three match**. This preven
 
 We cache the **full response** — status code, headers, body. A repeat with the same key returns byte-identical output. That matters for clients that fingerprint responses to detect "did this change?" — they get a consistent answer.
 
-We also cache **errors**. If your first call returned `400 validation_failed`, the retry returns the same `400` — not a different error if you happened to fix something between attempts. This is correct: idempotency means "same effect," and the first call's effect was a failure. If you want a fresh attempt, generate a fresh key.
+We also cache **errors**. If your first call failed validation (`422 validation_error`), the retry returns the same `422` — not a different error if you happened to fix something between attempts. This is correct: idempotency means "same effect," and the first call's effect was a failure. If you want a fresh attempt, generate a fresh key.
+
+The Webhooks API is the exception: it records a key only when a publish succeeds. See [On the Webhooks API](#webhooks).
 
 The cache TTL is **24 hours** from first use. After that, a request with the same key is treated as a new request.
 
@@ -68,9 +70,24 @@ In practice: any mutating request that might fail mid-flight benefits from a key
 
 ## Conflict with previous use {#conflicts}
 
-If you reuse a key with a **different request body** on the same endpoint, you get `409 Conflict` with `error.code: 'idempotency_key_reused'`. The cached response sticks; your different body is rejected. This is the safest behavior — silently returning the old response would mask a bug in your retry loop.
+If you reuse a key with a **different request body** on the same endpoint, you get `409 Conflict` with `error.code: 'conflict'`, and `error.message` says the key was already used with a different request body. The original request stands; your different body is rejected. This is the safest behavior — silently returning the old response would mask a bug in your retry loop.
 
 If you genuinely need to make a different request, generate a new key.
+
+Earlier versions of this page said this answer carried `error.code: 'idempotency_key_reused'`. The API has never sent that code; it sends `conflict`. `conflict` also covers other clashes with existing state, such as a name already taken, so read `message` if you need to tell them apart in a log. See [Errors](/docs/errors#codes-state).
+
+## On the Webhooks API {#webhooks}
+
+On the Webhooks API, `Idempotency-Key` applies to publishing an event (`POST /v1/events`), and it behaves like this:
+
+| You send | You get |
+|---|---|
+| A new key | `201` and the new event, fanned out to matching endpoints. |
+| The same key and the same body | `200`, the **original** event, and the header `Idempotency-Replayed: true`. Nothing is fanned out again. |
+| The same key and a different body | `409` with `error.code: 'conflict'`. The original event stands. |
+| The same key after a request that failed | The request runs again. A failed publish (a validation error, a quota error, a rate limit) doesn't record the key. |
+
+"Same body" means the same event type and payload for the same project. A key belongs to your workspace and project, not to the API key that sent it, so two API keys publishing into the same project share keys. A key is kept for at least 24 hours.
 
 ## When not to bother {#skip}
 
