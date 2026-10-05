@@ -2,7 +2,7 @@
 title: Conventions
 description: Patterns the API follows everywhere — resource ids, pagination, errors, idempotency, long-running operations.
 publishedAt: 2026-05-19
-updatedAt: 2026-05-19
+updatedAt: 2026-10-05
 kind: concept
 ---
 
@@ -28,7 +28,7 @@ Ids are stable for the life of the resource — never reused, never rewritten on
 
 List endpoints accept two query parameters:
 
-- `limit` — page size. Default 50, max 200. Past 200 the server returns 400.
+- `limit` — page size. Default 50, max 200. Past 200 the request fails validation: `422`, `validation_error` on Webhooks and `invalid_request` on Inboxes ([Errors](/docs/errors#codes-validation)).
 - `cursor` — opaque next-page pointer. The response body returns it as `pagination.next_cursor` when there are more pages; pass it back as `cursor` to advance.
 
 Cursors are opaque — don't try to decode or construct them. They include sort + filter state from the original request, so changing filters mid-pagination produces undefined behavior. Start fresh (no `cursor`) when your filters change.
@@ -54,20 +54,24 @@ Every error response uses the same JSON shape:
 ```json
 {
   "error": {
-    "code": "validation_failed",
-    "message": "size must be one of the published VM sizes",
-    "fields": {
-      "size": "unknown size 'gp-7-7'"
-    },
-    "request_id": "req_01H8FZ..."
+    "code": "validation_error",
+    "message": "request validation failed",
+    "details": [
+      {
+        "loc": ["body", "event_type"],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
   }
 }
 ```
 
-- `code` — stable machine-readable string. Switch on this, not on the status code, when the same status has multiple meanings (e.g. `409` can be `already_exists` or `state_conflict`).
-- `message` — human-readable for logs. Not localized; pull text from the dictionary if you're rendering it to end users.
-- `fields` — present on `400 validation_failed`. Keyed by the request field that failed.
-- `request_id` — always present. Include it when contacting support.
+- `code` — stable machine-readable string. Switch on this, not on the status code, when the same status has multiple meanings (e.g. `402` can be `quota_exceeded`, `not_entitled` or `workspace_frozen`).
+- `message` — human-readable English for logs. Not localized; if you show an error to end users, map `code` to your own text.
+- `details` — present on some codes. On a validation error it lists the failing inputs; its shape depends on the code.
+
+The body has no request id. Every response carries one in the `X-Request-ID` header; include it when contacting support. [Errors](/docs/errors) lists every code, with the spellings that still differ between the Webhooks and Inboxes APIs. (Earlier versions of this page showed `validation_failed` as a `400`, with `fields` and `request_id` in the body. The APIs have never sent those: a validation failure is a `422`, `validation_error` on Webhooks and `invalid_request` on Inboxes, with `details`.)
 
 ## HTTP status codes {#status-codes}
 
@@ -79,13 +83,15 @@ We use a small, predictable set:
 | `201`     | Resource created. `Location` header points at the new resource.                                                                     |
 | `202`     | Operation accepted; check `operation.status` to track progress.                                                                     |
 | `204`     | Success, no body (typical for DELETE).                                                                                              |
-| `400`     | Validation failed. `error.fields` has per-field details.                                                                            |
-| `401`     | Authentication failed. See [Authentication](/docs/authentication).                                                                  |
-| `403`     | Authenticated but not authorized (scope missing, wrong project, etc.).                                                              |
+| `400`     | The request couldn't be read as sent. `error.message` says why.                                                                     |
+| `401`     | No usable credential. See [Authentication](/docs/authentication).                                                                   |
+| `402`     | Your plan or billing state stops the request (a quota, a feature not in your plan, a frozen workspace). Retrying won't help.        |
+| `403`     | Authenticated but not authorized (scope missing, wrong project, etc.). On Webhooks, also a credential it doesn't accept.           |
 | `404`     | Resource doesn't exist, OR the caller can't see it. We deliberately don't distinguish — leaking existence is itself an access leak. |
-| `409`     | State conflict (resource is mid-operation, name already taken, can't delete a non-empty bucket, etc.).                              |
-| `422`     | Request shape is JSON-valid but semantically wrong in a way that's not a single-field validation issue.                             |
-| `429`     | Rate limit exceeded. `Retry-After` header tells you when to retry.                                                                  |
+| `409`     | State conflict (name already taken, an `Idempotency-Key` reused with a different body, etc.).                                       |
+| `413`     | The body is over the size limit.                                                                                                    |
+| `422`     | Validation failed. `error.details` lists the failing inputs.                                                                        |
+| `429`     | Rate limited. When `Retry-After` is set, it tells you when to retry.                                                                |
 | `500–504` | Server-side problem. Always safe to retry idempotent requests.                                                                      |
 
 ## Idempotency {#idempotency}

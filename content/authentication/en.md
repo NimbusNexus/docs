@@ -2,7 +2,7 @@
 title: Authentication
 description: API keys, scopes, project boundaries, and how to rotate credentials safely.
 publishedAt: 2026-05-19
-updatedAt: 2026-05-19
+updatedAt: 2026-10-05
 kind: concept
 ---
 
@@ -47,7 +47,7 @@ The full scope list mirrors resource types:
 - `object-storage:read`, `object-storage:write`, …
 - `iam:read`, `iam:write` (manage users, projects, keys themselves)
 
-A request that hits an endpoint requiring a scope the key doesn't carry returns `403 Forbidden` with `error.code: 'scope_required'` and the missing scope in `error.fields.scope`. That makes it cheap to start with narrow scopes and widen them only when something fails.
+A request that hits an endpoint requiring a scope the key doesn't carry returns `403 Forbidden` with `error.code: 'forbidden'`, and `error.message` says what was missing. That makes it cheap to start with narrow scopes and widen them only when something fails. (Earlier versions of this page promised `scope_required` with the scope in `error.fields.scope`; the API has never sent either.)
 
 ## Rotation {#rotation}
 
@@ -63,15 +63,19 @@ If you suspect a key is compromised, **revoke** it instead of rotating — that 
 
 ## Common errors {#errors}
 
-| Status | error.code            | What it means                                                                                           |
-| ------ | --------------------- | ------------------------------------------------------------------------------------------------------- |
-| 401    | `no_credentials`      | No `Authorization` header.                                                                              |
-| 401    | `invalid_credentials` | Header is present but the key is unrecognized, revoked, or has the wrong format.                        |
-| 401    | `expired_credentials` | Key was rotated and the 24-hour grace window has elapsed.                                               |
-| 403    | `scope_required`      | Key is valid but doesn't carry the scope this endpoint needs. `error.fields.scope` tells you which one. |
-| 403    | `wrong_project`       | Key valid; resource exists; key's project doesn't match the resource's project.                         |
+The Webhooks and Inboxes APIs answer a credential problem with these codes. They differ on one point: a key the API doesn't recognise is a `403` on Webhooks and a `401` on Inboxes.
 
-The errors above use the standard error shape described in [Conventions](/docs/conventions).
+| Status | error.code           | API      | What it means                                                                                                                                  |
+| ------ | -------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| 401    | `unauthorized`       | Both     | No credential was sent (neither `Authorization` nor `X-API-Key`), or the key has been revoked. On Inboxes, also a key it doesn't recognise. |
+| 403    | `invalid_credential` | Webhooks | The key or token isn't valid. Replace it; sending it again won't work.                                                                         |
+| 403    | `forbidden`          | Both     | The key is valid but can't do this: a missing scope or role, a project-limited key used outside its projects, or a product not enabled for your workspace. |
+
+`message` says which case you hit; branch on `code`. `invalid_credential` stays a `403` on Webhooks: handle it alongside `401`, as "this credential is no good".
+
+Earlier versions of this page listed `no_credentials`, `invalid_credentials`, `expired_credentials`, `scope_required` and `wrong_project`. The APIs have never sent those codes. They send `unauthorized` where the page said `no_credentials` or `expired_credentials`; `invalid_credential` (Webhooks) or `unauthorized` (Inboxes) where it said `invalid_credentials`; and `forbidden` where it said `scope_required` or `wrong_project`.
+
+The errors above use the standard error shape described in [Errors](/docs/errors).
 
 ## What's next {#next-steps}
 

@@ -2,7 +2,7 @@
 title: Python SDK
 description: Typed Python client for the NimbusNexus REST API. Python 3.11+, sync + async.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-10-05
 kind: sdk
 ---
 
@@ -12,17 +12,23 @@ kind: sdk
 
 A typed Python client. Sync + async (httpx-backed), Python 3.11+, full Pydantic models for every response shape.
 
-> **Sending webhooks to your own customers?** That is the separate [Webhooks product](/docs/product-webhooks), which has its own published Python SDK — [`nn-webhooks-sdk`](/docs/product-webhooks/sdks). This page is the client for the NimbusNexus cloud API.
+> **Sending webhooks to your own customers?** That is the separate [Webhooks product](/docs/product-webhooks), which has its own published Python SDK: the package `nn-webhooks-sdk`, imported as `nn_webhooks` ([Webhooks SDKs](/docs/product-webhooks/sdks)). This page is the client for the NimbusNexus cloud API.
 
-## Install (when shipped) {#install}
+## Install {#install}
+
+The client on this page isn't published yet, and there is no `nimbusnexus` package on PyPI, so don't install one under that name. (Earlier versions of this page showed `pip install nimbusnexus`.)
+
+The Python package we publish today is the Webhooks SDK:
 
 ```bash
-pip install nimbusnexus
+pip install nn-webhooks-sdk
 # or
-uv add nimbusnexus
+uv add nn-webhooks-sdk
 # or
-poetry add nimbusnexus
+poetry add nn-webhooks-sdk
 ```
+
+It installs the module `nn_webhooks` (`from nn_webhooks import Client`), for Python 3.11 and later.
 
 ## Quick usage {#quick}
 
@@ -133,28 +139,63 @@ Both return iterators that handle the cursor walk for you. See [Pagination](/doc
 
 ## Errors as exceptions {#errors}
 
-The SDK raises a typed exception hierarchy mirroring the [error codes](/docs/errors):
+### In the published Webhooks SDK {#errors-webhooks-sdk}
+
+`nn-webhooks-sdk` has two exception classes, both in `nn_webhooks.errors`:
+
+| Class | Raised when | Carries |
+|---|---|---|
+| `WebhooksError` | The base class. Raised itself for a network failure that persists after retries, and for misuse such as calling `enqueue()` on a `Client` built without a store. | A message |
+| `WebhooksAPIError` | The API answered with a non-2xx status. A subclass of `WebhooksError`. | `status_code`, `code`, `message` |
+
+There is no class per code. `code` is the API's `error.code`, passed through unchanged, so switch on it using the codes listed on [Errors](/docs/errors). If a response has no JSON error body (a gateway `502`, say), `code` is `"error"` and `message` is the raw response text. `details` isn't carried. A `429`, `500`, `502`, `503` or `504` is retried up to `max_retries` times (default 2), honouring `Retry-After`; after that the `WebhooksAPIError` is raised. Any other `4xx` or `5xx`, a `501` included, raises at once.
+
+```python
+from nn_webhooks import Client, WebhooksAPIError
+
+with Client("{{WEBHOOKS_BASE_URL}}", api_key=WEBHOOKS_API_KEY) as wh:
+    try:
+        wh.publish("order.created", {"order_id": "ord_123"}, idempotency_key="order-123")
+    except WebhooksAPIError as e:
+        if e.code in ("validation_error", "unknown_event_type", "invalid_payload"):
+            ...  # fix the request; sending it again won't help
+        elif e.code == "quota_exceeded":
+            ...  # monthly delivery quota: wait for the next period, or upgrade
+        elif e.code == "invalid_credential":
+            ...  # replace the key
+        else:
+            print(e.status_code, e.code, e.message)
+```
+
+A renamed code is handled under the [deprecation policy](/docs/versioning#deprecation): the rename is announced in the [changelog](/changelog), and the old spelling keeps arriving in `code` for at least 12 months.
+
+### In the cloud API client (planned) {#errors-planned}
+
+The client on this page will raise one class per status family. Each carries `status_code`, `code`, `message` and `details` exactly as the API sends them:
 
 ```python
 from nimbusnexus.errors import (
     NimbusError,                # base class
-    AuthenticationError,        # 401 + invalid_credentials / expired_credentials
-    PermissionError,            # 403 + scope_required / wrong_project
-    ValidationError,            # 400 + validation_failed (carries .fields)
-    NotFoundError,              # 404
-    ConflictError,              # 409
-    RateLimitError,             # 429 (carries .retry_after_seconds)
+    AuthenticationError,        # 401 unauthorized, 403 invalid_credential
+    PermissionError,            # 403 forbidden
+    PlanError,                  # 402 quota_exceeded, not_entitled, workspace_frozen, ...
+    ValidationError,            # 422 validation_error (carries .details)
+    NotFoundError,              # 404 not_found
+    ConflictError,              # 409 conflict
+    RateLimitError,             # 429 rate_limited (carries .retry_after_seconds)
     ServerError,                # 5xx — retryable
 )
 
 try:
     vm = nn.vms.create(name="web-01", size="gp-1-2", region="us-east-1", image="ubuntu-24.04")
 except ValidationError as e:
-    for field, problem in e.fields.items():
-        print(f"  {field}: {problem}")
+    for entry in e.details:
+        print(f"  {entry['loc']}: {entry['msg']}")
 except RateLimitError as e:
     print(f"slow down — wait {e.retry_after_seconds}s")
 ```
+
+Earlier versions of this page mapped these classes to `invalid_credentials`, `expired_credentials`, `scope_required`, `wrong_project` and a `400 validation_failed` carrying `.fields`. The APIs have never sent those; the comments above use the codes they do send.
 
 ## Where it stands today {#status}
 
