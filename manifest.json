@@ -960,7 +960,7 @@
           "description": {
             "en": "Plan tier, billing cycle, upgrade and downgrade endpoints."
           },
-          "published": true
+          "published": false
         },
         {
           "path": "api/invoices",

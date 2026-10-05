@@ -18,5 +18,4 @@ Invoices are also available as PDF — the same format used for tax-deduction fi
 ## What's next {#next-steps}
 
 - [Payment methods](/docs/api/payment-methods) — what invoices are charged against.
-- [Subscriptions](/docs/api/subscriptions) — the plan / billing-cycle context.
 - [Pricing data](/docs/api/pricing-data) — the per-resource prices that produce the invoice totals.

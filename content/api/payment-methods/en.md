@@ -16,5 +16,4 @@ Card data never touches NimbusNexus directly — payment-method creation routes 
 ## What's next {#next-steps}
 
 - [Invoices](/docs/api/invoices) — what payment methods get charged for.
-- [Subscriptions](/docs/api/subscriptions) — the plan-tier context.
 - [Account overview](/docs/api/account-overview) — the billing-contact configuration.
