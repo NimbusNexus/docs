@@ -16,5 +16,4 @@ Most of these endpoints are read-only for non-owners and read-write for owners. 
 ## What's next {#next-steps}
 
 - [Workspaces](/docs/api/workspaces) — the next layer down inside the account.
-- [Subscriptions](/docs/api/subscriptions) — the plan-tier and billing-cycle endpoints.
 - [Region requests](/docs/api/region-requests) — request access to a region you don't have yet.
