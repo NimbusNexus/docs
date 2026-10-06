@@ -10,7 +10,16 @@ kind: concept
 
 Every error response from the Webhooks and Inboxes APIs uses the same JSON shape. Switch on `error.code`, or on `error.next_code` when an error carries one, to handle each case. Don't parse `message`, and don't decide from the status alone: one status can carry several codes, and across the two APIs `402` carries five.
 
-> **Updated on 2026-10-06.** On Webhooks, `unprocessable` now carries `next_code` `validation_error`, with the entry list naming the field at fault ([When a code is renamed](#renames)). The Webhooks API's other `422` codes carry their values in `details` too: the `event_type`, `provider`, `host`, `ref` or `pattern`, which bound or rule a schema broke and the bound's `limit`, and on `invalid_payload` what failed where (`details.errors`) with a `total` ([What `details` carries](#details)). Every status, `code` and `message` is unchanged.
+> **Updated on 2026-10-06.** On Webhooks:
+>
+> - `unprocessable` now carries `next_code` `validation_error`, with the entry list naming the field at fault ([When a code is renamed](#renames)).
+> - The other `422` codes carry their values in `details` too: the `event_type`, `provider`, `host`, `ref` or `pattern`, which bound or rule a schema broke and the bound's `limit`, and on `invalid_payload` what failed where (`details.errors`) with a `total` ([What `details` carries](#details)).
+> - Every `500` (`internal`) now carries `next_code` `internal_error` ([When a code is renamed](#renames)).
+> - Validation entries from Webhooks' own rules on custom headers, `retry_schedule` delays and a RabbitMQ source's broker fields keep their `type` `value_error`, `loc` and `msg`, and most now carry `params` with the values the rule names: `header`, `count`, `limit` or `missing` ([Request validation](#codes-validation)).
+> - Every `401` names a `details.reason`, every `429` sends `details.retry_after`, and the `413` for an oversized request body now carries `request_id`, so every error body the API sends does ([The request id](#request-id)).
+> - The result of an endpoint test or verification (`POST /v1/endpoints/{id}/test`, `POST /v1/endpoints/{id}/verify`) gains `failure_reason`, saying why it failed ([Test and verify results](#failure-reason)).
+>
+> Every status, `code` and `message` is unchanged.
 >
 > **Updated on 2026-10-05.** Error bodies gained fields and lost none: `request_id` (the same value as the `X-Request-ID` header), a `reason` and named values in `details` on many more errors, `params` on validation entries that have a numeric bound, and `next_code` on an error whose code is being renamed. Every status, `code` and `message` is unchanged. On Webhooks, a `conflict` names the clash in `details.reason`, the monthly `quota_exceeded` names its `metric`, `limit`, `current` and `period`, every `413` names its `limit`, and `plan_violation` carries the `next_code` it will become, with that code's `details` ([When a code is renamed](#renames)). [The shape](#shape) describes each field.
 >
@@ -34,14 +43,14 @@ A read-only key that tries to create an inbox on Inboxes, or an endpoint on Webh
 }
 ```
 
-Up to five fields. `code` and `message` are always there, `request_id` is on every error body but one, and `details` and `next_code` appear when they have something to say:
+Up to five fields. `code`, `message` and `request_id` are on every error body the APIs send, and `details` and `next_code` appear when they have something to say:
 
 | Field | Always present | What |
 |---|---|---|
 | `code` | Yes | Stable machine-readable string. Branch on this, or on `next_code` when it's present. |
 | `message` | Yes | English text for logs and support tickets. Not localized, and not meant for an end-user UI. |
 | `details` | No | Structured context: a `reason` that refines the code, and the values that go with it, such as the `id` that wasn't found. On a validation error, the failing inputs. Its shape depends on the code; on a Webhooks `plan_violation` or `unprocessable` it follows the `next_code`, a list for `validation_error` and an object otherwise. See [What `details` carries](#details). |
-| `request_id` | Almost always | The id of this request, the same value as the `X-Request-ID` response header. Log it and quote it to support; never branch on it. See [The request id](#request-id). |
+| `request_id` | Yes | The id of this request, the same value as the `X-Request-ID` response header. Log it and quote it to support; never branch on it. See [The request id](#request-id). |
 | `next_code` | No | Sent only while a code is being renamed: the code this error will carry once the rename lands. Prefer it to `code`. See [When a code is renamed](#renames). |
 
 New fields may be added to the `error` member, as to any response; ignore the ones you don't use ([Versioning](/docs/versioning#forward-compat)).
@@ -52,7 +61,7 @@ Treat every key in `details` as optional: read the ones you need and ignore the 
 
 | `code` | API | `details.reason` | Other keys in `details` |
 |---|---|---|---|
-| `unauthorized` | Inboxes | `missing`: no credential was sent. `revoked`: the key or session has been revoked. `invalid`: a sign-in session that didn't verify, usually because it has expired. `no_workspace`: the credential isn't tied to a workspace. | — |
+| `unauthorized` | Both | `missing`: no credential was sent. `revoked`: the key or session has been revoked. `invalid`: on Inboxes, a sign-in session that didn't verify, usually because it has expired; on Webhooks, an inbound event to `POST /v1/ingest/{source_id}` whose signature doesn't verify. `no_workspace`, on Inboxes only: the credential isn't tied to a workspace. | — |
 | `forbidden` | Both | `scope`: the credential's scope doesn't allow this. `project`: the credential, or the person using it, has no access to the project the request names; Inboxes also sends it for any credential limited to certain projects, which it doesn't accept yet. `csrf`: a browser session sent a write without the `X-CSRF` header. `operator`: the route, or a field in the request, is for platform operators only. | `required`, on most `scope` refusals: the scope that would have been allowed (`admin` on Inboxes; `admin`, `read` or `publish` on Webhooks) |
 | `forbidden` | Webhooks | `role`: your role, in the workspace or on the project of the resource you're acting on, is too low. `project_confined`: a credential limited to certain projects used on a route that answers for the whole workspace. `product_not_enabled`: your access doesn't include Webhooks. `not_provisioned`: the workspace isn't set up for Webhooks yet. | `required`, on `role`: the lowest role allowed (`admin`) |
 | `not_found` | Both | The kind of resource. Inboxes: `inbox`, `message`, `workspace`. Webhooks: `endpoint`, `source`, `event`, `delivery`, `capture`, `event_type`, `operational_endpoint`, `project`, `workspace`, `user`, and `default_project` (a write that names no project, in a workspace that has none yet). | `id`: the id you asked for. Absent on `user` and `default_project`, where you named none, and on a path that doesn't exist at all. |
@@ -70,7 +79,7 @@ Treat every key in `details` as optional: read the ones you need and ignore the 
 | `schema_ref_unsupported` | Webhooks | — | `ref`: the remote `$ref` the API won't resolve |
 | `provider_secret_required` | Webhooks | — | `provider`: `stripe`, `github` or `rabbitmq` |
 | `broker_not_allowed` | Webhooks | None for your broker, whichever rule refused it (`not_system_broker` is sent only to the platform's own workspace) | `host`: the broker, as `host:port` |
-| `rate_limited` | Inboxes | `inbox_rate`: one inbox's per-minute limit | `retry_after` in seconds, the same number as the `Retry-After` header; `rate_per_min` and `inbox_id` |
+| `rate_limited` | Both | `inbox_rate` (Inboxes): one inbox's per-minute limit. Webhooks sends no reason. | `retry_after` in seconds, the same number as the `Retry-After` header (both APIs). On Inboxes' `inbox_rate`, also `rate_per_min` and `inbox_id`. |
 | `unavailable` | Inboxes | `ingest_disabled`: message acceptance is switched off | — |
 
 On `invalid_payload`, each entry in `details.errors` says what failed where. `path` is a JSON Pointer to the value that failed: `""` is the payload itself, and for a missing or unexpected member it points to the object that should or shouldn't hold it. `keyword` is the JSON Schema keyword that failed (`required`, `type`, `enum`, `const`, `minimum`, `maximum`, `minLength`, `maxLength`, `minItems`, `maxItems`, `pattern`, `format` or `additionalProperties`), or `other` for any other keyword. `params` holds `property` (the missing or unexpected member, one entry each), `count` (a length or item bound), `limit` (the bound of a `minimum` or `maximum`) or `type` (the one type the value should have been), and is empty when none of these applies, as on `enum` or `pattern`, or on a `type` that allows several. Entries never carry the regex, the allowed values or the value that failed; `message` still describes one failure in English.
@@ -79,7 +88,7 @@ Request validation errors (`validation_error`, Inboxes' `invalid_request`) aren'
 
 ### The request id {#request-id}
 
-`error.request_id` is the same value as the `X-Request-ID` header every response carries, so either one identifies the request. If your request sends an `X-Request-ID` header (up to 128 letters, digits, `.`, `_` or `-`), the API uses that value as the request id; otherwise it makes one. If you set it, make it unique per request, so the id points to one call. The one error body without it is the Webhooks `413` for a request body over the size limit, which carries the id in the header only. Read the body first and fall back to the header, as the [handling pattern](#pattern) does. What to do with the id is under [Reporting bugs](#bugs).
+`error.request_id` is the same value as the `X-Request-ID` header on every response an API sends, so either one identifies the request. If your request sends an `X-Request-ID` header (up to 128 letters, digits, `.`, `_` or `-`), the API uses that value as the request id; otherwise it makes one. If you set it, make it unique per request, so the id points to one call. Some responses come from the edge in front of the APIs rather than from an API: a `502` or `504`, for example, or a `413` for a body too large to reach the API. Those carry neither the API's error body nor `X-Request-ID`. Read the body first and fall back to the header, as the [handling pattern](#pattern) does, and expect both to be missing on those. What to do with the id is under [Reporting bugs](#bugs).
 
 ## Status code families {#families}
 
@@ -87,7 +96,7 @@ Request validation errors (`validation_error`, Inboxes' `invalid_request`) aren'
 |---|---|
 | `200`/`201`/`202`/`204` | Success |
 | `400` | The request couldn't be read as sent |
-| `401` | No usable credential: none was sent, or it was revoked. Inboxes also answers `401` for a key it doesn't recognise or can't verify |
+| `401` | No usable credential: none was sent, or it was revoked. Inboxes also answers `401` for a key it doesn't recognise or can't verify, and Webhooks for an inbound event whose signature doesn't verify |
 | `402` | Your plan or billing state stops the request: a quota, a feature your plan doesn't include, or a workspace that is frozen or suspended |
 | `403` | Not allowed. Webhooks also answers `403` for a credential it doesn't recognise |
 | `404` | Resource doesn't exist *or* caller can't see it (intentionally indistinguishable) |
@@ -108,7 +117,7 @@ The two APIs share most codes. Where they spell the same situation differently t
 
 | `code` | Status | API | What |
 |---|---|---|---|
-| `unauthorized` | 401 | Both | No credential was sent, or it has been revoked. On Inboxes, also an API key or token it doesn't recognise or can't verify, which carries `next_code: invalid_credential`; every other Inboxes `401` carries a `details.reason`. |
+| `unauthorized` | 401 | Both | No credential was sent, or it has been revoked. On Inboxes, also an API key or token it doesn't recognise or can't verify, which carries `next_code: invalid_credential`; every other Inboxes `401` carries a `details.reason`. On Webhooks, also an inbound event to `POST /v1/ingest/{source_id}` whose signature doesn't verify (`details.reason` `invalid`); every Webhooks `401` carries a `details.reason` ([What `details` carries](#details)). |
 | `invalid_credential` | 403 | Webhooks | The key or token isn't valid. Replace it; sending the same credential again won't work. |
 | `forbidden` | 403 | Both | The credential is valid but can't do this: a missing scope or role, a key limited to certain projects used outside them, or a product that isn't enabled for your workspace. `details.reason` says which. |
 
@@ -125,6 +134,17 @@ The two APIs share most codes. Where they spell the same situation differently t
 | `method_not_allowed` | 405 | Both | The path exists, but not for this method. |
 
 Each validation entry describes one failing input: `loc` says where (`["body", "event_type"]`), `type` says what is wrong in machine-readable form (`missing`, `string_too_long`, `json_invalid`, …) and `msg` says it in English. When the rule has a number, the entry also carries it in `params`: `count` for a length (`string_too_short`, `string_too_long`, `too_short`, `too_long`) and `limit` for a bound (`greater_than`, `greater_than_equal`, `less_than`, `less_than_equal`). Webhooks' own type `webhooks.max_attempts_above_plan`, which arrives today inside a `plan_violation` ([When a code is renamed](#renames)), carries `count`, the plan's ceiling. Webhooks' other own types arrive inside an `unprocessable`: `webhooks.url_not_https`, `webhooks.end_not_after_start`, `webhooks.unknown_delivery_status` (with `params.status`, the value sent) and `webhooks.unknown_operational_event_type` (with `params.event_type`, the value, and `params.choices`, the operational event types the API accepts). A body that isn't valid JSON is a validation error too, with the type `json_invalid`.
+
+Webhooks' own rules on custom headers, `retry_schedule` delays and a RabbitMQ source's broker fields send entries of the type `value_error` in a `validation_error`, with the `loc` and `msg` they have always had. Since the update noted at the top of this page, most of them also carry `params`, with the values the rule names:
+
+- More than 20 custom headers: `params.count`, `20`.
+- A custom header value over 1024 characters: `params.header`, the header's name, and `params.count`, `1024`.
+- A line break or other control character in a custom header value, a name the API reserves for its own delivery headers (`Content-Type`, `User-Agent`, or any name starting with `X-Webhook-`), a hop-by-hop or connection-control name such as `Host` or `Connection`, or a value with a character that isn't ASCII: `params.header`, the header's name.
+- Custom header names and values that together take more than 8192 bytes: `params.limit`, `8192`.
+- A `retry_schedule` delay below 0 or above 604800 seconds: `params.limit`, `604800`.
+- A RabbitMQ source created without all its broker fields: `params.missing`, a list of the fields (of `broker_identifier`, `broker_host`, `broker_user`, `broker_exchange` and `broker_topic`) that were missing or empty. Its `loc` is `["body"]`.
+
+The custom header rules' `loc` is `["body", "custom_headers"]`, and `params.header` is the name as you sent it; a header's value never comes back. A custom header name that isn't a valid HTTP token carries no `params`, and neither does a plan name the API doesn't know, on a route for platform operators.
 
 An Inboxes label one character over its limit:
 
@@ -211,18 +231,35 @@ Each `details.reason` a `conflict` carries, when it's sent, and the other keys i
 
 | `code` | Status | API | What |
 |---|---|---|---|
-| `rate_limited` | 429 | Both | Too many requests. If `Retry-After` is set, wait that many seconds and retry; otherwise back off. On Inboxes, `details.retry_after` carries the same number, and a per-inbox limit also sets `details.reason` to `inbox_rate`, with `details.inbox_id` and `details.rate_per_min`. |
+| `rate_limited` | 429 | Both | Too many requests. If `Retry-After` is set, wait that many seconds and retry; otherwise back off. `details.retry_after` carries the same number on both APIs, and on Inboxes a per-inbox limit also sets `details.reason` to `inbox_rate`, with `details.inbox_id` and `details.rate_per_min`. |
 
 ### Server {#codes-server}
 
 | `code` | Status | API | What |
 |---|---|---|---|
-| `internal` | 500 | Webhooks | Something broke on our side. Safe to retry idempotent requests. |
+| `internal` | 500 | Webhooks | Something broke on our side. Safe to retry idempotent requests. Carries `next_code: internal_error` ([When a code is renamed](#renames)). |
 | `internal_error` | 500 | Inboxes | The same situation, in the Inboxes spelling. |
 | `unavailable` | 503 | Inboxes | Temporarily unable to serve the request: message acceptance is switched off, and `details.reason` is `ingest_disabled`. Retry with backoff. |
 | `error` | any | Inboxes | A status with no code of its own on Inboxes, such as a `400` when the client disconnected mid-body. Carries `next_code`: the code that status has elsewhere, `bad_request` for that `400`. |
 
 A `502` or `504` from the edge in front of the APIs can arrive with no JSON body at all. Treat a `5xx` you can't parse as retryable.
+
+### Test and verify results {#failure-reason}
+
+Testing or verifying a Webhooks endpoint (`POST /v1/endpoints/{id}/test`, `POST /v1/endpoints/{id}/verify`) sends a request to it and answers `200` with the outcome, whether that request succeeded or not, so a failure there isn't an error response. `delivered` on a test, or `verified` on a verification, says whether it worked. On a failure, `error` describes it in English and `failure_reason` names it as a stable machine string:
+
+| `failure_reason` | What happened |
+|---|---|
+| `http_status` | The endpoint answered with a status outside `2xx`; `status_code` says which. |
+| `timeout` | No answer within the endpoint's timeout. |
+| `tls_failed` | The TLS handshake failed, most often because the certificate doesn't verify. |
+| `dns_failed` | The host doesn't resolve. |
+| `connection_failed` | Any other connection failure, such as a connection refused, reset or unreachable. |
+| `blocked_address` | The host resolves to a private or otherwise non-public address, which Webhooks never sends to. |
+| `challenge_not_echoed` | Verification only: the endpoint answered `2xx` without the challenge token in its body. |
+| `url_changed` | Verification only: the endpoint's URL changed while the challenge was out. Verify again. |
+
+`failure_reason` is `null` on success, and on a failure none of these describe, where `error` is the only description. Like `code`, it is an open string, not an enum: keep a default for a value you don't know, and branch on `failure_reason` rather than parsing `error`.
 
 ## When a code is renamed {#renames}
 
@@ -252,12 +289,13 @@ These errors carry `next_code` today:
 | Webhooks | `plan_violation` | `validation_error` | `max_attempts` above the plan's ceiling (`POST /v1/endpoints`, `PATCH /v1/endpoints/{id}`). `details` is the entry list, holding one entry: `loc` `["body", "max_attempts"]`, `type` `webhooks.max_attempts_above_plan`, and `params.count`, the ceiling. |
 | Webhooks | `plan_violation` | `not_entitled` | A RabbitMQ source below Pro: `POST /v1/sources`, or a `PATCH /v1/sources/{id}` on a RabbitMQ source whose body sets `status` to `enabled` or sets any of `broker_identifier`, `broker_host`, `broker_port`, `broker_vhost`, `broker_user`, `broker_exchange` or `broker_topic`, even to the value it already has. Other changes, such as renaming or disabling the source, stay allowed. `details.feature` is `rabbitmq_sources`. |
 | Webhooks | `unprocessable` | `validation_error` | A field the API checks itself: an endpoint `url` that isn't https (`POST /v1/endpoints`, `PATCH /v1/endpoints/{id}`, `POST /v1/operational-endpoints`), an unknown `status` filter (`GET /v1/deliveries`), an `event_types` value that isn't an operational event type (`POST /v1/operational-endpoints`), or, on a route for platform operators, a usage window that doesn't parse or doesn't end after it starts. `details` is the entry list, at most 20 entries, each with `loc`, `msg` and `type`: `webhooks.url_not_https` (`loc` `["body", "url"]`), `webhooks.unknown_delivery_status` (`loc` `["query", "status"]`, with `params.status`, the value sent), `webhooks.unknown_operational_event_type` (`loc` `["body", "event_types", <index>]`, one entry per distinct value, at its first index, with `params.event_type` and `params.choices`, the operational event types the API accepts), `date_parsing` (`loc` `["query", "start"]` or `["query", "end"]`, one for each date that doesn't parse) or `webhooks.end_not_after_start` (`loc` `["query", "end"]`). |
+| Webhooks | `internal` | `internal_error` | Every `500`. No `details`. |
 
-Webhooks sends `next_code` on `plan_violation` and `unprocessable`, not yet on `internal`, so `internal` is still the code to match for a Webhooks `500`.
+Webhooks sends `next_code` on `plan_violation`, `unprocessable` and `internal`.
 
 Switch on `next_code` when it's present and on `code` otherwise (`error.next_code ?? error.code`). A handler written that way needs no change when a rename lands: from then on `code` carries the new spelling, and `next_code` is no longer sent for it. If you can only read `code`, for example through an SDK that passes `code` alone, match both spellings until the rename lands.
 
-We also intend to retire Webhooks' `plan_violation` and `unprocessable`. `plan_violation`'s rename is already under way: `code` stays `plan_violation` and the status stays `402`, and each refusal carries the `next_code` it will become, with that code's `details` (the table above). The [changelog](/changelog) will announce the date `code` changes, at least 12 months before that date; from then on `max_attempts` over the plan's ceiling is a `422`, and the other situations stay `402`. `unprocessable`'s rename is under way too, and its date will be announced the same way: `code` stays `unprocessable` and the status stays `422`, each refusal carries `next_code: validation_error` with that code's `details`, the entry list (the table above), and once `code` changes these refusals are `validation_error`, still a `422`. `unauthorized` itself isn't being retired: it stays the code for a missing or revoked credential, and only an API key or token Inboxes doesn't recognise or can't verify moves to `invalid_credential`.
+We also intend to retire Webhooks' `plan_violation` and `unprocessable`. `plan_violation`'s rename is already under way: `code` stays `plan_violation` and the status stays `402`, and each refusal carries the `next_code` it will become, with that code's `details` (the table above). The [changelog](/changelog) will announce the date `code` changes, at least 12 months before that date; from then on `max_attempts` over the plan's ceiling is a `422`, and the other situations stay `402`. `unprocessable`'s rename is under way too, and its date will be announced the same way: `code` stays `unprocessable` and the status stays `422`, each refusal carries `next_code: validation_error` with that code's `details`, the entry list (the table above), and once `code` changes these refusals are `validation_error`, still a `422`. `internal`'s rename is under way as well, its date to be announced the same way: `code` stays `internal` and the status stays `500`, and each `500` carries `next_code: internal_error`. `unauthorized` itself isn't being retired: it stays the code for a missing or revoked credential, and only an API key or token Inboxes doesn't recognise or can't verify moves to `invalid_credential`.
 
 ## Codes this page used to list {#earlier-versions}
 
@@ -267,7 +305,7 @@ Earlier versions of this page listed the codes and fields on the left. The APIs 
 |---|---|
 | `validation_failed` (400) | `validation_error` (422) on Webhooks, `invalid_request` (422) on Inboxes |
 | `fields` | `details`: a list on Webhooks, `{"errors": [...]}` on Inboxes |
-| `request_id` in every body | Not sent while those versions were current: the id was in the `X-Request-ID` response header only. Since the update noted at the top of this page, every error body but one carries it too, as `error.request_id`, with the same value as the header ([The request id](#request-id)). |
+| `request_id` in every body | Not sent while those versions were current: the id was in the `X-Request-ID` response header only. Since the updates noted at the top of this page, every error body the APIs send carries it too, as `error.request_id`, with the same value as the header ([The request id](#request-id)). |
 | `malformed_json` (400), `unsupported_content_type` (415) | `validation_error` / `invalid_request` (422) |
 | `request_too_large` | `payload_too_large` (413) |
 | `no_credentials`, `expired_credentials` (401) | `unauthorized` (401) |
@@ -336,7 +374,7 @@ The general rule: **switch on `error.next_code ?? error.code`, default to handli
 
 ## Reporting bugs {#bugs}
 
-Every response carries an `X-Request-ID` header, errors included, and both APIs let browser JavaScript read it. Error bodies carry the same id as `error.request_id` ([with one exception](#request-id)). When something's wrong on our side (5xx, unexpected behavior), the request id is what lets us find the call in our logs. Log it next to each error and include it in support tickets.
+Every response an API sends carries an `X-Request-ID` header, errors included, and both APIs let browser JavaScript read it. Their error bodies carry the same id as `error.request_id`. When something's wrong on our side (5xx, unexpected behavior), the request id is what lets us find the call in our logs. Log it next to each error and include it in support tickets.
 
 Don't share request ids publicly (they're not secret, but they let anyone who has them ask us about your account's traffic). Use them in private channels (support, dashboard tickets).
 
