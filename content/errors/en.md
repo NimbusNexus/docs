@@ -2,7 +2,7 @@
 title: Errors
 description: The error shape, the error codes the Webhooks and Inboxes APIs send, and how to handle each.
 publishedAt: 2026-05-20
-updatedAt: 2026-10-05
+updatedAt: 2026-10-06
 kind: concept
 ---
 
@@ -10,6 +10,8 @@ kind: concept
 
 Every error response from the Webhooks and Inboxes APIs uses the same JSON shape. Switch on `error.code`, or on `error.next_code` when an error carries one, to handle each case. Don't parse `message`, and don't decide from the status alone: one status can carry several codes, and across the two APIs `402` carries five.
 
+> **Updated on 2026-10-06.** On Webhooks, `unprocessable` now carries `next_code` `validation_error`, with the entry list naming the field at fault ([When a code is renamed](#renames)). The Webhooks API's other `422` codes carry their values in `details` too: the `event_type`, `provider`, `host`, `ref` or `pattern`, which bound or rule a schema broke and the bound's `limit`, and on `invalid_payload` what failed where (`details.errors`) with a `total` ([What `details` carries](#details)). Every status, `code` and `message` is unchanged.
+>
 > **Updated on 2026-10-05.** Error bodies gained fields and lost none: `request_id` (the same value as the `X-Request-ID` header), a `reason` and named values in `details` on many more errors, `params` on validation entries that have a numeric bound, and `next_code` on an error whose code is being renamed. Every status, `code` and `message` is unchanged. On Webhooks, a `conflict` names the clash in `details.reason`, the monthly `quota_exceeded` names its `metric`, `limit`, `current` and `period`, every `413` names its `limit`, and `plan_violation` carries the `next_code` it will become, with that code's `details` ([When a code is renamed](#renames)). [The shape](#shape) describes each field.
 >
 > **Corrected on 2026-10-05.** Earlier versions of this page listed codes, statuses and fields the APIs have never sent, among them `validation_failed` (400), `rate_limit_exceeded`, `quota_exceeded` as a 429 and `fields`. Code that matches on those has never matched anything. They also promised a `request_id` in every body before the APIs sent one; error bodies carry it now, all but one ([The request id](#request-id)). [Codes this page used to list](#earlier-versions) maps each one to what the API actually sends.
@@ -38,7 +40,7 @@ Up to five fields. `code` and `message` are always there, `request_id` is on eve
 |---|---|---|
 | `code` | Yes | Stable machine-readable string. Branch on this, or on `next_code` when it's present. |
 | `message` | Yes | English text for logs and support tickets. Not localized, and not meant for an end-user UI. |
-| `details` | No | Structured context: a `reason` that refines the code, and the values that go with it, such as the `id` that wasn't found. On a validation error, the failing inputs. Its shape depends on the code; on a Webhooks `plan_violation` it follows the `next_code`, a list for `validation_error` and an object otherwise. See [What `details` carries](#details). |
+| `details` | No | Structured context: a `reason` that refines the code, and the values that go with it, such as the `id` that wasn't found. On a validation error, the failing inputs. Its shape depends on the code; on a Webhooks `plan_violation` or `unprocessable` it follows the `next_code`, a list for `validation_error` and an object otherwise. See [What `details` carries](#details). |
 | `request_id` | Almost always | The id of this request, the same value as the `X-Request-ID` response header. Log it and quote it to support; never branch on it. See [The request id](#request-id). |
 | `next_code` | No | Sent only while a code is being renamed: the code this error will carry once the rename lands. Prefer it to `code`. See [When a code is renamed](#renames). |
 
@@ -60,10 +62,20 @@ Treat every key in `details` as optional: read the ones you need and ignore the 
 | `not_entitled` | Both | — | `feature`: `read_api` or `optional_phrase_gate` on Inboxes; `rabbitmq_sources` on Webhooks, where `not_entitled` is the `next_code` of a `plan_violation`. The Inboxes read API refusal also keeps `plan`. |
 | `plan_violation` | Webhooks | Its `next_code`'s reason, when that has one: `allocation` for the endpoint limit | The keys its `next_code` sends ([When a code is renamed](#renames)). When the `next_code` is `validation_error`, `details` is that code's entry list instead of an object. |
 | `payload_too_large` | Both | — | `limit` in bytes, on every `413`. Inboxes also sends `size` when the API measured the body. |
+| `unprocessable` | Webhooks | — | `details` is the entry list its `next_code`, `validation_error`, sends, not an object ([When a code is renamed](#renames)) |
+| `unknown_event_type` | Webhooks | — | `event_type`: the name that isn't registered |
+| `invalid_payload` | Webhooks | `payload`: the payload fails its event type's schema. `schema_invalid`: a schema you're registering isn't valid JSON Schema. | On `payload`: `errors`, up to 20 entries of `{path, keyword, params}` (below), and `total`, how many entries there were before that cut (the list's length when nothing was cut). On `schema_invalid`: `path`, a JSON Pointer into the schema, where it failed. |
+| `schema_too_large` | Webhooks | `bytes`, `depth`, `members`, `enum_values` or `patterns`: the bound the schema broke | `limit`; with `size` too on `bytes` (both in bytes) |
+| `schema_pattern_unsafe` | Webhooks | `too_long`, `does_not_compile`, `empty_repeat`, `nested_quantifier`, `ambiguous_alternation` or `too_complex`: the rule the pattern broke | `pattern`: the pattern, whole, though `message` shortens a long one; `limit` (in characters) on `too_long` |
+| `schema_ref_unsupported` | Webhooks | — | `ref`: the remote `$ref` the API won't resolve |
+| `provider_secret_required` | Webhooks | — | `provider`: `stripe`, `github` or `rabbitmq` |
+| `broker_not_allowed` | Webhooks | None for your broker, whichever rule refused it (`not_system_broker` is sent only to the platform's own workspace) | `host`: the broker, as `host:port` |
 | `rate_limited` | Inboxes | `inbox_rate`: one inbox's per-minute limit | `retry_after` in seconds, the same number as the `Retry-After` header; `rate_per_min` and `inbox_id` |
 | `unavailable` | Inboxes | `ingest_disabled`: message acceptance is switched off | — |
 
-Validation errors carry their failing inputs instead; see [Request validation](#codes-validation).
+On `invalid_payload`, each entry in `details.errors` says what failed where. `path` is a JSON Pointer to the value that failed: `""` is the payload itself, and for a missing or unexpected member it points to the object that should or shouldn't hold it. `keyword` is the JSON Schema keyword that failed (`required`, `type`, `enum`, `const`, `minimum`, `maximum`, `minLength`, `maxLength`, `minItems`, `maxItems`, `pattern`, `format` or `additionalProperties`), or `other` for any other keyword. `params` holds `property` (the missing or unexpected member, one entry each), `count` (a length or item bound), `limit` (the bound of a `minimum` or `maximum`) or `type` (the one type the value should have been), and is empty when none of these applies, as on `enum` or `pattern`, or on a `type` that allows several. Entries never carry the regex, the allowed values or the value that failed; `message` still describes one failure in English.
+
+Request validation errors (`validation_error`, Inboxes' `invalid_request`) aren't in the table: their `details` holds a list of validation entries, each with `loc`, `type` and `msg`, a different shape from `invalid_payload`'s. A Webhooks `unprocessable`, and a `plan_violation` whose `next_code` is `validation_error`, carry the same list. See [Request validation](#codes-validation).
 
 ### The request id {#request-id}
 
@@ -112,7 +124,7 @@ The two APIs share most codes. Where they spell the same situation differently t
 | `payload_too_large` | 413 | Both | The body is over the size limit. |
 | `method_not_allowed` | 405 | Both | The path exists, but not for this method. |
 
-Each validation entry describes one failing input: `loc` says where (`["body", "event_type"]`), `type` says what is wrong in machine-readable form (`missing`, `string_too_long`, `json_invalid`, …) and `msg` says it in English. When the rule has a number, the entry also carries it in `params`: `count` for a length (`string_too_short`, `string_too_long`, `too_short`, `too_long`) and `limit` for a bound (`greater_than`, `greater_than_equal`, `less_than`, `less_than_equal`). Webhooks' own type `webhooks.max_attempts_above_plan`, which arrives today inside a `plan_violation` ([When a code is renamed](#renames)), carries `count`, the plan's ceiling. A body that isn't valid JSON is a validation error too, with the type `json_invalid`.
+Each validation entry describes one failing input: `loc` says where (`["body", "event_type"]`), `type` says what is wrong in machine-readable form (`missing`, `string_too_long`, `json_invalid`, …) and `msg` says it in English. When the rule has a number, the entry also carries it in `params`: `count` for a length (`string_too_short`, `string_too_long`, `too_short`, `too_long`) and `limit` for a bound (`greater_than`, `greater_than_equal`, `less_than`, `less_than_equal`). Webhooks' own type `webhooks.max_attempts_above_plan`, which arrives today inside a `plan_violation` ([When a code is renamed](#renames)), carries `count`, the plan's ceiling. Webhooks' other own types arrive inside an `unprocessable`: `webhooks.url_not_https`, `webhooks.end_not_after_start`, `webhooks.unknown_delivery_status` (with `params.status`, the value sent) and `webhooks.unknown_operational_event_type` (with `params.event_type`, the value, and `params.choices`, the operational event types the API accepts). A body that isn't valid JSON is a validation error too, with the type `json_invalid`.
 
 An Inboxes label one character over its limit:
 
@@ -137,22 +149,22 @@ An Inboxes label one character over its limit:
 }
 ```
 
-On Webhooks the same entry sits directly in `details`, which is a list, and there is no `next_code`.
+On Webhooks the same entry sits directly in `details`, which is a list, and a `validation_error` has no `next_code`. A Webhooks `unprocessable` carries the same list, with `next_code: validation_error` ([When a code is renamed](#renames)).
 
 ### Webhooks API codes {#codes-webhooks}
 
-These belong to the Webhooks API's own objects (event types, schemas, sources) and are all `422`:
+These belong to the Webhooks API's own objects (event types, schemas, sources, endpoints, deliveries) and are all `422`:
 
 | `code` | What |
 |---|---|
 | `unknown_event_type` | The event type isn't in your workspace's catalog, and the catalog only accepts registered types. |
-| `invalid_payload` | The payload doesn't match the schema registered for its event type. |
+| `invalid_payload` | The payload doesn't match the schema registered for its event type (`details.reason` `payload`, with `details.errors`), or a schema you're registering isn't valid JSON Schema (`schema_invalid`). |
 | `schema_too_large` | A JSON Schema you registered is too big or too deeply nested. |
 | `schema_pattern_unsafe` | A `pattern` in your schema is too long, doesn't compile, or could take too long to run. |
 | `schema_ref_unsupported` | Your schema uses a `$ref` the API doesn't resolve. |
-| `provider_secret_required` | Rotating a Stripe or GitHub source needs the new secret from that provider. |
+| `provider_secret_required` | Rotating a Stripe or GitHub source needs the new secret from that provider, and rotating a RabbitMQ source needs the broker's new password. `details.provider` says which: `stripe`, `github` or `rabbitmq`. |
 | `broker_not_allowed` | A RabbitMQ source names a broker the API won't connect to. |
-| `unprocessable` | An older check that doesn't have its own code yet. `message` says what failed. |
+| `unprocessable` | A field the API checks itself, such as an endpoint `url` that isn't https or an unknown `status` filter. `message` says what failed, `details` is the entry list naming the field, and the error carries `next_code: validation_error`, the code it is becoming ([When a code is renamed](#renames)). |
 
 ### Plan and billing {#codes-plan}
 
@@ -239,12 +251,13 @@ These errors carry `next_code` today:
 | Webhooks | `plan_violation` | `quota_exceeded` | The endpoint limit (`POST /v1/endpoints`). `details`: `reason` `allocation`, `metric` `endpoints`, `limit` (the plan's ceiling) and `current` (the endpoints the workspace has). |
 | Webhooks | `plan_violation` | `validation_error` | `max_attempts` above the plan's ceiling (`POST /v1/endpoints`, `PATCH /v1/endpoints/{id}`). `details` is the entry list, holding one entry: `loc` `["body", "max_attempts"]`, `type` `webhooks.max_attempts_above_plan`, and `params.count`, the ceiling. |
 | Webhooks | `plan_violation` | `not_entitled` | A RabbitMQ source below Pro: `POST /v1/sources`, or a `PATCH /v1/sources/{id}` on a RabbitMQ source whose body sets `status` to `enabled` or sets any of `broker_identifier`, `broker_host`, `broker_port`, `broker_vhost`, `broker_user`, `broker_exchange` or `broker_topic`, even to the value it already has. Other changes, such as renaming or disabling the source, stay allowed. `details.feature` is `rabbitmq_sources`. |
+| Webhooks | `unprocessable` | `validation_error` | A field the API checks itself: an endpoint `url` that isn't https (`POST /v1/endpoints`, `PATCH /v1/endpoints/{id}`, `POST /v1/operational-endpoints`), an unknown `status` filter (`GET /v1/deliveries`), an `event_types` value that isn't an operational event type (`POST /v1/operational-endpoints`), or, on a route for platform operators, a usage window that doesn't parse or doesn't end after it starts. `details` is the entry list, at most 20 entries, each with `loc`, `msg` and `type`: `webhooks.url_not_https` (`loc` `["body", "url"]`), `webhooks.unknown_delivery_status` (`loc` `["query", "status"]`, with `params.status`, the value sent), `webhooks.unknown_operational_event_type` (`loc` `["body", "event_types", <index>]`, one entry per distinct value, at its first index, with `params.event_type` and `params.choices`, the operational event types the API accepts), `date_parsing` (`loc` `["query", "start"]` or `["query", "end"]`, one for each date that doesn't parse) or `webhooks.end_not_after_start` (`loc` `["query", "end"]`). |
 
-Webhooks sends `next_code` only on `plan_violation`, so `internal` is still the code to match for a Webhooks `500`.
+Webhooks sends `next_code` on `plan_violation` and `unprocessable`, not yet on `internal`, so `internal` is still the code to match for a Webhooks `500`.
 
 Switch on `next_code` when it's present and on `code` otherwise (`error.next_code ?? error.code`). A handler written that way needs no change when a rename lands: from then on `code` carries the new spelling, and `next_code` is no longer sent for it. If you can only read `code`, for example through an SDK that passes `code` alone, match both spellings until the rename lands.
 
-We also intend to retire Webhooks' `plan_violation` and `unprocessable`. `plan_violation`'s rename is already under way: `code` stays `plan_violation` and the status stays `402`, and each refusal carries the `next_code` it will become, with that code's `details` (the table above). The [changelog](/changelog) will announce the date `code` changes, at least 12 months before that date; from then on `max_attempts` over the plan's ceiling is a `422`, and the other situations stay `402`. `unprocessable` is still sent unchanged, with no `next_code`; its rename will be announced the same way. `unauthorized` itself isn't being retired: it stays the code for a missing or revoked credential, and only an API key or token Inboxes doesn't recognise or can't verify moves to `invalid_credential`.
+We also intend to retire Webhooks' `plan_violation` and `unprocessable`. `plan_violation`'s rename is already under way: `code` stays `plan_violation` and the status stays `402`, and each refusal carries the `next_code` it will become, with that code's `details` (the table above). The [changelog](/changelog) will announce the date `code` changes, at least 12 months before that date; from then on `max_attempts` over the plan's ceiling is a `422`, and the other situations stay `402`. `unprocessable`'s rename is under way too, and its date will be announced the same way: `code` stays `unprocessable` and the status stays `422`, each refusal carries `next_code: validation_error` with that code's `details`, the entry list (the table above), and once `code` changes these refusals are `validation_error`, still a `422`. `unauthorized` itself isn't being retired: it stays the code for a missing or revoked credential, and only an API key or token Inboxes doesn't recognise or can't verify moves to `invalid_credential`.
 
 ## Codes this page used to list {#earlier-versions}
 
@@ -299,7 +312,7 @@ async function call(): Promise<Event> {
       throw new PermissionError(error, requestId, reason, required)
     }
     case 'validation_error': { // Webhooks; on Inboxes, the next_code of invalid_request
-      // Also a Webhooks plan_violation's next_code, for max_attempts over the plan's ceiling
+      // Also the next_code of a Webhooks unprocessable, and of a plan_violation for max_attempts over the plan's ceiling
       const entries = Array.isArray(error.details) ? error.details : error.details?.errors ?? []
       throw new ValidationError(entries, requestId)
     }

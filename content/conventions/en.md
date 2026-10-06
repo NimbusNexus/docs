@@ -2,7 +2,7 @@
 title: Conventions
 description: Patterns the API follows everywhere — resource ids, pagination, errors, idempotency, long-running operations.
 publishedAt: 2026-05-19
-updatedAt: 2026-10-05
+updatedAt: 2026-10-06
 kind: concept
 ---
 
@@ -93,7 +93,7 @@ We use a small, predictable set:
 | `404`     | Resource doesn't exist, OR the caller can't see it. We deliberately don't distinguish — leaking existence is itself an access leak. |
 | `409`     | State conflict (name already taken, an `Idempotency-Key` reused with a different body, etc.).                                       |
 | `413`     | The body is over the size limit.                                                                                                    |
-| `422`     | Validation failed. `error.details` lists the failing inputs.                                                                        |
+| `422`     | Validation failed. On a validation error (`validation_error`, Inboxes' `invalid_request`, a Webhooks `unprocessable`), `error.details` lists the failing inputs; on the Webhooks API's other `422` codes, such as `invalid_payload` or `unknown_event_type`, it is an object naming the value or rule at fault. |
 | `429`     | Rate limited. When `Retry-After` is set, it tells you when to retry.                                                                |
 | `500–504` | Server-side problem. Always safe to retry idempotent requests.                                                                      |
 
