@@ -74,7 +74,7 @@ If you reuse a key with a **different request body** on the same endpoint, you g
 
 If you genuinely need to make a different request, generate a new key.
 
-Earlier versions of this page said this answer carried `error.code: 'idempotency_key_reused'`. The API has never sent that code; it sends `conflict`. `conflict` also covers other clashes with existing state, such as a name already taken, so read `message` if you need to tell them apart in a log. See [Errors](/docs/errors#codes-state).
+Earlier versions of this page said this answer carried `error.code: 'idempotency_key_reused'`. The API has never sent that code; it sends `conflict`. `conflict` also covers other clashes with existing state, such as a name already taken; on the Webhooks API, `details.reason` is `idempotency_key_reuse` for this one. See [Errors](/docs/errors#codes-state).
 
 ## On the Webhooks API {#webhooks}
 
@@ -84,7 +84,7 @@ On the Webhooks API, `Idempotency-Key` applies to publishing an event (`POST /v1
 |---|---|
 | A new key | `201` and the new event, fanned out to matching endpoints. |
 | The same key and the same body | `200`, the **original** event, and the header `Idempotency-Replayed: true`. Nothing is fanned out again. |
-| The same key and a different body | `409` with `error.code: 'conflict'`. The original event stands. |
+| The same key and a different body | `409` with `error.code: 'conflict'`, `details.reason: 'idempotency_key_reuse'` and the key in `details.idempotency_key`. The original event stands. |
 | The same key after a request that failed | The request runs again. A failed publish (a validation error, a quota error, a rate limit) doesn't record the key. |
 
 "Same body" means the same event type and payload for the same project. A key belongs to your workspace and project, not to the API key that sent it, so two API keys publishing into the same project share keys. A key is kept for at least 24 hours.
