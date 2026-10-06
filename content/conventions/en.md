@@ -71,10 +71,10 @@ Every error response uses the same JSON shape:
 - `code` — stable machine-readable string. Switch on this, not on the status code, when the same status has multiple meanings (e.g. `402` can be `quota_exceeded`, `not_entitled` or `workspace_frozen`).
 - `message` — human-readable English for logs. Not localized; if you show an error to end users, map `code` to your own text.
 - `details` — present on some codes. On a validation error it lists the failing inputs; on many other errors it carries a `reason` that refines the code, with the values that go with it. Its shape depends on the code.
-- `request_id` — the same id as the `X-Request-ID` header every response carries. It is on every error body but the Webhooks `413` for an oversized body ([Errors](/docs/errors#request-id)), so fall back to the header. Log it, and include it when contacting support.
+- `request_id` — on every error body the API sends: the same id as the `X-Request-ID` header every response from the API carries. A response from the edge in front of it (a `502` or `504`, for example, or a `413` for a body too large to reach the API) carries neither the API's error body nor the `X-Request-ID` header ([Errors](/docs/errors#request-id)). Log it, and include it when contacting support.
 - `next_code` — sent only while a code is being renamed: the code this error will carry afterwards. When it's present, switch on it instead of `code`.
 
-[Errors](/docs/errors) lists every code and reason, with the spellings that still differ between the Webhooks and Inboxes APIs. (Earlier versions of this page showed `validation_failed` as a `400`, with `fields` and `request_id` in the body. The APIs have never sent the first two: a validation failure is a `422`, `validation_error` on Webhooks and `invalid_request` on Inboxes, with `details`. `request_id` was not in the body then either; error bodies carry it now, all but one.)
+[Errors](/docs/errors) lists every code and reason, with the spellings that still differ between the Webhooks and Inboxes APIs. (Earlier versions of this page showed `validation_failed` as a `400`, with `fields` and `request_id` in the body. The APIs have never sent the first two: a validation failure is a `422`, `validation_error` on Webhooks and `invalid_request` on Inboxes, with `details`. `request_id` was not in the body then either; the API's error bodies carry it now.)
 
 ## HTTP status codes {#status-codes}
 
