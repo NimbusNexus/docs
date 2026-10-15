@@ -18,7 +18,7 @@ Every error response from the Webhooks and Inboxes APIs uses the same JSON shape
 > - On Inboxes, a status with no code of its own carries that status's code, such as `bad_request` for a `400` (it was `error`).
 > - On Webhooks, `plan_violation` is gone. The endpoint limit is `quota_exceeded` (`402`, `details.reason` `allocation`), `max_attempts` above the plan's ceiling is a `422` `validation_error`, and a RabbitMQ source below Pro, or turning endpoint verification off on a plan that requires it (no plan does today), is `not_entitled` (`402`).
 > - On Webhooks, a bulk replay whose `from` is after its `to` is a `422` `validation_error` with an entry on `["body", "to"]`, no longer a `409` `conflict`.
-> - Webhooks' own rules on custom headers, `retry_schedule` delays, a RabbitMQ source's broker fields and plan names name their own entry `type` instead of `value_error`; `loc`, `msg` and `params` are unchanged ([Request validation](#codes-validation)).
+> - Webhooks' own rules on custom headers, `retry_schedule` delays, a RabbitMQ source's broker fields and plan names name their own entry `type` instead of `value_error`; `loc`, `msg` and `params` are unchanged, except for a custom header name that ends in a line feed. That name is now `webhooks.custom_header_name_invalid`, like any other name that isn't a valid HTTP token, with that rule's `msg` and no `params`; it was `webhooks.custom_header_control_character` ([Request validation](#codes-validation)).
 > - On Inboxes, a credential limited to certain projects is refused with `details.reason` `project_confined` (it was `project`) ([What `details` carries](#details)).
 > - On Inboxes, `details` carries only the keys this page lists. `quota_exceeded` no longer sends `max_inboxes`, `max_http_bins` or `monthly_messages` (read `metric`, `limit`, `current` and `period`), the read API's `not_entitled` no longer sends `plan`, and the per-inbox `rate_limited` no longer sends `inbox_id`.
 >
@@ -150,7 +150,7 @@ Webhooks' own rules on custom headers, `retry_schedule` delays and a RabbitMQ so
 
 - More than 20 custom headers: `too_long`, with `params.count`, `20`.
 - A custom header name that isn't a valid HTTP token: `webhooks.custom_header_name_invalid`, with no `params`.
-- A line break or other control character in a custom header value, or a name that ends in a line feed: `webhooks.custom_header_control_character`, with `params.header`, the header's name.
+- A line break or other control character in a custom header value: `webhooks.custom_header_control_character`, with `params.header`, the header's name.
 - A custom header value over 1024 characters: `webhooks.custom_header_value_too_long`, with `params.header` and `params.count`, `1024`.
 - A name the API reserves for its own delivery headers (`Content-Type`, `User-Agent`, or any name starting with `X-Webhook-`): `webhooks.custom_header_managed`, with `params.header`.
 - A hop-by-hop or connection-control name such as `Host` or `Connection`: `webhooks.custom_header_forbidden`, with `params.header`.
@@ -298,7 +298,7 @@ The renames that landed on 2026-10-15, with the refusals that moved with them:
 | Webhooks | A RabbitMQ source below Pro | `402` `plan_violation`, `next_code` `not_entitled` | `402` `not_entitled`, `details.feature` `rabbitmq_sources` |
 | Webhooks | Turning endpoint verification off on a plan that requires it (`PATCH /v1/workspace`); no plan does today | `402` `plan_violation`, `next_code` `not_entitled` | `402` `not_entitled`, `details.feature` `optional_endpoint_verification` |
 | Webhooks | A bulk replay whose `from` is after its `to` (`POST /v1/deliveries/replay`) | `409` `conflict`, `details.reason` `replay_window_inverted` | `422` `validation_error`, entry type `webhooks.end_before_start` on `["body", "to"]` |
-| Webhooks | Webhooks' own rules on custom headers, `retry_schedule`, broker fields and plan names | entry type `value_error` | the rule's own entry type ([Request validation](#codes-validation)); `loc`, `msg` and `params` unchanged |
+| Webhooks | Webhooks' own rules on custom headers, `retry_schedule`, broker fields and plan names | entry type `value_error` | the rule's own entry type ([Request validation](#codes-validation)); `loc`, `msg` and `params` unchanged, except a custom header name ending in a line feed, now `webhooks.custom_header_name_invalid` with no `params` |
 | Webhooks | Any validation error | `details`: a list of entries | `details`: `{"errors": [...]}`, as on Inboxes |
 
 A handler that switched on `error.next_code ?? error.code` gets the same code as before in every situation above but the bulk replay. One that read `error.details` as a list on a Webhooks validation error reads `error.details.errors` now; one that read the removed Inboxes `quota_exceeded` keys reads `metric`, `limit`, `current` and `period`; one that matched the Inboxes `forbidden` reason `project` matches `project_confined`; and one that matched a Webhooks entry `type` `value_error` matches the rule's own type.
