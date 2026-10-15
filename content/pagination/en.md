@@ -2,7 +2,7 @@
 title: Pagination
 description: Cursor pagination on every list endpoint. Stable across inserts, no offset drift.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-10-15
 kind: concept
 ---
 
@@ -14,7 +14,7 @@ List endpoints (`GET /v1/vms`, `GET /v1/snapshots`, etc.) page using opaque curs
 
 Two query parameters on every list endpoint:
 
-- `limit` — page size. Default 50, max 200. Past 200 returns `400 validation_failed`.
+- `limit` — page size. Default 50, max 200. Past 200 the request fails validation: `422` `validation_error` ([Errors](/docs/errors#codes-validation)).
 - `cursor` — opaque pointer to the next page. Omit on the first request.
 
 Every list response includes:

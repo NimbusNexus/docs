@@ -2,7 +2,7 @@
 title: Python SDK
 description: Typed Python client for the NimbusNexus REST API. Python 3.11+, sync + async.
 publishedAt: 2026-05-20
-updatedAt: 2026-10-05
+updatedAt: 2026-10-15
 kind: sdk
 ---
 
@@ -167,7 +167,7 @@ with Client("{{WEBHOOKS_BASE_URL}}", api_key=WEBHOOKS_API_KEY) as wh:
             print(e.status_code, e.code, e.message)
 ```
 
-A renamed code is handled under the [deprecation policy](/docs/versioning#deprecation): the rename is announced in the [changelog](/changelog), and the old spelling keeps arriving in `code` for at least 12 months.
+From the v1 launch on, a renamed code is handled under the [deprecation policy](/docs/versioning#deprecation): the rename is announced in the [changelog](/changelog), and the old spelling keeps arriving in `code` for at least 12 months. The Webhooks renames listed under [When a code is renamed](/docs/errors#renames) landed on 2026-10-15, before the v1 launch, without that period.
 
 ### In the cloud API client (planned) {#errors-planned}
 
@@ -189,7 +189,7 @@ from nimbusnexus.errors import (
 try:
     vm = nn.vms.create(name="web-01", size="gp-1-2", region="us-east-1", image="ubuntu-24.04")
 except ValidationError as e:
-    for entry in e.details:
+    for entry in e.details["errors"]:
         print(f"  {entry['loc']}: {entry['msg']}")
 except RateLimitError as e:
     print(f"slow down — wait {e.retry_after_seconds}s")
