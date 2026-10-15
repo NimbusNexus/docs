@@ -2,7 +2,7 @@
 title: Versioning policy
 description: How we evolve the API without breaking your code.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-10-15
 kind: concept
 ---
 
@@ -24,6 +24,8 @@ Anything that could make existing code stop working:
 - Adding a new required request parameter
 
 These never happen on `v1`. Period.
+
+> **Updated on 2026-10-15.** Before the v1 launch, error spellings that were already being renamed, and a few changes that went with them, landed without the 12-month period below. On Inboxes: `invalid_request`, the `unauthorized` it sent for a key it doesn't recognise or can't verify, its bare `error`, the `forbidden` reason `project`, and the `details` keys `max_inboxes`, `max_http_bins`, `monthly_messages`, `plan` and `inbox_id`. On Webhooks: `internal`, `unprocessable` and `plan_violation`, the `402` it sent for `max_attempts` above the plan's ceiling and its bulk-replay `409` (both now a `422`), and its validation `details` and entry types. Two Inboxes response fields were removed too: `paid_plans_enabled` on `GET /v1/plan`, by then `true` for every workspace, and an inbox's `project_id`, which the API had stopped setting. [Errors](/docs/errors#renames) maps each error change. From the v1 launch on, every change follows this page.
 
 ## What's an additive change {#additive}
 

@@ -2,7 +2,7 @@
 title: Webhooks SDKs
 description: Typed clients for Python, TypeScript, and Go — verify incoming webhooks, publish events, and manage endpoints from code.
 publishedAt: 2026-08-05
-updatedAt: 2026-09-17
+updatedAt: 2026-10-15
 kind: sdk
 ---
 
@@ -64,7 +64,7 @@ Always pass the timestamp. Omitting it computes the signature over the body alon
 
 For *producers*. Transient failures — connection errors, `429`, `5xx` — are retried with backoff, and a `429` honours `Retry-After`. Other `4xx` raise.
 
-The key is minted in your NimbusNexus account console — see [Getting access](/docs/product-webhooks#access). A `whsk_…` key from before the change is refused as an unrecognised credential, and no SDK checks the key's shape, so the failure surfaces as a `401` from the API rather than an error at construction.
+The key is minted in your NimbusNexus account console — see [Getting access](/docs/product-webhooks#access). A `whsk_…` key from before the change is refused as an unrecognised credential, and no SDK checks the key's shape, so the failure surfaces as a `403` `invalid_credential` from the API rather than an error at construction.
 
 ```python
 from nn_webhooks import Client, WebhooksAPIError

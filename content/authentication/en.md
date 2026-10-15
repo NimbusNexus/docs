@@ -2,7 +2,7 @@
 title: Authentication
 description: API keys, scopes, project boundaries, and how to rotate credentials safely.
 publishedAt: 2026-05-19
-updatedAt: 2026-10-05
+updatedAt: 2026-10-15
 kind: concept
 ---
 
@@ -63,17 +63,17 @@ If you suspect a key is compromised, **revoke** it instead of rotating — that 
 
 ## Common errors {#errors}
 
-The Webhooks and Inboxes APIs answer a credential problem with these codes. They differ on one point: a key the API doesn't recognise is a `403` on Webhooks and a `401` on Inboxes.
+The Webhooks and Inboxes APIs answer a credential problem with these codes. They differ on one point: `invalid_credential`, a key the API doesn't recognise, is a `403` on Webhooks and a `401` on Inboxes.
 
-| Status | error.code           | API      | What it means                                                                                                                                  |
-| ------ | -------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| 401    | `unauthorized`       | Both     | No credential was sent (neither `Authorization` nor `X-API-Key`), or the key has been revoked. On Inboxes, also a key it doesn't recognise. |
-| 403    | `invalid_credential` | Webhooks | The key or token isn't valid. Replace it; sending it again won't work.                                                                         |
-| 403    | `forbidden`          | Both     | The key is valid but can't do this: a missing scope or role, a project-limited key used outside its projects, or a product not enabled for your workspace. |
+| Status    | error.code           | API  | What it means                                                                                                                                              |
+| --------- | -------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 401       | `unauthorized`       | Both | No credential was sent (neither `Authorization` nor `X-API-Key`), or the key has been revoked.                                                             |
+| 401 / 403 | `invalid_credential` | Both | The key or token isn't valid: a `401` on Inboxes, a `403` on Webhooks. Replace it; sending it again won't work.                                            |
+| 403       | `forbidden`          | Both | The key is valid but can't do this: a missing scope or role, a project-limited key used outside its projects, or a product not enabled for your workspace. |
 
-`message` says which case you hit; branch on `code`. `invalid_credential` stays a `403` on Webhooks: handle it alongside `401`, as "this credential is no good".
+`message` says which case you hit; branch on `code`, not the status: `invalid_credential` is a `403` on Webhooks and a `401` on Inboxes. Handle it alongside `unauthorized`, as "this credential is no good".
 
-Earlier versions of this page listed `no_credentials`, `invalid_credentials`, `expired_credentials`, `scope_required` and `wrong_project`. The APIs have never sent those codes. They send `unauthorized` where the page said `no_credentials` or `expired_credentials`; `invalid_credential` (Webhooks) or `unauthorized` (Inboxes) where it said `invalid_credentials`; and `forbidden` where it said `scope_required` or `wrong_project`.
+Earlier versions of this page listed `no_credentials`, `invalid_credentials`, `expired_credentials`, `scope_required` and `wrong_project`. The APIs have never sent those codes. They send `unauthorized` where the page said `no_credentials`; `invalid_credential` where it said `invalid_credentials` or `expired_credentials`, since an expired key is one the API can't verify; and `forbidden` where it said `scope_required` or `wrong_project`.
 
 The errors above use the standard error shape described in [Errors](/docs/errors).
 
