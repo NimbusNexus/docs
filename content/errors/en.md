@@ -2,7 +2,7 @@
 title: Errors
 description: The error shape, the error codes the Webhooks and Inboxes APIs send, and how to handle each.
 publishedAt: 2026-05-20
-updatedAt: 2026-10-15
+updatedAt: 2026-10-16
 kind: concept
 ---
 
@@ -10,6 +10,8 @@ kind: concept
 
 Every error response from the Webhooks and Inboxes APIs uses the same JSON shape. Switch on `error.code`, or on `error.next_code` when an error carries one, to handle each case. Don't parse `message`, and don't decide from the status alone: one status can carry several codes, and across the two APIs `402` carries four.
 
+> **Updated on 2026-10-16.** In Webhooks, a custom header name that is a valid HTTP token with one line feed at the end is now refused like any other name that isn't a valid HTTP token: `webhooks.custom_header_name_invalid`, with that rule's `msg` and no `params` ([Request validation](#codes-validation)). Before, the line feed got past the token check and the name was refused as a control character, with `params.header`: as `webhooks.custom_header_control_character` from 2026-10-15, and as `value_error` before that. The request is still a `422` `validation_error`, and nothing else changed.
+>
 > **Updated on 2026-10-15.** Before the v1 launch, every rename that was under way on Inboxes and Webhooks has landed: an error that carried a `next_code` now carries that code, with that code's status, and neither API sends `next_code` any more.
 >
 > - A request that fails validation is `validation_error` on both APIs, still a `422`. On Inboxes it was `invalid_request`; on Webhooks, a field the API checks itself was `unprocessable`. On both, `details` is `{"errors": [...]}`; on Webhooks it was a bare list ([Request validation](#codes-validation)).
@@ -146,11 +148,11 @@ Webhooks also sends entry types of its own, for rules it checks itself:
 
 On the same route for platform operators, a usage-window date that doesn't parse is a `date_parsing` entry on `["query", "start"]` or `["query", "end"]`, one for each such date. A refusal from a rule the API checks itself carries at most 20 entries.
 
-Webhooks' own rules on custom headers, `retry_schedule` delays and a RabbitMQ source's broker fields send entries of their own `type`, with the `loc` and `msg` they have always had, and `params` with the values the rule names:
+Webhooks' own rules on custom headers, `retry_schedule` delays and a RabbitMQ source's broker fields send entries of their own `type`, with the `loc` and `msg` they have always had (except the header name the 2026-10-16 note describes), and `params` with the values the rule names:
 
 - More than 20 custom headers: `too_long`, with `params.count`, `20`.
 - A custom header name that isn't a valid HTTP token: `webhooks.custom_header_name_invalid`, with no `params`.
-- A line break or other control character in a custom header value, or a name that ends in a line feed: `webhooks.custom_header_control_character`, with `params.header`, the header's name.
+- A line break or other control character in a custom header value: `webhooks.custom_header_control_character`, with `params.header`, the header's name.
 - A custom header value over 1024 characters: `webhooks.custom_header_value_too_long`, with `params.header` and `params.count`, `1024`.
 - A name the API reserves for its own delivery headers (`Content-Type`, `User-Agent`, or any name starting with `X-Webhook-`): `webhooks.custom_header_managed`, with `params.header`.
 - A hop-by-hop or connection-control name such as `Host` or `Connection`: `webhooks.custom_header_forbidden`, with `params.header`.
