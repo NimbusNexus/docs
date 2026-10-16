@@ -2,7 +2,7 @@
 title: Security model
 description: How keys, scopes, projects, and audit logs combine to bound blast radius.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-10-16
 kind: concept
 ---
 
@@ -37,7 +37,7 @@ Every key carries a set of scopes that limit what it can do within its project. 
 
 Scopes are an additive system: a key has the union of every scope it was granted. There's no negation, no precedence rules, no roles you have to reason through.
 
-The right pattern: **start narrow, widen on failure**. Create the key with only the scopes you know you need; let the application fail with `403 scope_required` if you missed one, then add it. This catches "I gave my CI job admin by accident" mistakes during development, not in production.
+The right pattern: **start narrow, widen on failure**. Create the key with only the scopes you know you need; let the application fail with `403 forbidden` (`details.reason` is `scope`) if you missed one, then add it. This catches "I gave my CI job admin by accident" mistakes during development, not in production.
 
 ## Projects {#projects}
 

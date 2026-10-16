@@ -2,7 +2,7 @@
 title: Inboxes (product)
 description: Disposable email addresses for testing — allocate an address, receive real mail at it, and read it back over an API.
 publishedAt: 2026-08-18
-updatedAt: 2026-08-18
+updatedAt: 2026-10-16
 kind: concept
 ---
 
@@ -24,8 +24,8 @@ This product is a mailbox per test: allocated in one request, readable over an A
 
 | Object | What it is |
 | --- | --- |
-| **Inbox** | An allocated address plus its settings. Has a **phrase**, an expiry, and a status. Addresses live on a dedicated inbox domain, not on your own. |
-| **Phrase** | A short token issued with the address that must appear in a message's **subject** for that message to be accepted. See [Addresses and the phrase](/docs/product-inboxes/addresses). |
+| **Inbox** | An allocated address plus its settings: a status, and a **phrase** and an expiry if it has them. Addresses live on a dedicated inbox domain, not on your own. |
+| **Phrase** | A short token that, when an inbox has one, must appear in a message's **subject** for that message to be accepted. Free addresses always get one; on a paid plan it is opt-in. See [Addresses and the phrase](/docs/product-inboxes/addresses). |
 | **Message** | One accepted email: headers, an HTML part and a text part, authentication verdicts, and any code we could extract from it. |
 | **API key** | The credential for programmatic reads. Distinct from the browser session the dashboard uses. |
 
@@ -34,7 +34,7 @@ This product is a mailbox per test: allocated in one request, readable over an A
 Mail is refused at the door rather than accepted and hidden. A message is stored only if all of these hold:
 
 - the recipient address is a live, enabled inbox;
-- the **subject contains that inbox's phrase**;
+- the **subject contains that inbox's phrase**, if it has one;
 - the inbox is inside its monthly message allowance;
 - the message is inside the size cap.
 
@@ -53,14 +53,12 @@ Retention is the other paid differentiator. A message is readable for the retent
 Being explicit, because each of these is a reasonable thing to expect:
 
 - **It does not send.** There is no send or relay API. An address that could originate mail is a spam service.
-- **It is not a mailbox you keep.** Addresses expire. Custom or long-lived addresses are a contract conversation, not a plan.
+- **It is not an archive.** Every message is deleted when its plan's retention runs out. A free address also expires within 24 hours of allocation; a paid one stays until you release it, unless you set `expires_in_minutes` when allocating it.
 - **It does not forward yet.** Forwarding an accepted message to a URL you own is planned and not built. Nothing you can buy today includes it.
 
 ## Getting access {#access}
 
-The [playground](/inboxes) gives you an address with no account at all — one address, thirty minutes, no API. It is the fastest way to see the acceptance rules behave.
-
-Beyond that, register for Inboxes and you get a workspace on the free plan: one address at a time, a 24-hour retention window, and dashboard reading. Programmatic access arrives with a paid plan; pricing is on the [Inboxes page](/inboxes).
+Register for Inboxes and you get a workspace on the free plan: one address at a time, a 24-hour retention window, and dashboard reading. Programmatic access arrives with a paid plan; pricing is on the [Inboxes page](/inboxes).
 
 Keys are not issued with the workspace, and the Inboxes API does not issue them. You mint one yourself in your NimbusNexus account console, under **API keys**, choosing **Inboxes** as the product — Identity is the single API-key issuer across the estate. An Identity-issued key is a JWT, so it begins `eyJ` rather than carrying a product prefix. Present it as `Authorization: Bearer <key>`, or `X-API-Key: <key>`.
 
