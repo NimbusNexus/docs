@@ -2,7 +2,7 @@
 title: Inboxes quickstart
 description: Allocate a disposable address, send it a message, and read the message back — three requests.
 publishedAt: 2026-08-18
-updatedAt: 2026-08-18
+updatedAt: 2026-10-16
 kind: quickstart
 ---
 
@@ -20,7 +20,7 @@ Every path below is relative to `{{INBOXES_BASE_URL}}`, and every request carrie
 curl -X POST {{INBOXES_BASE_URL}}/v1/inboxes \
   -H "Authorization: Bearer $INBOXES_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{"phrase": true}'
 ```
 
 ```json
@@ -29,11 +29,11 @@ curl -X POST {{INBOXES_BASE_URL}}/v1/inboxes \
   "address": "ff25m3tue9vm@nninbox.com",
   "phrase": "nn-re89dr",
   "status": "enabled",
-  "expires_at": "2026-08-19T04:37:50Z"
+  "expires_at": null
 }
 ```
 
-Three fields matter. `address` is what you give the system under test. `phrase` **must appear in the subject** of anything sent to that address or it is refused — that is the whole reason a public disposable address cannot be used to sign up for things. `expires_at` is when the address is tombstoned and its mail deleted.
+Three fields matter. `address` is what you give the system under test. `phrase` **must appear in the subject** of anything sent to that address or it is refused — that is what stops a leaked address being used to sign up for things. On a paid plan the phrase is opt-in: without `"phrase": true` you get `"phrase": ""` and the address accepts any subject. `expires_at` is `null` because a paid address lives until you release it; send `expires_in_minutes` to get one that expires on its own.
 
 Keep `id`; every later call uses it.
 
@@ -51,7 +51,7 @@ A subject without the phrase is refused during the SMTP conversation. Your sende
 ## 3. Read it back {#read}
 
 ```bash
-curl {{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945/messages \
+curl "{{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945/messages?extract=otp" \
   -H "Authorization: Bearer $INBOXES_API_KEY"
 ```
 
@@ -69,7 +69,7 @@ curl {{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945/messages \
 }
 ```
 
-`extracted.otp` is the point. A test asserting on a signup flow usually wants exactly one thing — the code — and it is on the list response, so the common case needs no second request.
+`extracted.otp` is the point. A test asserting on a signup flow usually wants exactly one thing — the code — and `?extract=otp` puts it on the list response, so the common case needs no second request. Without `extract`, `extracted` is `null`; `extract=links` returns the message's links instead, and `extract=all` returns both.
 
 For the full message, including both body parts and the SPF/DKIM/DMARC verdicts:
 
@@ -86,7 +86,7 @@ Do not poll a fixed number of times and assert on the last one. Assert that the 
 
 ## Cleaning up {#cleanup}
 
-Addresses expire on their own; you rarely need to do anything. When a test finishes early and you want the slot back — the free and Starter plans cap how many addresses you may hold at once — release it:
+On a paid plan an address never expires unless you allocated it with `expires_in_minutes`, so release it when you are done with it — every plan caps how many addresses you may hold at once:
 
 ```bash
 curl -X DELETE {{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945 \

@@ -2,7 +2,7 @@
 title: Addresses and the phrase
 description: Why a disposable address refuses mail whose subject lacks its phrase, and how expiry, retention and release differ.
 publishedAt: 2026-08-18
-updatedAt: 2026-08-18
+updatedAt: 2026-10-16
 kind: concept
 ---
 
@@ -12,7 +12,7 @@ A disposable address is public by construction: it is going into a signup form, 
 
 ## The phrase {#phrase}
 
-Every inbox is issued a short token alongside its address, and a message is accepted only if that token appears in the **subject**:
+A free inbox is always issued a short token alongside its address. On Starter, Pro and Custom it gets one only when you ask, with `"phrase": true` at allocation or in a later `PATCH`. An inbox with a phrase accepts a message only if the phrase appears in the **subject**; one without accepts any subject:
 
 ```text
 Subject: nn-re89dr Your verification code   ← accepted
@@ -32,7 +32,7 @@ Where to put it: anywhere in the subject. Matching is on the subject only — a 
 Mail that fails any acceptance rule is refused **during the SMTP conversation**, not accepted and hidden:
 
 - the address is unknown, expired or disabled;
-- the subject does not contain the phrase;
+- the inbox has a phrase and the subject does not contain it;
 - the inbox is over its monthly message allowance;
 - the message is over the size cap.
 

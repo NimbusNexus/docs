@@ -2,7 +2,7 @@
 title: Webhooks (product)
 description: The managed webhook platform — publish an event once, and we sign, retry, and replay every delivery to your subscribers.
 publishedAt: 2026-08-05
-updatedAt: 2026-09-17
+updatedAt: 2026-10-16
 kind: concept
 ---
 
@@ -54,7 +54,7 @@ For producers that cannot tolerate losing an event when the API is unreachable, 
 
 ## Getting access {#access}
 
-The product is sold with an onboarding conversation rather than self-serve signup today — [talk to us](/contact/sales) and we will provision your workspace.
+Register for Webhooks and you get a workspace on the free plan, created the first time you sign in to the console. Pricing is on the [Webhooks page](/webhooks).
 
 Keys are not issued with the workspace, and the Webhooks API does not issue them. You mint one yourself in your NimbusNexus account console, under **API keys**, choosing **Webhooks** as the product — Identity is the single API-key issuer across the estate. An Identity-issued key is a JWT, so it begins `eyJ` rather than carrying a product prefix. It is presented exactly as before: `Authorization: Bearer <key>`, or `X-API-Key: <key>`.
 
