@@ -123,4 +123,4 @@ A binary built from source has no tag to name, so it reports the SDK version wit
 - [SDKs](/docs/product-webhooks/sdks) — the same operations from application code.
 - [Quickstart](/docs/product-webhooks/quickstart) — the flow these commands automate.
 - [Signature verification](/docs/product-webhooks/signatures) — what `nn-webhooks verify` checks.
-- [Webhooks (product)](/docs/product-webhooks) — objects and delivery semantics.
+- [Webhooks overview](/docs/product-webhooks) — objects and delivery semantics.
