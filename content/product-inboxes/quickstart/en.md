@@ -1,20 +1,23 @@
 ---
 title: Inboxes quickstart
-description: Allocate a disposable address, send it a message, and read the message back — three requests.
+description: Create a disposable email address and a request bin, send to each, and read what arrived — in the dashboard or with curl.
 publishedAt: 2026-08-18
-updatedAt: 2026-10-16
+updatedAt: 2026-10-19
 kind: quickstart
 ---
 
 # Inboxes quickstart
 
-From nothing to a message you can assert on. You will allocate an address, send real mail to it, and read it back with its extracted one-time code.
+From nothing to something you can assert on. You will create an email address, send real mail to it and read back its one-time code; then do the same for HTTP with a request bin.
 
-You need an API key for a workspace on a paid plan. **Programmatic reads are a paid feature** — on the free plan the dashboard shows your mail but the message routes refuse with `not_entitled`, so this quickstart needs Starter or above. The [product overview](/docs/product-inboxes#access) covers plans.
+## Before you start {#before}
+
+- **In the dashboard, on any plan.** Open Inboxes, choose **New address / request bin**, and pick **Email** or **HTTP requests**. The card for the new inbox shows exactly what to send to: the address and its phrase, or the bin URL with a ready-made `curl`. What arrives appears below it within seconds. That is the whole flow on the free plan.
+- **Over the API, on a paid plan.** Reading programmatically needs Starter or above — on free the message routes answer `not_entitled`. You also need an API key minted in the account console with **Inboxes** as the product; see [Getting access](/docs/product-inboxes#access).
 
 Every path below is relative to `{{INBOXES_BASE_URL}}`, and every request carries `Authorization: Bearer <your key>`.
 
-## 1. Allocate an address {#allocate}
+## 1. Create an address {#allocate}
 
 ```bash
 curl -X POST {{INBOXES_BASE_URL}}/v1/inboxes \
@@ -27,15 +30,20 @@ curl -X POST {{INBOXES_BASE_URL}}/v1/inboxes \
 {
   "id": "inb_7f820a77f64ea18174499945",
   "address": "ff25m3tue9vm@nninbox.com",
+  "transport": "email",
   "phrase": "nn-re89dr",
   "status": "enabled",
   "expires_at": null
 }
 ```
 
-Three fields matter. `address` is what you give the system under test. `phrase` **must appear in the subject** of anything sent to that address or it is refused — that is what stops a leaked address being used to sign up for things. On a paid plan the phrase is opt-in: without `"phrase": true` you get `"phrase": ""` and the address accepts any subject. `expires_at` is `null` because a paid address lives until you release it; send `expires_in_minutes` to get one that expires on its own.
+Three fields matter:
 
-Keep `id`; every later call uses it.
+- **`address`** is what you give the system under test.
+- **`phrase`** must appear in the subject of anything sent to that address, or the mail is refused — that is what stops a leaked address being used to sign up for things. On a paid plan the phrase is opt-in: without `"phrase": true` you get `"phrase": ""` and the address accepts any subject.
+- **`id`** is what every later call takes. Keep it.
+
+`expires_at` is `null` because a paid address lives until you delete it; send `expires_in_minutes` to get one that expires on its own.
 
 ## 2. Send it a message {#send}
 
@@ -65,7 +73,8 @@ curl "{{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945/messages?extr
       "received_at": "2026-08-18T09:12:04Z",
       "extracted": { "otp": "100017" }
     }
-  ]
+  ],
+  "next_offset": null
 }
 ```
 
@@ -78,24 +87,77 @@ curl {{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945/messages/msg_b
   -H "Authorization: Bearer $INBOXES_API_KEY"
 ```
 
+**Only have the address?** Look the inbox up to get its `id`:
+
+```bash
+curl "{{INBOXES_BASE_URL}}/v1/inboxes?address=ff25m3tue9vm@nninbox.com" \
+  -H "Authorization: Bearer $INBOXES_API_KEY"
+```
+
+## The same for HTTP: a request bin {#bin}
+
+Create a bin, send it a request, and read it back:
+
+```bash
+curl -X POST {{INBOXES_BASE_URL}}/v1/inboxes \
+  -H "Authorization: Bearer $INBOXES_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"transport": "http"}'
+```
+
+```json
+{
+  "id": "inb_8c1f0e2d9a7b6c5d4e3f2a1b",
+  "address": "gs2wr5bjw9m5",
+  "transport": "http",
+  "bin_url": "https://<bin domain>/b/gs2wr5bjw9m5",
+  "phrase": "",
+  "status": "enabled",
+  "expires_at": null
+}
+```
+
+Send to `bin_url` exactly as returned — it is the bin's whole address, and `address` holds only its slug:
+
+```bash
+BIN_URL="$(curl -s {{INBOXES_BASE_URL}}/v1/inboxes/inb_8c1f0e2d9a7b6c5d4e3f2a1b \
+  -H "Authorization: Bearer $INBOXES_API_KEY" | jq -r .bin_url)"
+
+curl -X POST "$BIN_URL" \
+  -H "Content-Type: application/json" \
+  -d '{"hello": "world"}'
+```
+
+```json
+{ "status": "accepted" }
+```
+
+```bash
+curl "{{INBOXES_BASE_URL}}/v1/inboxes/inb_8c1f0e2d9a7b6c5d4e3f2a1b/messages" \
+  -H "Authorization: Bearer $INBOXES_API_KEY"
+```
+
+Each item carries the request's `method` and `path`; fetch one by id for its headers and body. A bin answers `200` even when it does not store a request, so assert on what you read back, not on the sender's response. [Request bins](/docs/product-inboxes/bins) covers why, and what is captured.
+
 ## Polling, not pushing {#polling}
 
-There is no stream and no callback. Mail arrives within seconds of the sender releasing it, so poll the list route — a short interval for a few seconds is enough, and it is what the dashboard itself does.
+There is no stream and no callback. Mail and requests arrive within seconds, so poll the list route — a short interval for a few seconds is enough, and it is what the dashboard itself does.
 
 Do not poll a fixed number of times and assert on the last one. Assert that the message *appears*, with a timeout, or a slow sender will look like a broken one.
 
 ## Cleaning up {#cleanup}
 
-On a paid plan an address never expires unless you allocated it with `expires_in_minutes`, so release it when you are done with it — every plan caps how many addresses you may hold at once:
+A paid address or bin never expires unless you created it with `expires_in_minutes`, and every plan caps how many you may hold at once — so delete it when you are done:
 
 ```bash
 curl -X DELETE {{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945 \
   -H "Authorization: Bearer $INBOXES_API_KEY"
 ```
 
-Releasing is **permanent and irreversible**: the address is tombstoned and can never be issued again, to you or anyone. That is deliberate — a recycled disposable address would deliver a stranger's mail into your inbox. To pause an address instead, `PATCH` it to `disabled` and enable it again later.
+Deleting is **permanent**: the inbox and what it holds are deleted, and the address is retired so it can never be issued again, to you or anyone. That is deliberate — a recycled disposable address would deliver a stranger's mail into your inbox. To pause one instead, `PATCH` it to `{"status": "disabled"}` and enable it again later.
 
 ## What's next {#next-steps}
 
+- [Request bins](/docs/product-inboxes/bins) — the bin URL, what is captured, and the limits.
 - [Addresses and the phrase](/docs/product-inboxes/addresses) — the acceptance rules in full, and how expiry interacts with retention.
-- [Product overview](/docs/product-inboxes) — what the product does and does not do.
+- [Product overview](/docs/product-inboxes) — every limit by plan, and what the product does not do.
