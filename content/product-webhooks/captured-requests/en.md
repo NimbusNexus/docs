@@ -62,7 +62,7 @@ curl -s {{WEBHOOKS_BASE_URL}}/v1/captures/cap_… \
   -H "Authorization: Bearer $READ_KEY"
 ```
 
-The list leaves bodies out; fetch a capture by id to get `headers_raw` and `body_base64`.
+The list leaves bodies out; fetch a capture by id to get `headers_raw` and `body_base64`. Every capture operation is in the [API reference](/docs/reference/webhooks#ref-captured-requests).
 
 ## What this isn't {#not}
 

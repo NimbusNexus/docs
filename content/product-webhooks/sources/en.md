@@ -96,6 +96,7 @@ The previous secret keeps verifying for 24 hours, so requests signed either way 
 ## What's next {#next-steps}
 
 - [Captured requests](/docs/product-webhooks/captured-requests) — see the raw requests a source received, refusals included.
+- [Sources in the API reference](/docs/reference/webhooks#ref-sources) — every source operation, with the SDK and CLI calls.
 - [Event types](/docs/product-webhooks/event-types) — the catalog of types, and what happens to an unknown one.
 - [Deliveries and retries](/docs/product-webhooks/deliveries) — what happens after an event is published.
 - [Webhooks overview](/docs/product-webhooks) — the objects and how they fit together.
