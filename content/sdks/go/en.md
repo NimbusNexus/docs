@@ -186,6 +186,6 @@ The SDK is being generated from the OpenAPI spec but hasn't been published yet. 
 
 - [Authentication](/docs/authentication) — what `APIKey` does on the wire.
 - [Platform webhooks](/docs/webhooks) — what `nnwebhooks.Verify` is checking.
-- [Webhooks (product)](/docs/product-webhooks) — the separate webhook-delivery product, with its own Go module and signing headers.
+- [Webhooks overview](/docs/product-webhooks) — the separate webhook-delivery product, with its own Go module and signing headers.
 - [Pagination](/docs/pagination) — what the iterators are walking.
 - [Errors](/docs/errors) — the codes that map to the typed error types above.
