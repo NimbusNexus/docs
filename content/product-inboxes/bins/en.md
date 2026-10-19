@@ -113,7 +113,7 @@ curl "{{INBOXES_BASE_URL}}/v1/inboxes/inb_8c1f0e2d9a7b6c5d4e3f2a1b/messages" \
 }
 ```
 
-Fetch one item, `GET /v1/inboxes/{id}/messages/{message_id}`, for the headers and body. Reading over the API needs a paid plan, as it does for mail; on free, read the bin in the dashboard. If you only have the bin URL, `GET /v1/inboxes?address=<bin URL>` returns the bin with its `id`.
+Fetch one item, `GET /v1/inboxes/{id}/messages/{message_id}`, for the headers and body; every field is listed under [Messages in the API reference](/docs/reference/inboxes#ref-messages). Reading over the API needs a paid plan, as it does for mail; on free, read the bin in the dashboard. If you only have the bin URL, `GET /v1/inboxes?address=<bin URL>` returns the bin with its `id`.
 
 ## Limits {#limits}
 

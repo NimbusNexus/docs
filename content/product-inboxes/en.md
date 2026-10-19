@@ -1,12 +1,12 @@
 ---
-title: Inboxes (product)
+title: Inboxes
 description: Disposable email addresses and HTTP request bins for testing — create one, point the system under test at it, and read what arrives in the dashboard or over the API.
 publishedAt: 2026-08-18
 updatedAt: 2026-10-19
 kind: concept
 ---
 
-# Inboxes (product)
+# Inboxes
 
 NimbusNexus Inboxes gives you throwaway places to receive test traffic: **email addresses** that accept real mail, and **request bins** that record any HTTP request sent to them. You create one, point a signup form, a test suite or a webhook sender at it, and read what arrived in the dashboard or over the REST API.
 
@@ -23,6 +23,7 @@ NimbusNexus Inboxes gives you throwaway places to receive test traffic: **email 
 | Find an inbox by its address | `GET /v1/inboxes?address=<address, bin slug or bin URL>` |
 | Read what arrived | `GET /v1/inboxes/{id}/messages` (paid plans; free reads in the dashboard) |
 | Delete an inbox | `DELETE /v1/inboxes/{id}` — permanent, and the address is never issued again |
+| Every route, with examples | The [Inboxes API reference](/docs/reference/inboxes) |
 
 ## Email address or request bin? {#kinds}
 
@@ -137,3 +138,4 @@ Choose the scope when you mint it: `admin` can create, change and delete inboxes
 - [Quickstart](/docs/product-inboxes/quickstart) — create an address and a bin, send to both, read them back.
 - [Request bins](/docs/product-inboxes/bins) — the bin URL, what is captured, and why it always answers `200`.
 - [Addresses and the phrase](/docs/product-inboxes/addresses) — the subject gate, expiry and retention.
+- [Inboxes API reference](/docs/reference/inboxes) — every route, with the request in curl, TypeScript, Python or Go.

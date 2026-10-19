@@ -161,3 +161,4 @@ Deleting is **permanent**: the inbox and what it holds are deleted, and the addr
 - [Request bins](/docs/product-inboxes/bins) — the bin URL, what is captured, and the limits.
 - [Addresses and the phrase](/docs/product-inboxes/addresses) — the acceptance rules in full, and how expiry interacts with retention.
 - [Product overview](/docs/product-inboxes) — every limit by plan, and what the product does not do.
+- [Inboxes API reference](/docs/reference/inboxes) — every route, with the request in curl, TypeScript, Python or Go.
