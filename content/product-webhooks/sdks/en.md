@@ -2,26 +2,32 @@
 title: Webhooks SDKs
 description: Typed clients for Python, TypeScript, and Go — verify incoming webhooks, publish events, and manage endpoints from code.
 publishedAt: 2026-08-05
-updatedAt: 2026-10-15
+updatedAt: 2026-10-19
 kind: sdk
 ---
 
 # Webhooks SDKs
 
-> **Status: published.** Python, TypeScript, and Go are on their public registries at 0.5.2. Java and PHP are written and tested but not yet published — see [where it stands](#status).
+> **Status: published.** Python, TypeScript, and Go are on their public registries at {{WEBHOOKS_SDK_VERSION}}. Java and PHP are written and tested but not yet published — see [where it stands](#status).
 
-Official clients for [NimbusNexus Webhooks](/docs/product-webhooks). Each one covers the same four jobs, so a team using two languages gets the same behaviour in both.
+Official clients for [NimbusNexus Webhooks](/docs/product-webhooks). Each one covers the same four jobs, so a team using two languages gets the same behaviour in both. Pick a language at the top of the page and every sample follows it; [Set up an SDK](/docs/setup/sdk) is the short version of install, authenticate and a first call.
 
-> **Looking for the cloud-platform SDKs?** Those are separate clients for VMs, storage and networking — [Python](/docs/sdks/python), [TypeScript](/docs/sdks/typescript), [Go](/docs/sdks/go). In Go the two are easy to confuse: both expose a `Verify`, with different signatures and different signing headers, so the samples here alias the import `nnwh` to keep the provenance visible.
+> **These are the Webhooks clients.** SDKs for Infrastructure (VMs, storage, networking) are not available yet; call that API [over REST](/docs/setup/rest). The Go samples alias the import as `nnwh` to keep its provenance visible.
 
 The highest-value piece is `verify`. Signature checking is security-critical, easy to get subtly wrong, and wrong in a way that passes every functional test — the SDKs implement [the full contract](/docs/product-webhooks/signatures) including the constant-time comparison and the replay window.
 
 ## Install {#install}
 
-```bash
-pip install nn-webhooks-sdk                        # Python
-npm install @nimbusnexus/webhooks-sdk              # TypeScript
-go get github.com/NimbusNexus/webhooks-go          # Go
+```bash tab=python
+pip install nn-webhooks-sdk
+```
+
+```bash tab=typescript
+npm install @nimbusnexus/webhooks-sdk
+```
+
+```bash tab=go
+go get github.com/NimbusNexus/webhooks-go@v{{WEBHOOKS_SDK_VERSION}}
 ```
 
 ## Verify an incoming webhook {#verify}
@@ -79,6 +85,18 @@ with Client("{{WEBHOOKS_BASE_URL}}", api_key=WEBHOOKS_API_KEY) as wh:
         print(event.event_uid, event.deliveries_created)
     except WebhooksAPIError as e:
         print(e.status_code, e.code, e.message)
+```
+
+```ts
+import { WebhooksClient } from "@nimbusnexus/webhooks-sdk";
+
+const wh = new WebhooksClient({ baseUrl: "{{WEBHOOKS_BASE_URL}}", apiKey: WEBHOOKS_API_KEY });
+const event = await wh.publish(
+  "order.created",
+  { order_id: "ord_123", total: 4200 },
+  { idempotencyKey: "order-123" },   // makes the publish safe to retry
+);
+console.log(event.eventUid, event.deliveriesCreated);
 ```
 
 ```go
@@ -160,9 +178,9 @@ All clients implement one signing contract: `HMAC-SHA256(secret, "<timestamp>." 
 
 | Language | Package | Status |
 |---|---|---|
-| Python | `nn-webhooks-sdk` | Published — [PyPI](https://pypi.org/project/nn-webhooks-sdk/), 0.5.2 |
-| TypeScript | `@nimbusnexus/webhooks-sdk` | Published — [npm](https://www.npmjs.com/package/@nimbusnexus/webhooks-sdk), 0.5.2 |
-| Go | `github.com/NimbusNexus/webhooks-go` | Published — [GitHub](https://github.com/NimbusNexus/webhooks-go), v0.5.2 |
+| Python | `nn-webhooks-sdk` | Published — [PyPI](https://pypi.org/project/nn-webhooks-sdk/), {{WEBHOOKS_SDK_VERSION}} |
+| TypeScript | `@nimbusnexus/webhooks-sdk` | Published — [npm](https://www.npmjs.com/package/@nimbusnexus/webhooks-sdk), {{WEBHOOKS_SDK_VERSION}} |
+| Go | `github.com/NimbusNexus/webhooks-go` | Published — [GitHub](https://github.com/NimbusNexus/webhooks-go), v{{WEBHOOKS_SDK_VERSION}} |
 | Java | `net.nimbusnexus:webhooks-sdk` | Written and tested; not yet on Maven Central |
 | PHP | `nimbusnexus/webhooks-sdk` | Written and tested; not yet on Packagist |
 

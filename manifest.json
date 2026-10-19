@@ -1,8 +1,40 @@
 {
   "version": 1,
+  "groups": [
+    {
+      "id": "start",
+      "title": {
+        "en": "Start"
+      },
+      "heading": false
+    },
+    {
+      "id": "apps",
+      "title": {
+        "en": "Apps",
+        "de": "Apps",
+        "es": "Apps",
+        "fr": "Applications",
+        "pt": "Apps",
+        "uk": "Застосунки"
+      }
+    },
+    {
+      "id": "infrastructure",
+      "title": {
+        "en": "Infrastructure",
+        "de": "Infrastruktur",
+        "es": "Infraestructura",
+        "fr": "Infrastructure",
+        "pt": "Infraestrutura",
+        "uk": "Інфраструктура"
+      }
+    }
+  ],
   "sections": [
     {
       "id": "get-started",
+      "group": "start",
       "title": {
         "en": "Get started",
         "de": "Erste Schritte",
@@ -13,18 +45,52 @@
       },
       "items": [
         {
-          "path": "quickstart",
+          "path": "setup/rest",
           "kind": "quickstart",
           "title": {
-            "en": "Quickstart",
-            "de": "Schnellstart",
-            "es": "Inicio rápido",
-            "fr": "Démarrage rapide",
-            "pt": "Início rápido",
-            "uk": "Швидкий старт"
+            "en": "REST API"
           },
           "description": {
-            "en": "Generate an API key, pick a region, and create your first VM in three requests."
+            "en": "Get an API key, set one header, and make a first call to any product."
+          },
+          "published": true
+        },
+        {
+          "path": "setup/sdk",
+          "kind": "sdk",
+          "title": {
+            "en": "SDKs"
+          },
+          "description": {
+            "en": "Install the Python, TypeScript or Go client, authenticate it, and make a first call."
+          },
+          "published": true
+        },
+        {
+          "path": "setup/cli",
+          "kind": "cli",
+          "title": {
+            "en": "CLI"
+          },
+          "description": {
+            "en": "Install nn-webhooks, verify the download, configure a key, and make a first call."
+          },
+          "published": true
+        },
+        {
+          "path": "reference",
+          "kind": "reference",
+          "view": "reference-index",
+          "title": {
+            "en": "API reference",
+            "de": "API-Referenz",
+            "es": "Referencia de la API",
+            "fr": "Référence de l’API",
+            "pt": "Referência da API",
+            "uk": "Довідник API"
+          },
+          "description": {
+            "en": "Every operation of every product, with the REST call and the SDK call in your language."
           },
           "published": true
         }
@@ -32,6 +98,7 @@
     },
     {
       "id": "concepts",
+      "group": "start",
       "title": {
         "en": "Concepts",
         "de": "Konzepte",
@@ -70,17 +137,6 @@
           },
           "description": {
             "en": "Patterns the API follows everywhere — resource ids, pagination, errors, idempotency, long-running operations."
-          },
-          "published": true
-        },
-        {
-          "path": "webhooks",
-          "kind": "concept",
-          "title": {
-            "en": "Platform webhooks"
-          },
-          "description": {
-            "en": "Subscribe to your infrastructure's lifecycle events. HMAC-signed POSTs to a URL you control."
           },
           "published": true
         },
@@ -153,7 +209,49 @@
       ]
     },
     {
+      "id": "infra-start",
+      "group": "infrastructure",
+      "title": {
+        "en": "Overview",
+        "de": "Überblick",
+        "es": "Resumen",
+        "fr": "Vue d’ensemble",
+        "pt": "Visão geral",
+        "uk": "Огляд"
+      },
+      "items": [
+        {
+          "path": "quickstart",
+          "kind": "quickstart",
+          "title": {
+            "en": "Quickstart: first VM",
+            "de": "Schnellstart: erste VM",
+            "es": "Inicio rápido: primera VM",
+            "fr": "Démarrage rapide : première VM",
+            "pt": "Início rápido: primeira VM",
+            "uk": "Швидкий старт: перша VM"
+          },
+          "description": {
+            "en": "Generate an API key, pick a region, and create your first VM in three requests."
+          },
+          "published": true
+        },
+        {
+          "path": "webhooks",
+          "kind": "concept",
+          "title": {
+            "en": "Platform webhooks"
+          },
+          "description": {
+            "en": "Subscribe to your infrastructure's lifecycle events. HMAC-signed POSTs to a URL you control."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
       "id": "guides",
+      "group": "infrastructure",
       "title": {
         "en": "Guides",
         "de": "Anleitungen",
@@ -266,6 +364,7 @@
     },
     {
       "id": "api-compute",
+      "group": "infrastructure",
       "title": {
         "en": "Compute",
         "de": "Compute",
@@ -359,6 +458,7 @@
     },
     {
       "id": "api-storage",
+      "group": "infrastructure",
       "title": {
         "en": "Storage",
         "de": "Speicher",
@@ -469,6 +569,7 @@
     },
     {
       "id": "api-databases",
+      "group": "infrastructure",
       "title": {
         "en": "Databases",
         "de": "Datenbanken",
@@ -499,6 +600,7 @@
     },
     {
       "id": "api-networking",
+      "group": "infrastructure",
       "title": {
         "en": "Networking",
         "de": "Netzwerk",
@@ -679,6 +781,7 @@
     },
     {
       "id": "api-dns",
+      "group": "infrastructure",
       "title": {
         "en": "DNS",
         "de": "DNS",
@@ -738,6 +841,7 @@
     },
     {
       "id": "api-identity",
+      "group": "infrastructure",
       "title": {
         "en": "Identity & access",
         "de": "Identität & Zugriff",
@@ -838,6 +942,7 @@
     },
     {
       "id": "api-account",
+      "group": "infrastructure",
       "title": {
         "en": "Account",
         "de": "Konto",
@@ -868,6 +973,7 @@
     },
     {
       "id": "api-account-controls",
+      "group": "infrastructure",
       "title": {
         "en": "Account controls",
         "de": "Account-Steuerung",
@@ -941,6 +1047,7 @@
     },
     {
       "id": "api-billing",
+      "group": "infrastructure",
       "title": {
         "en": "Billing",
         "de": "Abrechnung",
@@ -1002,6 +1109,7 @@
     },
     {
       "id": "sdks-cli",
+      "group": "infrastructure",
       "title": {
         "en": "SDKs & CLI",
         "de": "SDKs & CLI",
@@ -1020,7 +1128,7 @@
           "description": {
             "en": "Typed client for the NimbusNexus REST API. ESM + CJS, Node 20+, browser-friendly."
           },
-          "published": true
+          "published": false
         },
         {
           "path": "sdks/python",
@@ -1031,7 +1139,7 @@
           "description": {
             "en": "Typed Python client. Sync + async, Pydantic models, Python 3.11+."
           },
-          "published": true
+          "published": false
         },
         {
           "path": "sdks/go",
@@ -1042,7 +1150,7 @@
           "description": {
             "en": "Idiomatic Go client. Context-aware, no dependencies, Go 1.22+."
           },
-          "published": true
+          "published": false
         },
         {
           "path": "cli",
@@ -1053,12 +1161,13 @@
           "description": {
             "en": "nimbus — the command-line interface for the REST API."
           },
-          "published": true
+          "published": false
         }
       ]
     },
     {
       "id": "product-webhooks",
+      "group": "apps",
       "title": {
         "en": "Webhooks (product)"
       },
@@ -1122,6 +1231,7 @@
     },
     {
       "id": "product-inboxes",
+      "group": "apps",
       "title": {
         "en": "Inboxes (product)"
       },
@@ -1158,6 +1268,68 @@
             "en": "Why a disposable address refuses mail whose subject lacks its phrase, and how expiry, retention and release differ."
           },
           "published": true
+        }
+      ]
+    },
+    {
+      "id": "apps-reference",
+      "group": "apps",
+      "title": {
+        "en": "API reference",
+        "de": "API-Referenz",
+        "es": "Referencia de la API",
+        "fr": "Référence de l’API",
+        "pt": "Referência da API",
+        "uk": "Довідник API"
+      },
+      "items": [
+        {
+          "path": "reference/webhooks",
+          "kind": "reference",
+          "openapiSpec": "webhooks",
+          "title": {
+            "en": "Webhooks API"
+          },
+          "description": {
+            "en": "Every Webhooks operation: events, endpoints, deliveries, sources, event types and more."
+          },
+          "published": true
+        },
+        {
+          "path": "reference/inboxes",
+          "kind": "reference",
+          "openapiSpec": "inboxes",
+          "title": {
+            "en": "Inboxes API"
+          },
+          "description": {
+            "en": "Every Inboxes operation: disposable addresses, the messages they receive, plan and usage."
+          },
+          "published": true
+        },
+        {
+          "path": "reference/qr",
+          "kind": "reference",
+          "openapiSpec": "qr",
+          "title": {
+            "en": "QR Codes API"
+          },
+          "description": {
+            "en": "Every QR Codes operation: tracked codes, routing rules, scan analytics, domains and scan webhooks."
+          },
+          "published": true
+        },
+        {
+          "path": "reference/newsletters",
+          "kind": "reference",
+          "openapiSpec": "newsletters",
+          "title": {
+            "en": "Newsletters API"
+          },
+          "description": {
+            "en": "Every Newsletters operation: lists, sign-up forms, subscribers and issues."
+          },
+          "published": false
         }
       ]
     }
