@@ -68,7 +68,15 @@ This needs Go 1.25 or later. A binary built from source reports its SDK version 
 
 ## 2 · Configure a key {#configure}
 
-Create a Webhooks key in your [account console]({{ACCOUNT_BASE_URL}}/api-keys) under **API keys**; [Get an API key](/docs/setup/rest#key) has the details. Then save it to a profile:
+On your own machine, sign in through the browser:
+
+```bash
+nn-webhooks login
+```
+
+It prints a code and opens your account console. Approve the request there, after checking the code matches, and the CLI saves a 90-day key to its profile. [Sign in](/docs/product-webhooks/cli#sign-in) has the details.
+
+To use a key you already have instead, such as one for CI, create a Webhooks key in your [account console]({{ACCOUNT_BASE_URL}}/api-keys) under **API keys**; [Get an API key](/docs/setup/rest#key) has the details. Then save it to a profile:
 
 ```bash
 nn-webhooks configure --url {{WEBHOOKS_BASE_URL}}
