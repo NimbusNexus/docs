@@ -2,32 +2,47 @@
 title: Webhooks CLI
 description: nn-webhooks — a single static binary for publishing events, managing endpoints, and draining the dead-letter queue.
 publishedAt: 2026-08-05
-updatedAt: 2026-09-17
+updatedAt: 2026-10-19
 kind: cli
 ---
 
 # Webhooks CLI
 
-> **Looking for `nimbus`?** That is the CLI for the NimbusNexus cloud platform — VMs, storage, networking — documented at [CLI](/docs/cli). This page covers `nn-webhooks`, which drives the webhook-delivery product only.
-
-`nn-webhooks` is the command-line interface for [NimbusNexus Webhooks](/docs/product-webhooks). One static binary — no runtime, no virtualenv, nothing to install first.
+`nn-webhooks` is the command-line interface for [NimbusNexus Webhooks](/docs/product-webhooks). One static binary — no runtime, no virtualenv, nothing to install first. It is the only NimbusNexus CLI today; a CLI for Infrastructure is not available yet.
 
 That is the whole reason it is written in Go. An operator draining a dead-letter queue at 3am is often on a box that has nothing on it, and "first install a language runtime" is not an acceptable step in an incident.
 
 ## Install {#install}
 
+The current release is **{{WEBHOOKS_CLI_VERSION}}**. Each release of the public [webhooks-go repository](https://github.com/NimbusNexus/webhooks-go/releases) carries archives for macOS, Linux and Windows on amd64 and arm64, with a `checksums.txt`, and Homebrew installs those same archives.
+
+On macOS, Homebrew is the shortest path. The tap ships a cask, and Homebrew installs casks only on macOS:
+
 ```bash
-# macOS — the tap ships a cask, and Homebrew installs casks only on macOS
 brew install nimbusnexus/tap/nn-webhooks
+nn-webhooks version
 ```
 
-```bash
-# any platform — archives and checksums.txt are attached to each release
-curl -sSLO https://github.com/NimbusNexus/webhooks-go/releases/download/v0.5.2/nn-webhooks_0.5.2_linux_amd64.tar.gz
-```
+On Linux or macOS without Homebrew, download the archive, check it against the release's checksums, and put the binary on your `PATH`. Set `OS` to `linux` or `darwin` and `ARCH` to `amd64` or `arm64`:
 
 ```bash
-# with a Go toolchain
+VERSION={{WEBHOOKS_CLI_VERSION}}
+OS=linux
+ARCH=amd64
+BASE=https://github.com/NimbusNexus/webhooks-go/releases/download/v$VERSION
+curl -fsSLO "$BASE/nn-webhooks_${VERSION}_${OS}_${ARCH}.tar.gz"
+curl -fsSLO "$BASE/checksums.txt"
+shasum -a 256 --check --ignore-missing checksums.txt
+tar -xzf "nn-webhooks_${VERSION}_${OS}_${ARCH}.tar.gz" nn-webhooks
+sudo install -m 0755 nn-webhooks /usr/local/bin/nn-webhooks
+nn-webhooks version
+```
+
+The checksum step must print `OK` for the archive; stop there if it does not. Windows uses the `.zip` archives: [Set up the CLI](/docs/setup/cli#windows) has the PowerShell steps.
+
+With a Go toolchain (1.25 or later), build it from source instead:
+
+```bash
 go install github.com/NimbusNexus/webhooks-go/cmd/nn-webhooks@latest
 ```
 
@@ -108,4 +123,4 @@ A binary built from source has no tag to name, so it reports the SDK version wit
 - [SDKs](/docs/product-webhooks/sdks) — the same operations from application code.
 - [Quickstart](/docs/product-webhooks/quickstart) — the flow these commands automate.
 - [Signature verification](/docs/product-webhooks/signatures) — what `nn-webhooks verify` checks.
-- [Webhooks (product)](/docs/product-webhooks) — objects and delivery semantics.
+- [Webhooks overview](/docs/product-webhooks) — objects and delivery semantics.

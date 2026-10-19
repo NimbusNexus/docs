@@ -72,10 +72,22 @@ stays in sync with the apex domain and other canonical values:
 | `{{S3_ENDPOINT_US_EAST_1}}`   | `https://s3.us-east-1.nimbusnexus.net`         |
 | `{{S3_HOST_US_EAST_1}}`       | `s3.us-east-1.nimbusnexus.net`                 |
 | `{{DB_HOST_DEMO}}`            | `db-postgres-prod-01.us-east-1.nimbusnexus.net` |
+| `{{INBOXES_BASE_URL}}`, `{{QR_BASE_URL}}`, `{{NEWSLETTERS_BASE_URL}}` | each app's root, e.g. `https://qr.nimbusnexus.net` |
+| `{{ACCOUNT_BASE_URL}}`        | `https://account.nimbusnexus.net` (API keys live at `/api-keys`) |
+| `{{WEBHOOKS_CLI_VERSION}}`    | the newest webhooks-go release with binaries, e.g. `0.5.2` |
+| `{{WEBHOOKS_SDK_VERSION}}`    | the newest Webhooks SDK on npm, e.g. `0.6.0` |
 
 Use them anywhere in body prose, code blocks, link hrefs, frontmatter
 descriptions. The validator catches unknown placeholders before they
-ship.
+ship. The two version placeholders are resolved when the site is built,
+so a release reaches the docs with the next website build and nobody
+edits a version by hand.
+
+Three placeholders are filled per reader, in the browser:
+`{{WORKSPACE_ID}}`, `{{WORKSPACE_NAME}}` and `{{PROJECT_ID}}` show a
+signed-in reader's own workspace and project, and `<workspace-id>`,
+`<workspace-name>` and `<project-id>` to everyone else. Never write a key
+or a token into an example: read it from an environment variable.
 
 ```markdown
 Send the key in the `Authorization` header:
@@ -90,7 +102,14 @@ curl {{API_BASE_URL}}/v1/vms \
 - Use `$NIMBUS_KEY` (no braces) for shell environment variables — `{...}`
   collides with the placeholder syntax.
 - Keep examples copy-pasteable. If you say a curl prints JSON, show that
-  JSON below the block.
+  JSON below the block. Every block gets a copy button.
+- **One example in several languages becomes tabs.** Put the blocks
+  next to each other, with nothing between them: ` ```python `, ` ```ts `,
+  ` ```go `, a ` ```bash ` block whose commands are `curl` (REST) or
+  `nn-webhooks` (CLI). They render as one tab group that follows the
+  reader's language picker (REST, TypeScript, Python, Go, CLI). For a block
+  the language does not identify, such as an install command, name its tab
+  in the info string: ` ```bash tab=python `.
 
 ## Adding a new page
 
@@ -122,7 +141,11 @@ the sidebar nav, the right-rail TOC, and the rendered breadcrumb.
    for the full per-kind structure breakdown.
 
 3. **Add a manifest entry.** Open `manifest.json` and add your page
-   under the right section. Order in the file is the sidebar order.
+   under the right section. Sections are listed under their `group`
+   (`start`, `apps`, `infrastructure`, in the order of the top-level
+   `groups`), and in file order within a group; items are in file order.
+   An app's REST reference page sets `"openapiSpec"` (`webhooks`,
+   `inboxes`, `qr`, `newsletters`) instead of `openapiTag`.
 
    ```jsonc
    {
