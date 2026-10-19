@@ -98,4 +98,4 @@ The previous secret keeps verifying for 24 hours, so requests signed either way 
 - [Captured requests](/docs/product-webhooks/captured-requests) — see the raw requests a source received, refusals included.
 - [Event types](/docs/product-webhooks/event-types) — the catalog of types, and what happens to an unknown one.
 - [Deliveries and retries](/docs/product-webhooks/deliveries) — what happens after an event is published.
-- [Webhooks (product)](/docs/product-webhooks) — the objects and how they fit together.
+- [Webhooks overview](/docs/product-webhooks) — the objects and how they fit together.

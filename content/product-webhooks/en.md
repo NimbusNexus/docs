@@ -1,12 +1,12 @@
 ---
-title: Webhooks (product)
+title: Webhooks
 description: The managed webhook platform — publish an event once, and we sign, retry, and replay every delivery to your subscribers.
 publishedAt: 2026-08-05
 updatedAt: 2026-10-19
 kind: concept
 ---
 
-# Webhooks (product)
+# Webhooks
 
 NimbusNexus Webhooks is a standalone product for sending webhooks to *your* subscribers. You publish an event once; we fan it out to every endpoint subscribed to that type, sign each delivery, retry the failures, and hold whatever never lands in a dead-letter queue you can replay.
 

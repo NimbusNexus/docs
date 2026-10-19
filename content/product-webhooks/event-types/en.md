@@ -73,5 +73,5 @@ If the catalog lists `webhook.received` and you never published it: a source rec
 ## What's next {#next-steps}
 
 - [Sources](/docs/product-webhooks/sources) — how a source reads the type from a provider's request.
-- [Webhooks (product)](/docs/product-webhooks) — subscriptions and the other objects.
+- [Webhooks overview](/docs/product-webhooks) — subscriptions and the other objects.
 - [Errors](/docs/errors) — `unknown_event_type`, `invalid_payload` and the rest.

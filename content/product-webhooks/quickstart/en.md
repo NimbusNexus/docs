@@ -163,4 +163,4 @@ curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/deliveries/dlv_456/redeliver \
 - [Sources](/docs/product-webhooks/sources) — receive webhooks from Stripe, GitHub and others the same way.
 - [SDKs](/docs/product-webhooks/sdks) — skip the hand-rolled HMAC.
 - [CLI](/docs/product-webhooks/cli) — the same operations without curl.
-- [Webhooks (product)](/docs/product-webhooks) — objects, delivery semantics, and idempotency.
+- [Webhooks overview](/docs/product-webhooks) — objects, delivery semantics, and idempotency.

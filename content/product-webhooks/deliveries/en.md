@@ -78,4 +78,4 @@ Events, their deliveries and their attempts are kept for 90 days.
 
 - [Endpoint verification](/docs/product-webhooks/endpoint-verification) — why a matching endpoint can receive no delivery at all.
 - [Signature verification](/docs/product-webhooks/signatures) — checking each delivery on your side.
-- [Webhooks (product)](/docs/product-webhooks) — events, endpoints and subscriptions.
+- [Webhooks overview](/docs/product-webhooks) — events, endpoints and subscriptions.
