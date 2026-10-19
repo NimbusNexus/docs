@@ -1086,6 +1086,61 @@
           "published": true
         },
         {
+          "path": "product-webhooks/sources",
+          "kind": "concept",
+          "title": {
+            "en": "Sources"
+          },
+          "description": {
+            "en": "Receive webhooks from Stripe, GitHub or any HMAC sender and deliver them to your endpoints."
+          },
+          "published": true
+        },
+        {
+          "path": "product-webhooks/deliveries",
+          "kind": "concept",
+          "title": {
+            "en": "Deliveries and retries"
+          },
+          "description": {
+            "en": "Delivery states, the retry schedule, the dead-letter queue, and sending things again."
+          },
+          "published": true
+        },
+        {
+          "path": "product-webhooks/endpoint-verification",
+          "kind": "concept",
+          "title": {
+            "en": "Endpoint verification"
+          },
+          "description": {
+            "en": "The signed challenge an endpoint echoes back before it receives events."
+          },
+          "published": true
+        },
+        {
+          "path": "product-webhooks/event-types",
+          "kind": "concept",
+          "title": {
+            "en": "Event types"
+          },
+          "description": {
+            "en": "The catalog of type names, the policy for unknown ones, and payload schemas."
+          },
+          "published": true
+        },
+        {
+          "path": "product-webhooks/captured-requests",
+          "kind": "concept",
+          "title": {
+            "en": "Captured requests"
+          },
+          "description": {
+            "en": "The raw requests that reached a source — headers, body and what we answered."
+          },
+          "published": true
+        },
+        {
           "path": "product-webhooks/signatures",
           "kind": "concept",
           "title": {
