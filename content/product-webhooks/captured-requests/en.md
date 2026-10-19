@@ -40,13 +40,11 @@ Repeats are folded together: the same method, path and body arriving again count
 | `accepted` | 202 | Verified and published as an event. |
 | `bad_signature` | 401 | The signature did not verify against the source's secret. |
 | `not_json` | 400 | The body is not a JSON object. |
-| `too_large` | 413 | The request or payload is over the size limit. |
-| `over_quota` | 402 | The workspace has used its monthly delivery allowance. |
-| `unknown_event_type` | 422 | The type is not registered and the event type policy is Strict. |
-| `duplicate` | 409 | Usually a provider retrying correctly. |
-| `rate_limited` | 429 | Over the publish rate. |
+| `rate_limited` | 429 | Over the workspace's publish rate. |
 
 `bad_signature` is the usual first finding: the wrong secret pasted into the source, or a proxy in front of your provider that rewrote the body. Compare the captured headers with the provider's own delivery log.
+
+Some refusals are not recorded: a request to an unknown or disabled source (there is no source to keep it for), one over the 512 KiB request limit, and one refused by the per-source flood limit before its signature is checked. Refusals decided while the event is being published — over the monthly allowance (402), an unregistered type under Strict or a payload that fails its schema (422) — are not recorded yet; the [status table on Sources](/docs/product-webhooks/sources#responses) lists what the sender sees for each.
 
 ## How long captures last {#retention}
 
