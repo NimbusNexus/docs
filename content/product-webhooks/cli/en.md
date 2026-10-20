@@ -2,7 +2,7 @@
 title: Webhooks CLI
 description: nn-webhooks — a single static binary for publishing events, managing endpoints, and draining the dead-letter queue.
 publishedAt: 2026-08-05
-updatedAt: 2026-10-19
+updatedAt: 2026-10-20
 kind: cli
 ---
 
@@ -101,6 +101,7 @@ nn-webhooks endpoints list
 nn-webhooks endpoints create --url https://example.com/hook --subscribe prefix:deploy.
 nn-webhooks endpoints get ep_123
 nn-webhooks endpoints update ep_123 --set max_attempts=10 --set status=disabled
+nn-webhooks endpoints replace-subscriptions ep_123 --subscribe exact:deploy.completed --subscribe suffix:.failed
 nn-webhooks endpoints rotate-secret ep_123
 nn-webhooks endpoints enable ep_123
 
@@ -113,6 +114,8 @@ nn-webhooks verify --secret whsec_... --signature sha256=... --timestamp 1785984
 Subscriptions are given as `kind:pattern`, repeatable — `--subscribe prefix:deploy.` or
 `--subscribe exact:deploy.completed`. Values passed to `--set` are JSON-coerced, falling back to a
 string, and `null` clears a field.
+
+`update` cannot change subscriptions, because webhookd ignores them on a PATCH: `replace-subscriptions` sets the whole list at once, replacing what was there, and `--none` unsubscribes the endpoint from everything.
 
 Everything prints JSON, so it pipes into `jq` without a `--format` flag to remember:
 
