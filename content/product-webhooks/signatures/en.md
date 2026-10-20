@@ -101,5 +101,5 @@ The corollary is the trap: a verifier that compares the whole header value works
 
 - [SDKs](/docs/product-webhooks/sdks) — `verify` helpers that implement this page.
 - [Quickstart](/docs/product-webhooks/quickstart) — the end-to-end flow this fits into.
-- [Webhooks (product)](/docs/product-webhooks) — delivery semantics and the dead-letter queue.
+- [Webhooks overview](/docs/product-webhooks) — delivery semantics and the dead-letter queue.
 - [Platform webhooks](/docs/webhooks) — the separate, `NN-`-signed infrastructure notifications.
