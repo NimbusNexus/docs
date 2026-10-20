@@ -2,7 +2,7 @@
 title: Webhooks SDKs
 description: Typed clients for Python, TypeScript, and Go — verify incoming webhooks, publish events, and manage endpoints from code.
 publishedAt: 2026-08-05
-updatedAt: 2026-10-19
+updatedAt: 2026-10-20
 kind: sdk
 ---
 
@@ -148,6 +148,9 @@ ep = wh.create_endpoint(
 )
 endpoint_id, signing_secret = ep["id"], ep["secret"]   # secret returned once
 
+wh.replace_subscriptions(endpoint_id, [                # replaces the whole set
+    {"match_kind": "exact", "pattern": "order.paid"},
+])
 wh.rotate_endpoint_secret(endpoint_id)
 wh.enable_endpoint(endpoint_id)                        # recover an auto-disabled endpoint
 
@@ -156,6 +159,8 @@ for d in wh.list_deliveries(status="dead")["items"]:   # drain the dead-letter q
 ```
 
 List methods return `{"items": [...], "next_offset": int | None}`; deletes return nothing on a `204`.
+
+`update_endpoint` cannot change subscriptions, because webhookd ignores them on a PATCH: `replace_subscriptions` (`replaceSubscriptions` in TypeScript, `ReplaceSubscriptions` in Go) sets the whole list at once, and an empty list unsubscribes the endpoint from everything.
 
 The key-management methods — `create_api_key`/`revoke_api_key` in Python, `createApiKey`/`revokeApiKey` in TypeScript, Java and PHP, `CreateAPIKey`/`RevokeAPIKey` in Go — are still on the client, but the `/v1/api-keys` routes they call were removed, so calling one now fails with a `404`; mint keys in the account console instead.
 
