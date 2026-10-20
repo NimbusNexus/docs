@@ -1298,7 +1298,7 @@
             "en": "Overview"
           },
           "description": {
-            "en": "Disposable email addresses for testing — allocate an address, receive real mail at it, and read it back over an API."
+            "en": "Disposable email addresses for testing — create one, point the system under test at it, and read what arrives in the dashboard or over the API."
           },
           "published": true
         },
@@ -1309,7 +1309,7 @@
             "en": "Quickstart"
           },
           "description": {
-            "en": "Allocate a disposable address, send it a message, and read the message back — three requests."
+            "en": "Create a disposable email address, send it a message, and read the message back — in the dashboard or with curl."
           },
           "published": true
         },
@@ -1320,7 +1320,7 @@
             "en": "Addresses and the phrase"
           },
           "description": {
-            "en": "Why a disposable address refuses mail whose subject lacks its phrase, and how expiry, retention and release differ."
+            "en": "Why a disposable address refuses mail whose subject lacks its phrase, and how expiry, retention and deletion differ."
           },
           "published": true
         }
