@@ -46,7 +46,25 @@ With a Go toolchain (1.25 or later), build it from source instead:
 go install github.com/NimbusNexus/webhooks-go/cmd/nn-webhooks@latest
 ```
 
+## Sign in {#sign-in}
+
+```bash
+nn-webhooks login         # opens your browser; approve, and the CLI is signed in
+nn-webhooks whoami        # the workspace, key name, permissions and expiry
+nn-webhooks logout        # revokes that key and removes the profile
+```
+
+`login` prints a short code and opens [{{ACCOUNT_BASE_URL}}/device]({{ACCOUNT_BASE_URL}}/device) in your browser. Sign in as you usually do, check that the code on the page matches the one in your terminal, and approve. The CLI then saves an API key named `nn-webhooks on <your hostname>` to its profile. The key is valid for 90 days and is listed under **API keys** in the console, where you can revoke it at any time.
+
+A workspace owner or admin approves the request, and can narrow its permissions (**Read & write**, **Publish** or **Read**) or limit the key to one project. A member sees the request but cannot approve it: ask an admin, or [configure](#configure) a key an admin made for you.
+
+Only approve a sign-in you started yourself. A code someone else sends you would give them access to your workspace.
+
+On a machine without a browser, such as an SSH session or a container, run `nn-webhooks login --no-browser` and open the printed link on any device. The code is valid for 15 minutes. Signing in again replaces the profile's key and revokes the old one.
+
 ## Configure {#configure}
+
+`configure` saves a key you already have, such as one an admin minted in the console for CI:
 
 ```bash
 nn-webhooks configure     # prompts for the API URL and key
