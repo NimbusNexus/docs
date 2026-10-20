@@ -2,36 +2,69 @@
 title: Webhooks CLI
 description: nn-webhooks — a single static binary for publishing events, managing endpoints, and draining the dead-letter queue.
 publishedAt: 2026-08-05
-updatedAt: 2026-09-17
+updatedAt: 2026-10-20
 kind: cli
 ---
 
 # Webhooks CLI
 
-> **Looking for `nimbus`?** That is the CLI for the NimbusNexus cloud platform — VMs, storage, networking — documented at [CLI](/docs/cli). This page covers `nn-webhooks`, which drives the webhook-delivery product only.
-
-`nn-webhooks` is the command-line interface for [NimbusNexus Webhooks](/docs/product-webhooks). One static binary — no runtime, no virtualenv, nothing to install first.
+`nn-webhooks` is the command-line interface for [NimbusNexus Webhooks](/docs/product-webhooks). One static binary — no runtime, no virtualenv, nothing to install first. It is the only NimbusNexus CLI today; a CLI for Infrastructure is not available yet.
 
 That is the whole reason it is written in Go. An operator draining a dead-letter queue at 3am is often on a box that has nothing on it, and "first install a language runtime" is not an acceptable step in an incident.
 
 ## Install {#install}
 
+The current release is **{{WEBHOOKS_CLI_VERSION}}**. Each release of the public [webhooks-go repository](https://github.com/NimbusNexus/webhooks-go/releases) carries archives for macOS, Linux and Windows on amd64 and arm64, with a `checksums.txt`, and Homebrew installs those same archives.
+
+On macOS, Homebrew is the shortest path. The tap ships a cask, and Homebrew installs casks only on macOS:
+
 ```bash
-# macOS — the tap ships a cask, and Homebrew installs casks only on macOS
 brew install nimbusnexus/tap/nn-webhooks
+nn-webhooks version
 ```
 
-```bash
-# any platform — archives and checksums.txt are attached to each release
-curl -sSLO https://github.com/NimbusNexus/webhooks-go/releases/download/v0.5.2/nn-webhooks_0.5.2_linux_amd64.tar.gz
-```
+On Linux or macOS without Homebrew, download the archive, check it against the release's checksums, and put the binary on your `PATH`. Set `OS` to `linux` or `darwin` and `ARCH` to `amd64` or `arm64`:
 
 ```bash
-# with a Go toolchain
+VERSION={{WEBHOOKS_CLI_VERSION}}
+OS=linux
+ARCH=amd64
+BASE=https://github.com/NimbusNexus/webhooks-go/releases/download/v$VERSION
+curl -fsSLO "$BASE/nn-webhooks_${VERSION}_${OS}_${ARCH}.tar.gz"
+curl -fsSLO "$BASE/checksums.txt"
+shasum -a 256 --check --ignore-missing checksums.txt
+tar -xzf "nn-webhooks_${VERSION}_${OS}_${ARCH}.tar.gz" nn-webhooks
+sudo install -m 0755 nn-webhooks /usr/local/bin/nn-webhooks
+nn-webhooks version
+```
+
+The checksum step must print `OK` for the archive; stop there if it does not. Windows uses the `.zip` archives: [Set up the CLI](/docs/setup/cli#windows) has the PowerShell steps.
+
+With a Go toolchain (1.25 or later), build it from source instead:
+
+```bash
 go install github.com/NimbusNexus/webhooks-go/cmd/nn-webhooks@latest
 ```
 
+## Sign in {#sign-in}
+
+```bash
+nn-webhooks login         # opens your browser; approve, and the CLI is signed in
+nn-webhooks whoami        # the workspace, key name, permissions and expiry
+nn-webhooks logout        # revokes that key and removes the profile
+```
+
+`login` prints a short code and opens [{{ACCOUNT_BASE_URL}}/device]({{ACCOUNT_BASE_URL}}/device) in your browser. Sign in as you usually do, check that the code on the page matches the one in your terminal, and approve. The CLI then saves an API key named `nn-webhooks on <your hostname>` to its profile. The key is valid for 90 days and is listed under **API keys** in the console, where you can revoke it at any time.
+
+A workspace owner or admin approves the request, and can narrow its permissions (**Read & write**, **Publish** or **Read**) or limit the key to one project. A member sees the request but cannot approve it: ask an admin, or [configure](#configure) a key an admin made for you.
+
+Only approve a sign-in you started yourself. A code someone else sends you would give them access to your workspace.
+
+On a machine without a browser, such as an SSH session or a container, run `nn-webhooks login --no-browser` and open the printed link on any device. The code is valid for 15 minutes. Signing in again replaces the profile's key and revokes the old one.
+
 ## Configure {#configure}
+
+`configure` saves a key you already have, such as one an admin minted in the console for CI:
 
 ```bash
 nn-webhooks configure     # prompts for the API URL and key
@@ -68,6 +101,7 @@ nn-webhooks endpoints list
 nn-webhooks endpoints create --url https://example.com/hook --subscribe prefix:deploy.
 nn-webhooks endpoints get ep_123
 nn-webhooks endpoints update ep_123 --set max_attempts=10 --set status=disabled
+nn-webhooks endpoints replace-subscriptions ep_123 --subscribe exact:deploy.completed --subscribe suffix:.failed
 nn-webhooks endpoints rotate-secret ep_123
 nn-webhooks endpoints enable ep_123
 
@@ -80,6 +114,8 @@ nn-webhooks verify --secret whsec_... --signature sha256=... --timestamp 1785984
 Subscriptions are given as `kind:pattern`, repeatable — `--subscribe prefix:deploy.` or
 `--subscribe exact:deploy.completed`. Values passed to `--set` are JSON-coerced, falling back to a
 string, and `null` clears a field.
+
+`update` cannot change subscriptions, because webhookd ignores them on a PATCH: `replace-subscriptions` sets the whole list at once, replacing what was there, and `--none` unsubscribes the endpoint from everything.
 
 Everything prints JSON, so it pipes into `jq` without a `--format` flag to remember:
 
@@ -108,4 +144,4 @@ A binary built from source has no tag to name, so it reports the SDK version wit
 - [SDKs](/docs/product-webhooks/sdks) — the same operations from application code.
 - [Quickstart](/docs/product-webhooks/quickstart) — the flow these commands automate.
 - [Signature verification](/docs/product-webhooks/signatures) — what `nn-webhooks verify` checks.
-- [Webhooks (product)](/docs/product-webhooks) — objects and delivery semantics.
+- [Webhooks overview](/docs/product-webhooks) — objects and delivery semantics.

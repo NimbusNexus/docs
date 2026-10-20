@@ -28,12 +28,22 @@ function findMdFiles(dir, out = []) {
 const KNOWN = new Set([
   'ROOT_DOMAIN',
   'BASE_URL',
+  'ACCOUNT_BASE_URL',
   'API_BASE_URL',
   'API_HOST',
   'AUTH_BASE_URL',
   'AUTH_HOST',
   'WEBHOOKS_BASE_URL',
   'INBOXES_BASE_URL',
+  'QR_BASE_URL',
+  'NEWSLETTERS_BASE_URL',
+  // Filled when the site is built: the newest webhooks-go release with binaries, the newest SDK.
+  'WEBHOOKS_CLI_VERSION',
+  'WEBHOOKS_SDK_VERSION',
+  // Filled in the browser from the signed-in reader's session; shown as <workspace-id> etc. otherwise.
+  'WORKSPACE_ID',
+  'WORKSPACE_NAME',
+  'PROJECT_ID',
   'STATUS_URL',
   'STATUS_HOST',
   'DNS_NS1',

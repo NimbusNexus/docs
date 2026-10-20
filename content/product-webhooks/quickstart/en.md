@@ -2,7 +2,7 @@
 title: Webhooks quickstart
 description: Register an endpoint, publish an event, and verify the signed delivery — three requests and a handler.
 publishedAt: 2026-08-05
-updatedAt: 2026-09-17
+updatedAt: 2026-10-19
 kind: quickstart
 ---
 
@@ -10,9 +10,17 @@ kind: quickstart
 
 From nothing to a verified delivery. You will register a receiving endpoint, publish an event to it, and check the signature on the webhook that arrives.
 
-You need an admin-scoped API key. Mint one in your NimbusNexus account console, under **API keys**, choosing **Webhooks** as the product and `admin` as the scope; the [product overview](/docs/product-webhooks#access) covers the scopes and what the key looks like.
+## Before you start {#before}
 
-If you are holding a key that begins `whsk_…`, it no longer authenticates — Webhooks stopped issuing its own keys, and a request carrying one is refused as an unrecognised credential. Mint a replacement before you start.
+You need two things:
+
+- **An admin-scoped API key.** Mint one in your NimbusNexus account console, under **API keys**, choosing **Webhooks** as the product and `admin` as the scope. The [product overview](/docs/product-webhooks#access) covers the scopes. Put it in your shell:
+
+  ```bash
+  export ADMIN_KEY="eyJ…"
+  ```
+
+- **A public HTTPS URL that runs your handler.** We deliver over the internet, so `localhost` will not do. For a first test, a tunnel to your laptop works (`cloudflared tunnel --url http://localhost:3000`, or ngrok).
 
 Every path below is relative to `{{WEBHOOKS_BASE_URL}}`.
 
@@ -47,6 +55,15 @@ The secret is shown **once**. Store it in your secrets manager now — it is wha
 
 `match_kind` accepts `exact`, `prefix`, `suffix`, or `all`. Start narrow: an `all` subscription on a receiver that only understands two event types means writing a filter in your handler that the subscription could have done for you.
 
+**If your workspace requires endpoint verification**, the endpoint receives nothing until it passes a one-time challenge: we POST a `webhook.verify` request carrying a token, and your handler answers 2xx with the token in the body. A plan can require it, and any workspace can switch it on; the console's **Settings** page shows whether yours does. Add the few lines from [Endpoint verification](/docs/product-webhooks/endpoint-verification#handler) to your handler, then:
+
+```bash
+curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/endpoints/ep_3f9a…/verify \
+  -H "Authorization: Bearer $ADMIN_KEY"
+```
+
+`"verified": true` in the response means it passed.
+
 ## 2. Publish an event {#publish}
 
 ```bash
@@ -66,19 +83,34 @@ The response tells you what the publish produced:
 
 ```json
 {
-  "event_uid": "evt_7c21…",
+  "id": "evt_0b6e2c8f4a1d4e7b9c3f5a8d2e6b1c4f",
+  "event_uid": "8f1c2e4a9b7d4c3e8a6f5b2d1c0e9a7b",
   "event_type": "order.created",
-  "deliveries_created": 1
+  "source": null,
+  "project_id": "prj_5d2a9c7e1b4f4a8d9e3c6b1a7f2e8d4c",
+  "deliveries_created": 1,
+  "skipped_unverified": 0
 }
 ```
 
-`deliveries_created: 0` is the answer to the most common first-run surprise — it means nothing was subscribed to that type, not that the publish failed. Check the endpoint's subscription pattern against the type you sent.
+`id` is the event's API id (`GET /v1/events/{id}`). `event_uid` is the id your endpoint receives, as the envelope's `id` and in the `X-Webhook-Event-Id` header — deduplicate on it.
+
+`deliveries_created: 0` is the most common first-run surprise, and it has two causes:
+
+- **No endpoint subscribes to that type.** Check the endpoint's subscription pattern against the type you sent.
+- **The matching endpoints are not verified**, and your workspace requires verification. `skipped_unverified` counts them; [verify the endpoint](/docs/product-webhooks/endpoint-verification) and publish again.
 
 The `Idempotency-Key` header is what makes the publish safe to retry: replaying the same key returns the original event instead of fanning out again.
 
 ## 3. Verify the delivery {#verify}
 
-The webhook arrives at your URL as a POST. Verify it before doing any work — an unverified handler will process anything that finds your URL.
+The webhook arrives at your URL as a POST whose body is the event inside an envelope:
+
+```json
+{"created_at":"2026-10-19T15:04:12.483211+00:00","data":{"order_id":"ord_123","total":4200},"id":"8f1c2e4a9b7d4c3e8a6f5b2d1c0e9a7b","type":"order.created","version":"1"}
+```
+
+`data` is the payload you published, `id` the `event_uid`, `type` the event type. Check the signature before doing any work — a handler that skips it will process anything that finds your URL.
 
 ```python
 import hashlib, hmac, time
@@ -127,6 +159,8 @@ curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/deliveries/dlv_456/redeliver \
 ## What's next {#next-steps}
 
 - [Signature verification](/docs/product-webhooks/signatures) — the complete signing contract.
+- [Deliveries and retries](/docs/product-webhooks/deliveries) — what happens when your handler is down.
+- [Sources](/docs/product-webhooks/sources) — receive webhooks from Stripe, GitHub and others the same way.
 - [SDKs](/docs/product-webhooks/sdks) — skip the hand-rolled HMAC.
 - [CLI](/docs/product-webhooks/cli) — the same operations without curl.
-- [Webhooks (product)](/docs/product-webhooks) — objects, delivery semantics, and idempotency.
+- [Webhooks overview](/docs/product-webhooks) — objects, delivery semantics, and idempotency.
