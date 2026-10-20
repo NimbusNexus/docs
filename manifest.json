@@ -1298,7 +1298,7 @@
             "en": "Overview"
           },
           "description": {
-            "en": "Disposable email addresses and HTTP request bins for testing — create one, point the system under test at it, and read what arrives in the dashboard or over the API."
+            "en": "Disposable email addresses for testing — create one, point the system under test at it, and read what arrives in the dashboard or over the API."
           },
           "published": true
         },
@@ -1309,7 +1309,7 @@
             "en": "Quickstart"
           },
           "description": {
-            "en": "Create a disposable email address and a request bin, send to each, and read what arrived — in the dashboard or with curl."
+            "en": "Create a disposable email address, send it a message, and read the message back — in the dashboard or with curl."
           },
           "published": true
         },
@@ -1321,17 +1321,6 @@
           },
           "description": {
             "en": "Why a disposable address refuses mail whose subject lacks its phrase, and how expiry, retention and deletion differ."
-          },
-          "published": true
-        },
-        {
-          "path": "product-inboxes/bins",
-          "kind": "concept",
-          "title": {
-            "en": "Request bins"
-          },
-          "description": {
-            "en": "A disposable URL that records every HTTP request sent to it — how to create one, send to it, read what it captured, and why it always answers 200."
           },
           "published": true
         }
