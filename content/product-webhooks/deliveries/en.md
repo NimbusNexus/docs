@@ -2,7 +2,7 @@
 title: Deliveries and retries
 description: What happens to each event after it fans out — delivery states, the retry schedule, the dead-letter queue, and how to send things again.
 publishedAt: 2026-10-19
-updatedAt: 2026-10-19
+updatedAt: 2026-10-21
 kind: concept
 ---
 
@@ -18,7 +18,7 @@ Publishing an event creates one **delivery** for each endpoint that subscribes t
 | `sending` | An attempt is in flight. |
 | `sent` | The endpoint answered 2xx. Done. |
 | `failed` | The last attempt failed and another is scheduled (`next_attempt_at`). |
-| `dead` | Out of attempts. Kept in the dead-letter queue until you send it again. |
+| `dead` | Out of attempts, or held back unsent because its endpoint must pass [verification](/docs/product-webhooks/endpoint-verification#gated) first. Kept in the dead-letter queue until you send it again. |
 
 Anything other than a 2xx counts as a failure: a 4xx or 5xx status, a timeout, a connection or TLS error. Each attempt waits up to 10 seconds for an answer, or the endpoint's own `delivery_timeout_ms` (100 ms to 60 s).
 
@@ -64,7 +64,7 @@ Where the deployment records them, an attempt also carries the first part of the
 | Deliveries in a time window | `POST /v1/deliveries/replay` with `from`, `to` and `status` — for "the receiver was down from 02:00 to 04:00". Admin keys only; at most 10,000 per call. |
 | An event, to an endpoint of your choice | `POST /v1/events/{id}/replay` with `{"endpoint_id": "ep_…"}` — even one that was not subscribed. Admin keys only. |
 
-All four create new attempts of the stored event; they do not publish a new event, so the event id your endpoint deduplicates on stays the same.
+All four create new attempts of the stored event; they do not publish a new event, so the event id your endpoint deduplicates on stays the same. An endpoint that must pass [verification](/docs/product-webhooks/endpoint-verification#gated) and has not is refused (`409 endpoint_not_verified`) or, in the two bulk forms, left out and counted in `skipped_unverified`.
 
 ## Operational webhooks {#operational}
 

@@ -2,7 +2,7 @@
 title: Captured requests
 description: Record the raw requests that reach a source — headers, body and what we answered — to debug a provider integration.
 publishedAt: 2026-10-19
-updatedAt: 2026-10-19
+updatedAt: 2026-10-21
 kind: concept
 ---
 
@@ -41,10 +41,15 @@ Repeats are folded together: the same method, path and body arriving again count
 | `bad_signature` | 401 | The signature did not verify against the source's secret. |
 | `not_json` | 400 | The body is not a JSON object. |
 | `rate_limited` | 429 | Over the workspace's publish rate. |
+| `over_quota` | 402 | The workspace has used its monthly delivery allowance. |
+| `too_large` | 413 | The payload is over 256 KiB. |
+| `unknown_event_type` | 422 | The type is not registered and the [event type policy](/docs/product-webhooks/event-types#policy) is Strict. |
+| `invalid_payload` | 422 | The payload fails its event type's JSON Schema. |
+| `duplicate` | 409 | The provider's event id was already accepted with a different body. |
 
 `bad_signature` is the usual first finding: the wrong secret pasted into the source, or a proxy in front of your provider that rewrote the body. Compare the captured headers with the provider's own delivery log.
 
-Some refusals are not recorded: a request to an unknown or disabled source (there is no source to keep it for), one over the 512 KiB request limit, and one refused by the per-source flood limit before its signature is checked. Refusals decided while the event is being published — over the monthly allowance (402), an unregistered type under Strict or a payload that fails its schema (422) — are not recorded yet; the [status table on Sources](/docs/product-webhooks/sources#responses) lists what the sender sees for each.
+Some refusals are not recorded: a request to an unknown or disabled source (there is no source to keep it for), one over the 512 KiB request limit, and one refused by the per-source flood limit before its signature is checked. The [status table on Sources](/docs/product-webhooks/sources#responses) lists what the sender sees for each.
 
 ## How long captures last {#retention}
 

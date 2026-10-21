@@ -2,7 +2,7 @@
 title: Endpoint verification
 description: Prove an endpoint wants your events before it receives any — a one-time signed challenge it must echo back.
 publishedAt: 2026-10-19
-updatedAt: 2026-10-19
+updatedAt: 2026-10-21
 kind: concept
 ---
 
@@ -75,7 +75,9 @@ Verification is required for an endpoint when any of these is on:
 
 ## What an unverified endpoint misses {#gated}
 
-When verification is required, an unverified endpoint is left out when an event fans out: the publish response counts it in `skipped_unverified`, the console marks the endpoint *gated*, and no delivery is created for it — so nothing waits to be sent once it verifies. Publish or [replay](/docs/product-webhooks/deliveries#replay) again after it passes. Deliveries created before the requirement was switched on keep retrying.
+When verification is required, an unverified endpoint is left out when an event fans out: the publish response counts it in `skipped_unverified`, the console marks the endpoint *gated*, and no delivery is created for it — so nothing waits to be sent once it verifies. Publish or [replay](/docs/product-webhooks/deliveries#replay) again after it passes.
+
+Sending again is held back the same way. Redelivering one delivery to that endpoint, or replaying an event to it, is refused with `409 endpoint_not_verified`; a bulk redeliver or a range replay leaves it out and counts it in `skipped_unverified`. A delivery already queued or retrying when the endpoint comes to need verification — the requirement was switched on, or the endpoint's URL changed — goes to the dead-letter queue unsent, with `last_error` starting "not verified:". Verify the endpoint, then redeliver it.
 
 ## Receivers that cannot answer {#cannot-echo}
 
