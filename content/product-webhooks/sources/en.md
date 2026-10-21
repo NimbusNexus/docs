@@ -2,7 +2,7 @@
 title: Sources
 description: Receive webhooks from Stripe, GitHub or any sender that signs with HMAC, and deliver them to your endpoints as events.
 publishedAt: 2026-10-19
-updatedAt: 2026-10-19
+updatedAt: 2026-10-21
 kind: concept
 ---
 
@@ -74,8 +74,9 @@ The provider's own event id (Stripe's `evt_…`, GitHub's delivery id) is the id
 | `401` | The signature did not verify — missing, malformed, wrong secret or outside the replay window. One answer for all of them, on purpose. |
 | `402` | The workspace has used its monthly delivery allowance. |
 | `404` | No such source, or the source is disabled. |
+| `409` | The provider's event id was already accepted with a different body. |
 | `413` | The request is over 512 KiB, or the payload over 256 KiB. |
-| `422` | The type is not registered and the [event type policy](/docs/product-webhooks/event-types#policy) is Strict. |
+| `422` | The type is not registered and the [event type policy](/docs/product-webhooks/event-types#policy) is Strict, or the payload fails the type's JSON Schema. |
 | `429` | Too many requests: 600 a minute per source before the signature check, then your plan's publish rate. |
 
 Providers retry on anything but 2xx, so a refusal is not lost on their side — but to see *why* we refused, turn on recording for the source and read [Captured requests](/docs/product-webhooks/captured-requests).
