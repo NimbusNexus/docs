@@ -2,7 +2,7 @@
 title: Set up the REST API
 description: Get an API key, send it in one header, and make a first call to a NimbusNexus product from curl, TypeScript, Python or Go.
 publishedAt: 2026-10-19
-updatedAt: 2026-10-19
+updatedAt: 2026-10-22
 kind: quickstart
 ---
 
@@ -12,7 +12,7 @@ Every NimbusNexus product is a REST API: JSON over HTTPS, with your API key in t
 
 ## 1 · Get an API key {#key}
 
-**Apps: Webhooks, Inboxes and QR Codes.** Open **API keys** in your [account console]({{ACCOUNT_BASE_URL}}/api-keys) and create a key for the product you want to call. Each key belongs to one product. Choose its scope there: `admin`, `read`, or for Webhooks also `publish`. Copy the key when it appears, because it is shown only once. An app key is a JWT, so it starts with `eyJ`.
+**Apps: Webhooks, Inboxes, QR Codes and Request Bins.** Open **API keys** in your [account console]({{ACCOUNT_BASE_URL}}/api-keys) and create a key for the product you want to call. Each key belongs to one product. Choose its scope there: `admin`, `read`, or for Webhooks also `publish`. Copy the key when it appears, because it is shown only once. An app key is a JWT, so it starts with `eyJ`.
 
 **Infrastructure: VMs, storage, databases and networking.** Create the key in the dashboard under **Settings → API keys**. It is scoped to one project. [Authentication](/docs/authentication) covers scopes and rotation.
 
@@ -37,6 +37,7 @@ Each product has its own base URL:
 | Webhooks | `{{WEBHOOKS_BASE_URL}}/v1` |
 | Inboxes | `{{INBOXES_BASE_URL}}/v1` |
 | QR Codes | `{{QR_BASE_URL}}/v1` |
+| Request Bins | `https://bins.nimbusnexus.net/v1` |
 | Infrastructure | `{{API_BASE_URL}}` |
 
 ## 3 · Make a first call {#first-call}
@@ -111,4 +112,4 @@ Branch on `code`, not on the status or the message. `unauthorized` means no key 
 
 - [API reference](/docs/reference): every operation of every product, with the call in your language.
 - [SDKs](/docs/setup/sdk) and the [CLI](/docs/setup/cli): the same calls with retries, signature checks and pagination handled for you.
-- Product quickstarts: [Webhooks](/docs/product-webhooks/quickstart), [Inboxes](/docs/product-inboxes/quickstart), [your first VM](/docs/quickstart).
+- Product quickstarts: [Webhooks](/docs/product-webhooks/quickstart), [Inboxes](/docs/product-inboxes/quickstart), [Request Bins](/docs/product-bins/quickstart), [your first VM](/docs/quickstart).

@@ -1,14 +1,14 @@
 ---
 title: Errors
-description: The error shape, the error codes the Webhooks and Inboxes APIs send, and how to handle each.
+description: The error shape, the error codes the Webhooks, Inboxes and Request Bins APIs send, and how to handle each.
 publishedAt: 2026-05-20
-updatedAt: 2026-10-16
+updatedAt: 2026-10-22
 kind: concept
 ---
 
 # Errors
 
-Every error response from the Webhooks and Inboxes APIs uses the same JSON shape. Switch on `error.code`, or on `error.next_code` when an error carries one, to handle each case. Don't parse `message`, and don't decide from the status alone: one status can carry several codes, and across the two APIs `402` carries four.
+Every error response from the Webhooks, Inboxes and Request Bins APIs uses the same JSON shape. Switch on `error.code`, or on `error.next_code` when an error carries one, to handle each case. Don't parse `message`, and don't decide from the status alone: one status can carry several codes, and on every API `402` carries four.
 
 > **Updated on 2026-10-16.** In Webhooks, a custom header name that is a valid HTTP token with one line feed at the end is now refused like any other name that isn't a valid HTTP token: `webhooks.custom_header_name_invalid`, with that rule's `msg` and no `params` ([Request validation](#codes-validation)). Before, the line feed got past the token check and the name was refused as a control character, with `params.header`: as `webhooks.custom_header_control_character` from 2026-10-15, and as `value_error` before that. The request is still a `422` `validation_error`, and nothing else changed.
 >
@@ -48,6 +48,8 @@ A read-only key that tries to create an inbox on Inboxes, or an endpoint on Webh
 }
 ```
 
+Request Bins refuses the same read-only key with the same code and status, but its `details` name the role the action needs rather than a scope: `"reason": "role"` and `"required": "member"`. A key has that role with the `write` or `admin` scope ([What `details` carries](#details)).
+
 Up to five fields. `code`, `message` and `request_id` are on every error body the APIs send, and `details` and `next_code` appear when they have something to say:
 
 | Field | Always present | What |
@@ -56,25 +58,31 @@ Up to five fields. `code`, `message` and `request_id` are on every error body th
 | `message` | Yes | English text for logs and support tickets. Not localized, and not meant for an end-user UI. |
 | `details` | No | Structured context: a `reason` that refines the code, and the values that go with it, such as the `id` that wasn't found. On a validation error, the failing inputs. Its shape depends on the code; on a validation error it is `{"errors": [...]}`, a list of entries. See [What `details` carries](#details). |
 | `request_id` | Yes | The id of this request, the same value as the `X-Request-ID` response header. Log it and quote it to support; never branch on it. See [The request id](#request-id). |
-| `next_code` | No | Sent only while a code is being renamed: the code this error will carry once the rename lands. Prefer it to `code`. No code is being renamed today, so neither API sends it. See [When a code is renamed](#renames). |
+| `next_code` | No | Sent only while a code is being renamed: the code this error will carry once the rename lands. Prefer it to `code`. No code is being renamed today, so no API sends it. See [When a code is renamed](#renames). |
 
 New fields may be added to the `error` member, as to any response; ignore the ones you don't use ([Versioning](/docs/versioning#forward-compat)).
 
 ### What `details` carries {#details}
 
-Treat every key in `details` as optional: read the ones you need and ignore the rest. When it has a `reason`, that is a stable machine string that refines the code: why a `forbidden` was refused, or what kind of thing a `not_found` didn't find. Beside it are the values that reason needs, under fixed names. Some codes carry values with no reason, and many errors carry no `details` at all. Like `code`, `details.reason` is an open string, not an enum: new reasons and new codes are [additive changes](/docs/versioning#additive), so keep a default branch for both. The table lists what you can meet calling the APIs today.
+Treat every key in `details` as optional: read the ones you need and ignore the rest. When it has a `reason`, that is a stable machine string that refines the code: why a `forbidden` was refused, or what kind of thing a `not_found` didn't find. Beside it are the values that reason needs, under fixed names. Some codes carry values with no reason, and many errors carry no `details` at all. Like `code`, `details.reason` is an open string, not an enum: new reasons and new codes are [additive changes](/docs/versioning#additive), so keep a default branch for both. The table lists what you can meet calling the APIs today. In its **API** column, **Both** means Webhooks and Inboxes, and Request Bins has rows of its own.
 
 | `code` | API | `details.reason` | Other keys in `details` |
 |---|---|---|---|
 | `unauthorized` | Both | `missing`: no credential was sent. `revoked`: the key or session has been revoked. `invalid`: on Inboxes, a sign-in session that didn't verify, usually because it has expired; on Webhooks, an inbound event to `POST /v1/ingest/{source_id}` whose signature doesn't verify. `no_workspace`, on Inboxes only: the credential isn't tied to a workspace. | — |
+| `unauthorized` | Request Bins | `missing`: no credential was sent. `revoked`: the key or session has been revoked. `invalid`: a sign-in session that didn't verify, usually because it has expired. `no_workspace`: the sign-in session isn't tied to a workspace. | — |
 | `forbidden` | Both | `scope`: the credential's scope doesn't allow this. `project_confined`: a credential limited to certain projects, used on a route that answers for the whole workspace; Inboxes doesn't accept project-limited credentials yet, so it sends this on every route. `csrf`: a browser session sent a write without the `X-CSRF` header. `operator`: the route, or a field in the request, is for platform operators only. | `required`, on most `scope` refusals: the scope that would have been allowed (`admin` on Inboxes; `admin`, `read` or `publish` on Webhooks) |
 | `forbidden` | Webhooks | `role`: your role, in the workspace or on the project of the resource you're acting on, is too low. `project`: the credential, or the person using it, has no access to the project the request names. `product_not_enabled`: your access doesn't include Webhooks. `not_provisioned`: the workspace isn't set up for Webhooks yet. | `required`, on `role`: the lowest role allowed (`admin`) |
+| `forbidden` | Request Bins | `role`: your role, or your key's scope, doesn't allow this. `project_confined`: a guest seat, or a key limited to a project; Request Bins serves whole workspaces, so it sends this on every route. `product_not_enabled`: your workspace hasn't added Request Bins, or your sign-in doesn't include it. `csrf`: a browser session sent a write without the `X-CSRF` header. `no_workspace`: the credential isn't tied to a workspace, such as a service token. | `required`, on `role`: `member` to create or change a bin, `admin` to delete or empty one. For a key, `member` means the `write` or `admin` scope, and `admin` means `admin`. |
 | `not_found` | Both | The kind of resource. Inboxes: `inbox`, `message`, `workspace`. Webhooks: `endpoint`, `source`, `event`, `delivery`, `capture`, `event_type`, `operational_endpoint`, `project`, `workspace`, `user`, and `default_project` (a write that names no project, in a workspace that has none yet). | `id`: the id you asked for. Absent on `user` and `default_project`, where you named none, and on a path that doesn't exist at all. |
+| `not_found` | Request Bins | The kind of resource: `bin` or `request`. A bin that was deleted or has expired is `bin`. | `id`: the id you asked for. Absent on a path that doesn't exist at all. |
 | `bad_request` | Webhooks | `project_required`: a write that names no project, from a credential that can reach several. | `projects`: the projects the credential can reach |
 | `conflict` | Webhooks | Which clash, such as `event_type_exists` or `idempotency_key_reuse`. [Conflicts](#codes-state) lists each reason and when it's sent. | The values that reason needs, such as the `id` of the endpoint, delivery or project the clash is about; [Conflicts](#codes-state) lists them per reason |
 | `quota_exceeded` | Both | `allocation`: a plan's ceiling on a count (Inboxes: addresses or request bins; Webhooks: endpoints). `period`: the monthly ceiling (Inboxes: messages; Webhooks: deliveries). | `metric` (`inboxes`, `http_bins` or `messages` on Inboxes; `endpoints` or `deliveries` on Webhooks) and its `limit`; `current` on `allocation`, and on a Webhooks `period` (the deliveries used before the refused publish) when the count could be read; `period` on `period`: the month on Inboxes (`YYYY-MM`), the billing cycle's first day on Webhooks (`YYYY-MM-DD`). A publish is refused when its deliveries would take the count past `limit`, so on Webhooks `current` can be below `limit`. |
+| `quota_exceeded` | Request Bins | `allocation`: the plan's ceiling on bins, on `POST /v1/bins`. Never `period`: past the month's requests, bins answer their senders and record nothing, and no API call is refused. | `metric` (`bins`), its `limit`, and `current` |
 | `not_entitled` | Both | — | `feature`: `read_api` or `optional_phrase_gate` on Inboxes; `rabbitmq_sources` or `optional_endpoint_verification` on Webhooks. Webhooks sends `optional_endpoint_verification` for turning endpoint verification off on a plan that requires it; no plan does today. |
+| `not_entitled` | Request Bins | — | `feature`: `read_api`, reading captured requests with an API key on the Free plan |
 | `payload_too_large` | Both | — | `limit` in bytes, on every `413`. Inboxes also sends `size` when the API measured the body. |
+| `payload_too_large` | Request Bins | — | `limit` in bytes, on every `413` |
 | `unknown_event_type` | Webhooks | — | `event_type`: the name that isn't registered |
 | `invalid_payload` | Webhooks | `payload`: the payload fails its event type's schema. `schema_invalid`: a schema you're registering isn't valid JSON Schema. | On `payload`: `errors`, up to 20 entries of `{path, keyword, params}` (below), and `total`, how many entries there were before that cut (the list's length when nothing was cut). On `schema_invalid`: `path`, a JSON Pointer into the schema, where it failed. |
 | `schema_too_large` | Webhooks | `bytes`, `depth`, `members`, `enum_values` or `patterns`: the bound the schema broke | `limit`; with `size` too on `bytes` (both in bytes) |
@@ -87,7 +95,7 @@ Treat every key in `details` as optional: read the ones you need and ignore the 
 
 On `invalid_payload`, each entry in `details.errors` says what failed where. `path` is a JSON Pointer to the value that failed: `""` is the payload itself, and for a missing or unexpected member it points to the object that should or shouldn't hold it. `keyword` is the JSON Schema keyword that failed (`required`, `type`, `enum`, `const`, `minimum`, `maximum`, `minLength`, `maxLength`, `minItems`, `maxItems`, `pattern`, `format` or `additionalProperties`), or `other` for any other keyword. `params` holds `property` (the missing or unexpected member, one entry each), `count` (a length or item bound), `limit` (the bound of a `minimum` or `maximum`) or `type` (the one type the value should have been), and is empty when none of these applies, as on `enum` or `pattern`, or on a `type` that allows several. Entries never carry the regex, the allowed values or the value that failed; `message` still describes one failure in English.
 
-Request validation errors (`validation_error`) aren't in the table: on both APIs their `details` is `{"errors": [...]}`, a list of validation entries, each with `loc`, `type` and `msg`, a different shape from `invalid_payload`'s. See [Request validation](#codes-validation).
+Request validation errors (`validation_error`) aren't in the table: on every API their `details` is `{"errors": [...]}`, a list of validation entries, each with `loc`, `type` and `msg`, a different shape from `invalid_payload`'s. See [Request validation](#codes-validation).
 
 ### The request id {#request-id}
 
@@ -99,7 +107,7 @@ Request validation errors (`validation_error`) aren't in the table: on both APIs
 |---|---|
 | `200`/`201`/`202`/`204` | Success |
 | `400` | The request couldn't be read as sent |
-| `401` | No usable credential: none was sent, or it was revoked. Inboxes also answers `401`, as `invalid_credential`, for a key it doesn't recognise or can't verify, and Webhooks answers `401`, as `unauthorized`, for an inbound event whose signature doesn't verify |
+| `401` | No usable credential: none was sent, or it was revoked. Inboxes and Request Bins also answer `401`, as `invalid_credential`, for a key they don't recognise or can't verify, and Webhooks answers `401`, as `unauthorized`, for an inbound event whose signature doesn't verify |
 | `402` | Your plan or billing state stops the request: a quota, a feature your plan doesn't include, or a workspace that is frozen or suspended |
 | `403` | Not allowed. Webhooks also answers `403`, as `invalid_credential`, for a credential it doesn't recognise |
 | `404` | Resource doesn't exist *or* caller can't see it (intentionally indistinguishable) |
@@ -116,26 +124,28 @@ Request validation errors (`validation_error`) aren't in the table: on both APIs
 
 The two APIs share most codes and, since the update noted at the top of this page, spell almost every situation they share the same way. Two differ: `invalid_credential` is a `401` on Inboxes and a `403` on Webhooks, and a sign-in session that has expired is `unauthorized` (`details.reason` `invalid`) on Inboxes but `invalid_credential` on Webhooks. The **API** column says which API sends each code.
 
+Request Bins sends the codes Inboxes sends for the same situations, those two included. In the **API** column, **All** means all three APIs, **Both** means Webhooks and Inboxes, and a row marked **Request Bins** is about that API alone.
+
 ### Authentication and authorization {#codes-auth}
 
 | `code` | Status | API | What |
 |---|---|---|---|
-| `unauthorized` | 401 | Both | No credential was sent, or it has been revoked. On Inboxes, also a sign-in session that has ended or didn't verify; every Inboxes `unauthorized` carries a `details.reason`. On Webhooks, also an inbound event to `POST /v1/ingest/{source_id}` whose signature doesn't verify (`details.reason` `invalid`); every Webhooks `401` carries a `details.reason` ([What `details` carries](#details)). |
-| `invalid_credential` | 401 on Inboxes, 403 on Webhooks | Both | An API key or token the API doesn't recognise or can't verify. Replace it; sending the same credential again won't work. On Webhooks this includes a sign-in session that has expired: sign in again. |
-| `forbidden` | 403 | Both | The credential is valid but can't do this: a missing scope or role, a key limited to certain projects used outside them, or a product that isn't enabled for your workspace. `details.reason` says which. |
+| `unauthorized` | 401 | All | No credential was sent, or it has been revoked. On Inboxes and Request Bins, also a sign-in session that has ended or didn't verify; every `unauthorized` they send carries a `details.reason`. On Webhooks, also an inbound event to `POST /v1/ingest/{source_id}` whose signature doesn't verify (`details.reason` `invalid`); every Webhooks `401` carries a `details.reason` ([What `details` carries](#details)). |
+| `invalid_credential` | 401 on Inboxes and Request Bins, 403 on Webhooks | All | An API key or token the API doesn't recognise or can't verify. Replace it; sending the same credential again won't work. On Webhooks this includes a sign-in session that has expired: sign in again. |
+| `forbidden` | 403 | All | The credential is valid but can't do this: a missing scope or role, a key limited to certain projects used outside them, or a product that isn't enabled for your workspace. `details.reason` says which. |
 
-`invalid_credential` is a `403` on the Webhooks API and a `401` on Inboxes, and both stay that way: switch on the code, not the status. See [Authentication](/docs/authentication) for the request shape.
+`invalid_credential` is a `403` on the Webhooks API and a `401` on Inboxes and Request Bins, and each stays that way: switch on the code, not the status. See [Authentication](/docs/authentication) for the request shape.
 
 ### Request validation {#codes-validation}
 
 | `code` | Status | API | What |
 |---|---|---|---|
-| `validation_error` | 422 | Both | The body, query or path failed validation, or, on Webhooks, a rule the API checks itself refused a field. `details` is `{"errors": [...]}`, a list of entries. |
-| `bad_request` | 400 | Both | The request can't be acted on as sent. `message` says why. On Inboxes, a body the API couldn't read, such as one that isn't valid UTF-8. |
-| `payload_too_large` | 413 | Both | The body is over the size limit. |
-| `method_not_allowed` | 405 | Both | The path exists, but not for this method. |
+| `validation_error` | 422 | All | The body, query or path failed validation, or, on Webhooks, a rule the API checks itself refused a field. `details` is `{"errors": [...]}`, a list of entries. |
+| `bad_request` | 400 | All | The request can't be acted on as sent. `message` says why. On Inboxes and Request Bins, a body the API couldn't read, such as one that isn't valid UTF-8. |
+| `payload_too_large` | 413 | All | The body is over the size limit. |
+| `method_not_allowed` | 405 | All | The path exists, but not for this method. |
 
-Each validation entry describes one failing input: `loc` says where (`["body", "event_type"]`), `type` says what is wrong in machine-readable form (`missing`, `string_too_long`, `json_invalid`, …) and `msg` says it in English. When the rule has a number, the entry also carries it in `params`: `count` for a length (`string_too_short`, `string_too_long`, `too_short`, `too_long`) and `limit` for a bound (`greater_than`, `greater_than_equal`, `less_than`, `less_than_equal`). A body that isn't valid JSON is a validation error too, with the type `json_invalid`; on Inboxes, a body that isn't valid UTF-8 is a `400` `bad_request` instead.
+Each validation entry describes one failing input: `loc` says where (`["body", "event_type"]`), `type` says what is wrong in machine-readable form (`missing`, `string_too_long`, `json_invalid`, …) and `msg` says it in English. When the rule has a number, the entry also carries it in `params`: `count` for a length (`string_too_short`, `string_too_long`, `too_short`, `too_long`) and `limit` for a bound (`greater_than`, `greater_than_equal`, `less_than`, `less_than_equal`). A body that isn't valid JSON is a validation error too, with the type `json_invalid`; on Inboxes and Request Bins, a body that isn't valid UTF-8 is a `400` `bad_request` instead.
 
 Webhooks also sends entry types of its own, for rules it checks itself:
 
@@ -163,6 +173,8 @@ Webhooks' own rules on custom headers, `retry_schedule` delays and a RabbitMQ so
 
 The custom header rules' `loc` is `["body", "custom_headers"]`, and `params.header` is the name as you sent it; a header's value never comes back. A plan name the API doesn't know, on a route for platform operators, is an `enum` entry with no `params`. Until the update noted at the top of this page, all of these entries had the type `value_error`.
 
+Request Bins sends one entry type of its own: `bins.nul_character`, for a NUL character in the path, the query string or a JSON body, which it can't store. Its `loc` is `["path"]`, `["query", <name>]` or `["body"]`, and it carries no `params`.
+
 An Inboxes label one character over its limit:
 
 ```json
@@ -185,7 +197,7 @@ An Inboxes label one character over its limit:
 }
 ```
 
-On Webhooks the same entry sits in the same `details.errors` list, under the same code.
+On Webhooks the same entry sits in the same `details.errors` list, under the same code, and Request Bins sends it for a bin `label` over 200 characters.
 
 ### Webhooks API codes {#codes-webhooks}
 
@@ -208,19 +220,22 @@ All of these are `402`. Retrying the same request never helps: someone has to ch
 | `code` | API | What |
 |---|---|---|
 | `quota_exceeded` | Both | Over a plan limit: an allocation (Inboxes: addresses or request bins; Webhooks: endpoints) or a monthly ceiling (Inboxes: messages; Webhooks: deliveries), where you wait for the next period or upgrade. On both APIs `details.reason` says which, and `details` names the `metric`, its `limit` and, for an allocation, the `current` count. |
-| `not_entitled` | Both | The feature isn't in your plan, such as the read API on the Inboxes free plan, or a RabbitMQ source below Pro on Webhooks. `details.feature` names it. |
-| `workspace_frozen` | Both | A charge is unsettled, so changes are refused. Settle it in your account console; upgrading the plan is refused too until you do. |
-| `workspace_suspended` | Both | The grace period after an unsettled charge has ended and the service has stopped for this workspace. |
+| `quota_exceeded` | Request Bins | Over the plan's limit on bins, when creating one. `details.reason` is `allocation`, and `details` names the `metric` (`bins`), its `limit` and the `current` count. The monthly request limit never refuses an API call: past it, bins answer their senders and record nothing until the next month. |
+| `not_entitled` | All | The feature isn't in your plan, such as the read API on the Inboxes free plan, reading captured requests with an API key on the Request Bins Free plan, or a RabbitMQ source below Pro on Webhooks. `details.feature` names it. |
+| `workspace_frozen` | All | A charge is unsettled, so changes are refused. Settle it in your account console; upgrading the plan is refused too until you do. |
+| `workspace_suspended` | All | The grace period after an unsettled charge has ended and the service has stopped for this workspace. |
 
 `quota_exceeded` is a `402`, not a `429`. A rate limit clears by itself in seconds; a quota doesn't.
 
 On Webhooks, the endpoint limit is `quota_exceeded` on `POST /v1/endpoints`, with `details.reason` `allocation`, `metric` `endpoints`, `limit` (the plan's ceiling) and `current` (the endpoints the workspace has). A RabbitMQ source below Pro is `not_entitled` with `details.feature` `rabbitmq_sources`: on `POST /v1/sources`, and on a `PATCH /v1/sources/{id}` of a RabbitMQ source whose body sets `status` to `enabled` or sets any of `broker_identifier`, `broker_host`, `broker_port`, `broker_vhost`, `broker_user`, `broker_exchange`, `broker_topic` or `broker_queues`, even to the value it already has. Other changes, such as renaming or disabling the source, stay allowed. `max_attempts` above the plan's ceiling isn't a `402`: it is a `422` `validation_error` ([Request validation](#codes-validation)).
 
+On Request Bins, the bin limit is `quota_exceeded` on `POST /v1/bins`. Reading captured requests with an API key on Free is `not_entitled`, with `details.feature` `read_api`, on `GET /v1/bins/{id}/requests` and `GET /v1/requests/{id}`; the console reads them on every plan. While a workspace is frozen or suspended, every write but a delete is refused with `workspace_frozen` or `workspace_suspended`, and reads stay open. Bins keep recording while the workspace is frozen and stop while it is suspended ([Plans and limits](/docs/product-bins/reference#limits)).
+
 ### Resources {#codes-resources}
 
 | `code` | Status | API | What |
 |---|---|---|---|
-| `not_found` | 404 | Both | The resource doesn't exist, or you can't see it. The two are deliberately indistinguishable. `details.reason` names the kind of resource and `details.id` the id you asked for, when there is one; a path that doesn't exist carries no `details` ([What `details` carries](#details)). |
+| `not_found` | 404 | All | The resource doesn't exist, or you can't see it. The two are deliberately indistinguishable. `details.reason` names the kind of resource and `details.id` the id you asked for, when there is one; a path that doesn't exist carries no `details` ([What `details` carries](#details)). |
 
 ### Conflicts {#codes-state}
 
@@ -250,11 +265,13 @@ A bulk replay whose `from` is after its `to` isn't a conflict: it is a `422` `va
 |---|---|---|---|
 | `rate_limited` | 429 | Both | Too many requests. If `Retry-After` is set, wait that many seconds and retry; otherwise back off. `details.retry_after` carries the same number on both APIs, and on Inboxes a per-inbox limit also sets `details.reason` to `inbox_rate`, with `details.rate_per_min`. |
 
+Request Bins' API sends no `rate_limited`. Its bin URLs limit how fast senders can send, and answer a sender over the limit with a `429` and `Retry-After`, not in this JSON shape ([What a bin URL answers](/docs/product-bins/reference#edge-answers)).
+
 ### Server {#codes-server}
 
 | `code` | Status | API | What |
 |---|---|---|---|
-| `internal_error` | 500 | Both | Something broke on our side. Safe to retry idempotent requests. |
+| `internal_error` | 500 | All | Something broke on our side. Safe to retry idempotent requests. |
 | `unavailable` | 503 | Inboxes | Temporarily unable to serve the request: message acceptance is switched off, and `details.reason` is `ingest_disabled`. Retry with backoff. |
 
 A `502` or `504` from the edge in front of the APIs can arrive with no JSON body at all. Treat a `5xx` you can't parse as retryable.
@@ -349,17 +366,17 @@ async function call(): Promise<Event> {
       await sleep(wait * 1000)
       return call() // retry
     }
-    case 'invalid_credential': // Both: a key the API can't accept (403 on Webhooks, 401 on Inboxes)
-    case 'unauthorized': // Both: no usable credential
+    case 'invalid_credential': // All: a key the API can't accept (403 on Webhooks, 401 on Inboxes and Request Bins)
+    case 'unauthorized': // All: no usable credential
       // The credential is missing or bad: replace it rather than retry with it
       throw new CredentialError(error, requestId)
     case 'forbidden': {
       // Optional refinement: why it was refused, and what would have been allowed
       const reason = error.details?.reason // 'scope', 'role', 'project', 'project_confined', 'csrf', …
-      const required = error.details?.required // 'admin', 'read' or 'publish', when sent
+      const required = error.details?.required // 'admin', 'member', 'read' or 'publish', when sent
       throw new PermissionError(error, requestId, reason, required)
     }
-    case 'validation_error': { // Both
+    case 'validation_error': { // All
       const entries = error.details?.errors ?? []
       throw new ValidationError(entries, requestId)
     }
@@ -382,7 +399,7 @@ The general rule: **switch on `error.next_code ?? error.code`, default to handli
 
 ## Reporting bugs {#bugs}
 
-Every response an API sends carries an `X-Request-ID` header, errors included, and both APIs let browser JavaScript read it. Their error bodies carry the same id as `error.request_id`. When something's wrong on our side (5xx, unexpected behavior), the request id is what lets us find the call in our logs. Log it next to each error and include it in support tickets.
+Every response an API sends carries an `X-Request-ID` header, errors included, and the APIs let browser JavaScript read it. Their error bodies carry the same id as `error.request_id`. When something's wrong on our side (5xx, unexpected behavior), the request id is what lets us find the call in our logs. Log it next to each error and include it in support tickets.
 
 Don't share request ids publicly (they're not secret, but they let anyone who has them ask us about your account's traffic). Use them in private channels (support, dashboard tickets).
 
