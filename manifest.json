@@ -1327,6 +1327,48 @@
       ]
     },
     {
+      "id": "product-bins",
+      "group": "apps",
+      "title": {
+        "en": "Request Bins"
+      },
+      "items": [
+        {
+          "path": "product-bins",
+          "kind": "concept",
+          "title": {
+            "en": "Overview"
+          },
+          "description": {
+            "en": "Public URLs that record every HTTP request sent to them — point any app, script or service at one and read exactly what it sent, in the console or over the API."
+          },
+          "published": true
+        },
+        {
+          "path": "product-bins/quickstart",
+          "kind": "quickstart",
+          "title": {
+            "en": "Quickstart"
+          },
+          "description": {
+            "en": "Create a bin, send it a request with curl, and read what it recorded — in the console, then over the API."
+          },
+          "published": true
+        },
+        {
+          "path": "product-bins/reference",
+          "kind": "reference",
+          "title": {
+            "en": "Reference"
+          },
+          "description": {
+            "en": "Every route of the API, what a bin URL answers and records, who may do what, and each plan's limits."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
       "id": "apps-reference",
       "group": "apps",
       "title": {
