@@ -2,7 +2,7 @@
 title: Inboxes
 description: Disposable email addresses for testing — create one, point the system under test at it, and read what arrives in the dashboard or over the API.
 publishedAt: 2026-08-18
-updatedAt: 2026-10-20
+updatedAt: 2026-10-22
 kind: concept
 ---
 
@@ -10,7 +10,7 @@ kind: concept
 
 NimbusNexus Inboxes gives you throwaway **email addresses** that accept real mail. You create one, point a signup form or a test suite at it, and read what arrived in the dashboard or over the REST API.
 
-> **Not the page you wanted?** Inboxes only ever receives email. To *send* mail from your application, this is not the product. To capture **HTTP requests** — a provider's webhooks, or what your own app sends — use a Webhooks source and its [captured requests](/docs/product-webhooks/captured-requests).
+> **Not the page you wanted?** Inboxes only ever receives email. To *send* mail from your application, this is not the product. To capture **HTTP requests** — a provider's webhooks, or what your own app sends — use [Request Bins](/docs/product-bins).
 
 ## At a glance {#at-a-glance}
 
@@ -107,7 +107,7 @@ Choose the scope when you mint it: `admin` can create, change and delete address
 - **It does not send.** There is no send or relay API. An address that could originate mail would be a spam service.
 - **It is not an archive.** Everything is deleted when its plan's retention runs out.
 - **It does not forward yet.** Forwarding what arrives to a URL you own is planned and not built.
-- **It does not capture HTTP.** For webhooks and other HTTP requests, use a Webhooks source and its [captured requests](/docs/product-webhooks/captured-requests).
+- **It does not capture HTTP.** An inbox only ever receives mail. For webhooks and other HTTP requests, use [Request Bins](/docs/product-bins), whose URLs record any request sent to them.
 
 ## What's next {#next-steps}
 
