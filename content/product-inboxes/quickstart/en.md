@@ -2,7 +2,7 @@
 title: Inboxes quickstart
 description: Create a disposable email address, send it a message, and read the message back — in the dashboard or with curl.
 publishedAt: 2026-08-18
-updatedAt: 2026-10-20
+updatedAt: 2026-10-22
 kind: quickstart
 ---
 
@@ -44,6 +44,8 @@ Three fields matter:
 - **`id`** is what every later call takes. Keep it.
 
 `expires_at` is `null` because a paid address lives until you delete it; send `expires_in_minutes` to get one that expires on its own.
+
+`transport` is always `"email"`, because an inbox only receives mail. `POST /v1/inboxes` takes `"transport": "email"` or no `transport` at all; any other value, such as `"http"`, is refused with a `422` `validation_error`. To record HTTP requests, use [Request Bins](/docs/product-bins).
 
 ## 2. Send it a message {#send}
 
