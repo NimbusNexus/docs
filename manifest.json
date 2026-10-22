@@ -1427,6 +1427,18 @@
             "en": "Every Newsletters operation: lists, sign-up forms, subscribers and issues."
           },
           "published": false
+        },
+        {
+          "path": "reference/bins",
+          "kind": "reference",
+          "openapiSpec": "bins",
+          "title": {
+            "en": "Request Bins API"
+          },
+          "description": {
+            "en": "Every Request Bins operation: bins, the requests they record, plan and usage."
+          },
+          "published": true
         }
       ]
     }

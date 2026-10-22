@@ -184,3 +184,4 @@ Deleting is **permanent**: the URL stops recording at once, what the bin recorde
 
 - [Product overview](/docs/product-bins) — plans and limits, suspended bins, and what Request Bins does not do.
 - [Request Bins reference](/docs/product-bins/reference) — every route and field, what a bin URL answers, roles and scopes.
+- [Request Bins API](/docs/reference/bins) — every operation, with the request in curl, TypeScript, Python or Go.

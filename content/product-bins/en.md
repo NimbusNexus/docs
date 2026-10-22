@@ -109,4 +109,5 @@ Choose its permission when you create it: **Read** reads bins and what they reco
 
 - [Quickstart](/docs/product-bins/quickstart) — create a bin, send it a request, read it back.
 - [Request Bins reference](/docs/product-bins/reference) — every route and field, what a bin URL answers, roles, scopes and limits.
+- [Request Bins API](/docs/reference/bins) — every operation, with the request in curl, TypeScript, Python or Go.
 - [Errors](/docs/errors) — the error shape and the codes the API sends.

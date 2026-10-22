@@ -291,5 +291,6 @@ The API sends no `409` and no `429`.
 ## What's next {#next-steps}
 
 - [Quickstart](/docs/product-bins/quickstart) — create a bin and read what it recorded.
+- [Request Bins API](/docs/reference/bins) — every operation, with the request in curl, TypeScript, Python or Go.
 - [Errors](/docs/errors) — the error shape, every `details` key, and a pattern for handling them.
 - [Product overview](/docs/product-bins) — prices, and what Request Bins does not do.
