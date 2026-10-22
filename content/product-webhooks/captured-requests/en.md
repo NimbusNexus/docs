@@ -2,7 +2,7 @@
 title: Captured requests
 description: Record the raw requests that reach a source — headers, body and what we answered — to debug a provider integration.
 publishedAt: 2026-10-19
-updatedAt: 2026-10-21
+updatedAt: 2026-10-22
 kind: concept
 ---
 
@@ -71,7 +71,7 @@ The list leaves bodies out; fetch a capture by id to get `headers_raw` and `body
 
 ## What this isn't {#not}
 
-Captured requests are not a request bin you create and send arbitrary traffic to — they record only what reaches your own sources. For a throwaway URL that records any HTTP request, Inboxes has [request bins](/docs/product-inboxes).
+Captured requests are not a request bin you create and send arbitrary traffic to — they record only what reaches your own sources. For a URL that records any HTTP request sent to it, use [Request Bins](/docs/product-bins).
 
 ## What's next {#next-steps}
 
