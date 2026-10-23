@@ -93,7 +93,7 @@ To report a bin URL that is being abused, write to `abuse@nnbin.net` with the fu
 
 Open the console at `https://bins.nimbusnexus.net` and sign in with your NimbusNexus account, or add Request Bins from **Add a product** in any NimbusNexus console. The first visit by a workspace owner or admin adds Request Bins to the workspace; other members can open it from then on. A personal workspace starts on Free, and a team workspace starts with a 7-day Starter trial.
 
-Keys are not issued by the Request Bins API. Create one in your [account console]({{ACCOUNT_BASE_URL}}/api-keys?product=binsd) under **API keys**, with **Request Bins** as the product. A key is a JWT, so it begins `eyJ`. Present it as `Authorization: Bearer <key>` or `X-API-Key: <key>`.
+Keys are not issued by the Request Bins API. Create one in your [account console]({{ACCOUNT_BASE_URL}}/api-keys?product=bins) under **API keys**, with **Request Bins** as the product. A key is a JWT, so it begins `eyJ`. Present it as `Authorization: Bearer <key>` or `X-API-Key: <key>`.
 
 Choose its permission when you create it: **Read** reads bins and what they recorded, and **Read & write** can also create, change, empty and delete bins. On Free a key can manage bins, but reading what they recorded over the API needs Starter or above; the console reads it on every plan. [Who can do what](/docs/product-bins/reference#authority) has the full table, workspace roles included.
 
