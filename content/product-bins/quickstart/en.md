@@ -13,7 +13,7 @@ From nothing to a recorded request in a couple of minutes. You will create a bin
 ## Before you start {#before}
 
 - **In the console, on any plan.** Open `https://bins.nimbusnexus.net` and sign in with your NimbusNexus account. Steps 1 to 3 need nothing else, on Free too.
-- **Over the API, with a key.** Step 4 needs an API key created in your [account console]({{ACCOUNT_BASE_URL}}/api-keys?product=binsd) with **Request Bins** as the product and **Read & write** as its permission. A key can create bins on any plan; reading what they recorded with a key needs Starter or above, and on Free those routes answer `402` `not_entitled`.
+- **Over the API, with a key.** Step 4 needs an API key created in your [account console]({{ACCOUNT_BASE_URL}}/api-keys?product=bins) with **Request Bins** as the product and **Read & write** as its permission. A key can create bins on any plan; reading what they recorded with a key needs Starter or above, and on Free those routes answer `402` `not_entitled`.
 
 ## 1. Create a bin {#create}
 
