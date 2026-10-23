@@ -2,7 +2,7 @@
 title: Request Bins
 description: Public URLs that record every HTTP request sent to them — point any app, script or service at one and read exactly what it sent, in the console or over the API.
 publishedAt: 2026-10-22
-updatedAt: 2026-10-22
+updatedAt: 2026-10-23
 kind: concept
 ---
 
@@ -57,7 +57,7 @@ For each request, a bin keeps the method, the path after the slug, the query str
 - **Bodies are stored up to 64 KiB.** A larger body keeps its first 64 KiB, `truncated` is `true`, and `size_bytes` still says how large it really was.
 - **Credentials are redacted.** The values of `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` and `X-API-Key` are replaced with `[redacted]` before anything is stored. Every other header is kept as sent, signature headers included, since a signature is what you need to see when verifying one fails.
 - **Nothing is changed or run.** A body is stored as the bytes that arrived, and the console shows it as text, never as markup.
-- **A repeat is one row.** A request with the same method, path and body as one the bin already holds adds one to that request's `seen_count` rather than being stored again, so a sender's retries are counted, not duplicated.
+- **A repeat is one row.** A request with the same method, path, query string and body as one the bin already holds adds one to that request's `seen_count` rather than being stored again, so a sender's retries are counted, not duplicated.
 
 ## Plans and limits {#limits}
 
