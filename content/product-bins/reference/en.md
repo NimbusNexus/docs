@@ -167,6 +167,7 @@ Each item:
 | `bin_id` | The bin it came to. |
 | `method` | The HTTP method. |
 | `path` | What followed the slug, as sent; `/` for the bare bin URL. |
+| `query` | The query string as sent, without the `?`; empty when there was none. |
 | `source_ip` | The address it came from. |
 | `content_type` | Its `Content-Type` header, or empty. |
 | `size_bytes` | The body's full size, as sent. |
@@ -179,7 +180,6 @@ Each item:
 
 | Field | What |
 | --- | --- |
-| `query` | The query string as sent, without the `?`. |
 | `headers` | Objects with a `name` and a `value`, in arrival order, duplicates kept, credentials `[redacted]`. |
 | `body_base64` | The stored body, base64-encoded because it need not be text: at most 64 KiB. |
 | `request_id` | The id the bin URL gave the delivery that last wrote this request, which is the `X-Request-ID` that sender got back. |
