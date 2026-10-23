@@ -2,7 +2,7 @@
 title: Request Bins quickstart
 description: Create a bin, send it a request with curl, and read what it recorded — in the console, then over the API.
 publishedAt: 2026-10-22
-updatedAt: 2026-10-22
+updatedAt: 2026-10-23
 kind: quickstart
 ---
 
@@ -103,6 +103,7 @@ curl https://bins.nimbusnexus.net/v1/bins/bin_3f9a1c7e5b2d8f4a6c0e9b17/requests 
       "bin_id": "bin_3f9a1c7e5b2d8f4a6c0e9b17",
       "method": "POST",
       "path": "/orders",
+      "query": "source=quickstart",
       "source_ip": "203.0.113.24",
       "content_type": "application/json",
       "size_bytes": 36,
