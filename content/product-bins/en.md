@@ -17,7 +17,7 @@ NimbusNexus Request Bins gives you **bins**: public URLs that record every HTTP 
 | | |
 | --- | --- |
 | What you create | A **bin**: a URL such as `https://nnbin.net/b/k7xq2mbn9tfa` |
-| What it records | Every request to that URL or any path under it: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD` or `OPTIONS`, with any headers and any body |
+| What it records | Every request to that URL or any path under it, with any method (`GET`, `POST`, WebDAV's `PROPFIND`, a sender's own), any headers and any body |
 | What a sender gets back | `200` and `{"status":"accepted"}`, at once |
 | Console | `https://bins.nimbusnexus.net` |
 | API base URL | `https://bins.nimbusnexus.net/v1` |
@@ -31,7 +31,7 @@ NimbusNexus Request Bins gives you **bins**: public URLs that record every HTTP 
 
 1. **Create** a bin — in the console with **New bin**, or with `POST /v1/bins`. Its URL records from that moment.
 2. **Send** it requests. Give the URL to whatever you want to watch — a provider's webhook settings, your app's configuration, a script, a CI job — or `curl` it yourself. Anything after the slug is yours to choose: a request to `https://nnbin.net/b/k7xq2mbn9tfa/orders/42` is recorded with the path `/orders/42`.
-3. **Read** what arrived. It appears in the console within seconds, and on paid plans at `GET /v1/bins/{id}/requests`.
+3. **Read** what arrived. It appears in the console within seconds, and on paid plans at `GET /v1/bins/{id}/requests`. To find one request among many, search for text in paths, headers and bodies, or keep only some methods: **Search** and the method chips above the list in the console, `q` and `method` in the API ([Captured requests](/docs/product-bins/reference#requests)).
 4. **Delete** the bin when you are done, or let it expire.
 
 The [quickstart](/docs/product-bins/quickstart) does all four.

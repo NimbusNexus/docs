@@ -16,7 +16,7 @@ Request Bins has two sides. **Bin URLs** on `nnbin.net` take requests from anyon
 | --- | --- |
 | URL | `https://nnbin.net/b/<slug>`, and any path under it: `https://nnbin.net/b/<slug>/<anything>` |
 | Slug | 12 characters: the letters `a`–`z` except `l` and `o`, and the digits `2`–`9`. Case doesn't matter. |
-| Methods | `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD` and `OPTIONS`. Any other method is answered `405` and not recorded. |
+| Methods | Any: `GET`, `POST` and the other common ones, WebDAV's `PROPFIND` or `COPY`, or a sender's own. A method is recorded in capitals, cut at 16 characters. `TRACE` and `CONNECT` are refused in front of the bin and never recorded. |
 | Recorded path | Everything after the slug, as sent, percent-encoding kept: `/b/<slug>/stripe/events` records `/stripe/events`, and `/b/<slug>` records `/`. |
 | Recorded query | The query string as sent, without the `?`. |
 
@@ -157,7 +157,19 @@ Lists are paged with `limit` (1 to 200, default 50) and `offset` (0 to 10,000). 
 | --- | --- |
 | `since` | Only requests received after this instant. Pass the newest `received_at` you have seen to poll for new ones. |
 | `until` | Only requests received at or before this instant: the way back through older ones. |
+| `method` | Only requests sent with this method, in any case. Repeat it for any of several: `?method=PUT&method=DELETE`. |
+| `q` | Only requests containing this text, up to 200 characters, ignoring case: in the path and query string as sent (`/orders?id=42`), in a header as `name: value`, or in the stored body. A body that isn't UTF-8 text is searched with each byte above 127 (and NUL) written as `\` and three octal digits, and a backslash doubled. |
 | `limit`, `offset` | Paging, as for bins. Past offset 10,000, narrow the window with `until` instead. |
+
+A search (`q`) pages differently from the rest. It reads the bin's requests newest first and stops when it has `limit` matches or has read 16 MiB of requests (or 5,000 of them), whichever comes first, so a page can hold fewer matches than `limit`, or none, while older requests are still unread. Such a page has `next_offset` `null` and a `next_until`: pass it back as `until`, with the same `q`, `method` and `since`, to search on from where it stopped. `next_until` is `null` once the search has read the bin's oldest request. With `q`, `offset` skips that many requests before the search starts reading.
+
+```json
+{
+  "items": [],
+  "next_offset": null,
+  "next_until": "2026-10-23T14:02:11.408211+00:00"
+}
+```
 
 Each item:
 
