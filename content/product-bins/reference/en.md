@@ -263,7 +263,7 @@ A workspace has Request Bins once an owner or admin has opened the console, or a
 - **The month** is a calendar month in UTC: `period` in `GET /v1/usage`. Every request a bin records counts, repeats included. A refused or rate-limited request doesn't.
 - **Past the month's requests**, or past one bin's share of them (`bin_request_ceiling`), bins answer `200` and record nothing until the next month, and `refused_count` shows it. No API call is refused for it.
 - **Retention and lifetime are separate clocks.** A request is deleted when the plan's retention runs out or when its bin ends, whichever comes first.
-- **Notices:** when the workspace reaches 80% and then 100% of the month's requests, it is told by email, which goes to the workspace owner unless you choose another address, and by a webhook with the event type `binsd.quota.threshold_reached` if you set one up. Both are under **Notifications** in your account console.
+- **Notices:** when the workspace reaches 80% and then 100% of the month's requests, it is told by email, which goes to the workspace owner unless you choose another address, and by a webhook with the event type `bind.quota.threshold_reached` if you set one up. Both are under **Notifications** in your account console.
 - **While a payment is overdue,** creating and changing bins is refused with `402` `workspace_frozen`, and bins keep recording. If the grace period ends, the workspace is suspended: the same refusals come as `402` `workspace_suspended`, and bins answer `200` and record nothing. Deleting and reading still work, and nothing is deleted.
 - **On a smaller plan,** bins over its `max_bins` are held back, newest first, as [`plan_downgrade`](#suspension), and come back, oldest first, once the plan allows them.
 
