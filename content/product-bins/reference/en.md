@@ -2,7 +2,7 @@
 title: Request Bins reference
 description: Every route of the Request Bins API, what a bin URL answers and records, who may do what, and each plan's limits.
 publishedAt: 2026-10-22
-updatedAt: 2026-10-22
+updatedAt: 2026-10-23
 kind: reference
 ---
 
@@ -43,7 +43,7 @@ A `200` carries an `X-Request-ID` header, and the captured request's `request_id
 
 ### Repeats {#edge-repeats}
 
-A request with the same method, path and body as one the bin already holds isn't stored again, even when its query string or headers differ. Instead, that request's `seen_count` goes up by one, and its `received_at`, `expires_at` and `request_id` move to the latest arrival, while its query string and headers stay those of the first arrival. Headers are left out of the match because a provider's retry carries a new signature and timestamp. A repeat counts toward the month's requests.
+A request with the same method, path, query string and body as one the bin already holds isn't stored again, even when its headers differ. Instead, that request's `seen_count` goes up by one, and its `received_at`, `expires_at` and `request_id` move to the latest arrival, while its headers stay those of the first arrival. The query string is compared exactly as sent, so `?a=1&b=2` and `?b=2&a=1` are two requests. Headers are left out of the match because a provider's retry carries a new signature and timestamp. A repeat counts toward the month's requests.
 
 ### When nothing is recorded {#edge-refusals}
 
@@ -171,7 +171,7 @@ Each item:
 | `content_type` | Its `Content-Type` header, or empty. |
 | `size_bytes` | The body's full size, as sent. |
 | `truncated` | `true` when the stored body is shorter than `size_bytes`. |
-| `seen_count` | How many times this request arrived: the same method, path and body. |
+| `seen_count` | How many times this request arrived: the same method, path, query string and body. |
 | `received_at` | When it last arrived. |
 | `expires_at` | When it will be deleted: the plan's retention after `received_at`, or the bin's own `expires_at` if that comes first. |
 
@@ -238,7 +238,7 @@ With an API key, both routes need a paid plan: on Free they answer `402` `not_en
 | Key with **Read & write** (`admin` scope) | yes | on paid plans | yes | yes |
 | Key with **Read** (`read` scope) | yes | on paid plans | no | no |
 
-A refused action answers `403` `forbidden` with `details.reason` `role`, and `details.required` names the role it needs: `member` to create or change a bin, `admin` to delete or empty one. For a key, `member` means the `write` or `admin` scope, and `admin` means `admin`. The API also takes keys with the `write` scope, which create and change bins but don't delete or empty them; the account console creates **Read** and **Read & write** keys.
+A refused action answers `403` `forbidden` with `details.reason` `role`, and `details.required` names the role it needs: `member` to create or change a bin, `admin` to delete or empty one. For a key, both mean **Read & write** (the `admin` scope). The account console creates **Read** and **Read & write** keys, and a key with any other scope, such as `write`, is treated as **Read**.
 
 Request Bins serves whole workspaces. A guest seat, or a key limited to one project, is refused on every route with `403` `project_confined`.
 

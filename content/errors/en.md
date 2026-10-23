@@ -2,7 +2,7 @@
 title: Errors
 description: The error shape, the error codes the Webhooks, Inboxes and Request Bins APIs send, and how to handle each.
 publishedAt: 2026-05-20
-updatedAt: 2026-10-22
+updatedAt: 2026-10-23
 kind: concept
 ---
 
@@ -48,7 +48,7 @@ A read-only key that tries to create an inbox on Inboxes, or an endpoint on Webh
 }
 ```
 
-Request Bins refuses the same read-only key with the same code and status, but its `details` name the role the action needs rather than a scope: `"reason": "role"` and `"required": "member"`. A key has that role with the `write` or `admin` scope ([What `details` carries](#details)).
+Request Bins refuses the same read-only key with the same code and status, but its `details` name the role the action needs rather than a scope: `"reason": "role"` and `"required": "member"`. A key has that role with the `admin` scope, **Read & write** in the account console ([What `details` carries](#details)).
 
 Up to five fields. `code`, `message` and `request_id` are on every error body the APIs send, and `details` and `next_code` appear when they have something to say:
 
@@ -72,7 +72,7 @@ Treat every key in `details` as optional: read the ones you need and ignore the 
 | `unauthorized` | Request Bins | `missing`: no credential was sent. `revoked`: the key or session has been revoked. `invalid`: a sign-in session that didn't verify, usually because it has expired. `no_workspace`: the sign-in session isn't tied to a workspace. | — |
 | `forbidden` | Both | `scope`: the credential's scope doesn't allow this. `project_confined`: a credential limited to certain projects, used on a route that answers for the whole workspace; Inboxes doesn't accept project-limited credentials yet, so it sends this on every route. `csrf`: a browser session sent a write without the `X-CSRF` header. `operator`: the route, or a field in the request, is for platform operators only. | `required`, on most `scope` refusals: the scope that would have been allowed (`admin` on Inboxes; `admin`, `read` or `publish` on Webhooks) |
 | `forbidden` | Webhooks | `role`: your role, in the workspace or on the project of the resource you're acting on, is too low. `project`: the credential, or the person using it, has no access to the project the request names. `product_not_enabled`: your access doesn't include Webhooks. `not_provisioned`: the workspace isn't set up for Webhooks yet. | `required`, on `role`: the lowest role allowed (`admin`) |
-| `forbidden` | Request Bins | `role`: your role, or your key's scope, doesn't allow this. `project_confined`: a guest seat, or a key limited to a project; Request Bins serves whole workspaces, so it sends this on every route. `product_not_enabled`: your workspace hasn't added Request Bins, or your sign-in doesn't include it. `csrf`: a browser session sent a write without the `X-CSRF` header. `no_workspace`: the credential isn't tied to a workspace, such as a service token. | `required`, on `role`: `member` to create or change a bin, `admin` to delete or empty one. For a key, `member` means the `write` or `admin` scope, and `admin` means `admin`. |
+| `forbidden` | Request Bins | `role`: your role, or your key's scope, doesn't allow this. `project_confined`: a guest seat, or a key limited to a project; Request Bins serves whole workspaces, so it sends this on every route. `product_not_enabled`: your workspace hasn't added Request Bins, or your sign-in doesn't include it. `csrf`: a browser session sent a write without the `X-CSRF` header. `no_workspace`: the credential isn't tied to a workspace, such as a service token. | `required`, on `role`: `member` to create or change a bin, `admin` to delete or empty one. For a key, both mean the `admin` scope (**Read & write**). |
 | `not_found` | Both | The kind of resource. Inboxes: `inbox`, `message`, `workspace`. Webhooks: `endpoint`, `source`, `event`, `delivery`, `capture`, `event_type`, `operational_endpoint`, `project`, `workspace`, `user`, and `default_project` (a write that names no project, in a workspace that has none yet). | `id`: the id you asked for. Absent on `user` and `default_project`, where you named none, and on a path that doesn't exist at all. |
 | `not_found` | Request Bins | The kind of resource: `bin` or `request`. A bin that was deleted or has expired is `bin`. | `id`: the id you asked for. Absent on a path that doesn't exist at all. |
 | `bad_request` | Webhooks | `project_required`: a write that names no project, from a credential that can reach several. | `projects`: the projects the credential can reach |
