@@ -2,7 +2,7 @@
 title: Inboxes
 description: Disposable email addresses for testing — create one, point the system under test at it, and read what arrives in the dashboard or over the API.
 publishedAt: 2026-08-18
-updatedAt: 2026-10-22
+updatedAt: 2026-10-26
 kind: concept
 ---
 
@@ -105,7 +105,7 @@ Choose the scope when you mint it: `admin` can create, change and delete address
 ## What it will not do {#not}
 
 - **It does not send.** There is no send or relay API. An address that could originate mail would be a spam service.
-- **It is not an archive.** Everything is deleted when its plan's retention runs out.
+- **It is not an archive.** A message is deleted when the plan's retention runs out, and everything in an address goes when the address is deleted or expires.
 - **It does not forward yet.** Forwarding what arrives to a URL you own is planned and not built.
 - **It does not capture HTTP.** An inbox only ever receives mail. For webhooks and other HTTP requests, use [Request Bins](/docs/product-bins), whose URLs record any request sent to them.
 
