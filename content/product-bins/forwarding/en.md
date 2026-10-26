@@ -158,9 +158,32 @@ When your server keeps failing, the bin stops sending to it: forwarding pauses a
 
 While forwarding is paused, the bin keeps recording but sends nothing: each request that arrives, and each forward that was waiting, is marked not forwarded, with the reason `paused`, and none of them is sent later. The bin shows when and why it paused: **Paused** on its Forwarding card, and `forward_paused_at` and `forward_paused_reason` (`failed_in_a_row` or `failing_for_an_hour`) in the API.
 
-The workspace is told by email, which goes to the workspace owner unless you choose another address, and by a webhook with the event type `bind.forwarding.paused` if you set one up. Both are under **Notifications** in your account console.
+**The workspace is told**, once for each pause, the way it is told about its month's requests: by email, which goes to the workspace owner unless you choose another address, and by a webhook if you set one up. Both are under **Notifications** in your account console. Resuming sends nothing.
 
-To resume once your server is fixed, choose **Resume** on the Forwarding card, or set `forward_url` again with `PATCH /v1/bins/{id}`, to the same URL or a new one. **Send a test** then shows whether your server answers.
+The email, "Request Bins: forwarding was paused on one of your bins", names the bin by its label and URL, and the host it forwarded to, never the path or query. It says why the bin paused, with the last error, and that requests are still recorded but none is forwarded, so the ones recorded meanwhile won't be forwarded later. It ends with how to resume.
+
+The webhook's event type is `bind.forwarding.paused`, and its body is:
+
+```json
+{
+  "type": "bind.forwarding.paused",
+  "workspace_id": "{{WORKSPACE_ID}}",
+  "data": {
+    "bin_id": "bin_3f9a1c7e5b2d8f4a6c0e9b17",
+    "label": "Quickstart",
+    "url": "https://nnbin.net/b/w4tz8hcv2qnd",
+    "forward_host": "api.example.com",
+    "reason": "failed_in_a_row",
+    "paused_at": "2026-10-26T14:05:12.345678Z",
+    "failures": 20,
+    "last_error": "HTTP 503"
+  }
+}
+```
+
+`reason` is `failed_in_a_row` or `failing_for_an_hour`, `failures` is how many sends in a row had failed, and `last_error` is what went wrong with the last of them. `forward_host` is the forward URL's host alone: a notice never carries the URL's path or query, which can hold a secret.
+
+To resume once your server is fixed, choose **Resume** on the Forwarding card, or set `forward_url` again with `PATCH /v1/bins/{id}`, to the same URL or a new one. Forwarding starts again with the next request the bin records, and **Send a test** shows whether your server answers.
 
 ## Where forwards come from {#source-address}
 

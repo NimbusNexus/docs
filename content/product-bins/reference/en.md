@@ -255,6 +255,8 @@ A bin on Starter, Pro or Custom can send each request it records on to one https
 
 Treat `reason`, `forward_paused_reason` and a forward's `reason` as open strings, and keep a default for a value you don't know.
 
+When forwarding pauses, the workspace is told once, by email and by a webhook with the event type `bind.forwarding.paused`; [When forwarding pauses](/docs/product-bins/forwarding#paused) shows the webhook's body.
+
 ### Test a forward URL {#forward-test}
 
 `POST /v1/bins/{id}/forward-test` takes no body. It sends a test event to the bin's forward URL at once and answers `200` with what came back ([Checking the URL first](/docs/product-bins/forwarding#test) shows the event):
