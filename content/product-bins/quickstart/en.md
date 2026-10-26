@@ -2,7 +2,7 @@
 title: Request Bins quickstart
 description: Create a bin, send it a request with curl, and read what it recorded — in the console, then over the API.
 publishedAt: 2026-10-22
-updatedAt: 2026-10-23
+updatedAt: 2026-10-26
 kind: quickstart
 ---
 
@@ -166,7 +166,7 @@ curl -G https://bins.nimbusnexus.net/v1/bins/bin_3f9a1c7e5b2d8f4a6c0e9b17/reques
   -H "Authorization: Bearer $BINS_API_KEY"
 ```
 
-`-G` with `--data-urlencode` puts `since` in the query string encoded, so an offset such as `+00:00` survives the trip. A repeat of a request the bin already holds comes back in this list too: its `seen_count` has gone up and its `received_at` has moved to the latest arrival.
+`-G` with `--data-urlencode` puts `since` in the query string encoded, so an offset such as `+00:00` survives the trip. A request sent again is a new row of its own, so it comes back in this list too, with its own `id` and `received_at`.
 
 Don't poll a fixed number of times and assert on the last answer. Assert that the request *appears*, with a timeout, or a slow sender will look like one that never sent.
 
@@ -184,5 +184,6 @@ Deleting is **permanent**: the URL stops recording at once, what the bin recorde
 ## What's next {#next-steps}
 
 - [Product overview](/docs/product-bins) — plans and limits, suspended bins, and what Request Bins does not do.
+- [Forwarding](/docs/product-bins/forwarding) — send each request on to your own server as well, on a paid plan.
 - [Request Bins reference](/docs/product-bins/reference) — every route and field, what a bin URL answers, roles and scopes.
 - [Request Bins API](/docs/reference/bins) — every operation, with the request in curl, TypeScript, Python or Go.
