@@ -2,7 +2,7 @@
 title: "Помилки"
 description: "Формат помилки, коди помилок, які надсилають API Webhooks, Inboxes і Request Bins, і як обробляти кожен із них."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-23
+updatedAt: 2026-10-27
 kind: concept
 ---
 
@@ -173,7 +173,13 @@ Webhooks також надсилає власні типи записів — д
 
 `loc` правил щодо користувацьких заголовків — `["body", "custom_headers"]`, а `params.header` — назва в тому вигляді, у якому ви її надіслали; значення заголовка ніколи не повертається. Назва плану, якої API не знає, на маршруті для операторів платформи дає запис `enum` без `params`. До оновлення, згаданого на початку цієї сторінки, усі ці записи мали тип `value_error`.
 
-Request Bins надсилає один власний тип запису: `bins.nul_character` — для символу NUL у шляху, рядку query чи тілі JSON, якого він не може зберегти. Його `loc` — `["path"]`, `["query", <name>]` або `["body"]`, і `params` він не містить.
+Inboxes надсилає один власний тип запису: `inboxes.search_conflict` — для пошуку повідомлень у `GET /v1/inboxes/{id}/messages` або `GET /v1/messages`, який задає `header` з `in`, встановленим у `subject`, `from` або `body`. Його `loc` — `["query", "in"]`, і `params` він не містить ([Пошук повідомлень](/docs/product-inboxes#search)).
+
+Request Bins надсилає три:
+
+- `bins.nul_character`: символ NUL у шляху, рядку query чи тілі JSON, якого він не може зберегти. Його `loc` — `["path"]`, `["query", <name>]` або `["body"]`, і `params` він не містить.
+- `bins.forward_target`: URL пересилання, на який bin не пересилатиме. Його `loc` — `["body", "forward_url"]`, а `params.reason` пояснює чому ([Пересилання](/docs/product-bins/reference#forwarding)).
+- `bins.search_conflict`: пошук у `GET /v1/bins/{id}/requests` або `GET /v1/requests`, у якому `header` чи `field` не поєднується з його `in` (тоді `loc` — `["query", "in"]`) або який задає водночас `header` і `field` (тоді `loc` — `["query", "field"]`). Цей запис не містить `params` ([Перехоплені запити](/docs/product-bins/reference#requests)).
 
 Мітка Inboxes, що на один символ перевищує свій ліміт:
 
@@ -229,7 +235,7 @@ Request Bins надсилає один власний тип запису: `bins
 
 У Webhooks ліміт ендпоінтів — це `quota_exceeded` у `POST /v1/endpoints` з `details.reason` `allocation`, `metric` `endpoints`, `limit` (стеля плану) і `current` (кількість ендпоінтів робочого простору). Джерело RabbitMQ на плані, нижчому за Pro, — це `not_entitled` з `details.feature` `rabbitmq_sources`: у `POST /v1/sources`, а також у `PATCH /v1/sources/{id}` для джерела RabbitMQ, тіло якого встановлює `status` у `enabled` або задає будь-яке з полів `broker_identifier`, `broker_host`, `broker_port`, `broker_vhost`, `broker_user`, `broker_exchange`, `broker_topic` чи `broker_queues`, навіть якщо значення не змінюється. Інші зміни, як-от перейменування чи вимкнення джерела, залишаються дозволеними. `max_attempts` понад стелю плану — це не `402`, а `422` `validation_error` ([Валідація запиту](#codes-validation)).
 
-У Request Bins ліміт bin-ів — це `quota_exceeded` у `POST /v1/bins`. Читання перехоплених запитів з API-ключем на Free — це `not_entitled` з `details.feature` `read_api` у `GET /v1/bins/{id}/requests` і `GET /v1/requests/{id}`; консоль читає їх на будь-якому плані. Поки робочий простір заморожений чи призупинений, кожен запит на запис, крім видалення, відхиляється з `workspace_frozen` або `workspace_suspended`, а читання лишається доступним. Bin-и продовжують записувати, поки робочий простір заморожений, і зупиняються, поки він призупинений ([Плани й ліміти](/docs/product-bins/reference#limits)).
+У Request Bins ліміт bin-ів — це `quota_exceeded` у `POST /v1/bins`. Читання перехоплених запитів з API-ключем на Free — це `not_entitled` з `details.feature` `read_api` у `GET /v1/bins/{id}/requests`, `GET /v1/requests` і `GET /v1/requests/{id}`; консоль читає їх на будь-якому плані. Поки робочий простір заморожений чи призупинений, кожен запит на запис, крім видалення, відхиляється з `workspace_frozen` або `workspace_suspended`, а читання лишається доступним. Bin-и продовжують записувати, поки робочий простір заморожений, і зупиняються, поки він призупинений ([Плани й ліміти](/docs/product-bins/reference#limits)).
 
 ### Ресурси {#codes-resources}
 
