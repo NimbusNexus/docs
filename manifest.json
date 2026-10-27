@@ -4,7 +4,12 @@
     {
       "id": "start",
       "title": {
-        "en": "Start"
+        "en": "Start",
+        "de": "Start",
+        "es": "Inicio",
+        "fr": "Démarrer",
+        "pt": "Início",
+        "uk": "Старт"
       },
       "heading": false
     },
@@ -14,7 +19,7 @@
         "en": "Apps",
         "de": "Apps",
         "es": "Apps",
-        "fr": "Applications",
+        "fr": "Apps",
         "pt": "Apps",
         "uk": "Застосунки"
       }
@@ -48,10 +53,20 @@
           "path": "setup/rest",
           "kind": "quickstart",
           "title": {
-            "en": "REST API"
+            "en": "REST API",
+            "de": "REST-API",
+            "es": "API REST",
+            "fr": "API REST",
+            "pt": "API REST",
+            "uk": "REST API"
           },
           "description": {
-            "en": "Get an API key, set one header, and make a first call to any product."
+            "en": "Get an API key, set one header, and make a first call to any product.",
+            "de": "API-Key erstellen, einen Header setzen und den ersten Aufruf an ein beliebiges Produkt senden.",
+            "es": "Obtén una clave de API, configura una cabecera y haz una primera llamada a cualquier producto.",
+            "fr": "Obtenez une clé API, définissez un header et faites un premier appel à n’importe quel produit.",
+            "pt": "Obtenha uma chave de API, defina um header e faça sua primeira chamada a qualquer produto.",
+            "uk": "Отримайте API-ключ, додайте один заголовок і зробіть перший виклик API будь-якого продукту."
           },
           "published": true
         },
@@ -59,10 +74,20 @@
           "path": "setup/sdk",
           "kind": "sdk",
           "title": {
-            "en": "SDKs"
+            "en": "SDKs",
+            "de": "SDKs",
+            "es": "SDKs",
+            "fr": "SDK",
+            "pt": "SDKs",
+            "uk": "SDK"
           },
           "description": {
-            "en": "Install the Python, TypeScript or Go client, authenticate it, and make a first call."
+            "en": "Install the Python, TypeScript or Go client, authenticate it, and make a first call.",
+            "de": "Den Client für Python, TypeScript oder Go installieren, authentifizieren und den ersten Aufruf senden.",
+            "es": "Instala el cliente de Python, TypeScript o Go, autentícalo y haz una primera llamada.",
+            "fr": "Installez le client Python, TypeScript ou Go, authentifiez-le et faites un premier appel.",
+            "pt": "Instale o cliente Python, TypeScript ou Go, autentique-o e faça sua primeira chamada.",
+            "uk": "Встановіть клієнт для Python, TypeScript або Go, налаштуйте автентифікацію та зробіть перший виклик."
           },
           "published": true
         },
@@ -70,10 +95,20 @@
           "path": "setup/cli",
           "kind": "cli",
           "title": {
-            "en": "CLI"
+            "en": "CLI",
+            "de": "CLI",
+            "es": "CLI",
+            "fr": "CLI",
+            "pt": "CLI",
+            "uk": "CLI"
           },
           "description": {
-            "en": "Install nn-webhooks, verify the download, configure a key, and make a first call."
+            "en": "Install nn-webhooks, verify the download, configure a key, and make a first call.",
+            "de": "nn-webhooks installieren, den Download prüfen, einen Key konfigurieren und den ersten Aufruf senden.",
+            "es": "Instala nn-webhooks, verifica la descarga, configura una clave y haz una primera llamada.",
+            "fr": "Installez nn-webhooks, vérifiez le téléchargement, configurez une clé et faites un premier appel.",
+            "pt": "Instale o nn-webhooks, verifique o download, configure uma chave e faça sua primeira chamada.",
+            "uk": "Встановіть nn-webhooks, перевірте завантажений файл, налаштуйте ключ і зробіть перший виклик."
           },
           "published": true
         },
@@ -90,7 +125,12 @@
             "uk": "Довідник API"
           },
           "description": {
-            "en": "Every operation of every product, with the REST call and the SDK call in your language."
+            "en": "Every operation of every product, with the REST call and the SDK call in your language.",
+            "de": "Jede Operation jedes Produkts, mit dem REST-Aufruf und dem SDK-Aufruf in Ihrer Sprache.",
+            "es": "Todas las operaciones de todos los productos, con la llamada REST y la del SDK en tu lenguaje.",
+            "fr": "Toutes les opérations de tous les produits, avec l’appel REST et l’appel SDK dans votre langage.",
+            "pt": "Todas as operações de todos os produtos, com a chamada REST e a chamada do SDK na sua linguagem.",
+            "uk": "Усі операції всіх продуктів із викликом REST і викликом SDK вашою мовою програмування."
           },
           "published": true
         }
@@ -120,7 +160,12 @@
             "uk": "Автентифікація"
           },
           "description": {
-            "en": "API keys, scopes, project boundaries, and how to rotate credentials safely."
+            "en": "API keys, scopes, project boundaries, and how to rotate credentials safely.",
+            "de": "API-Keys, Scopes, Projektgrenzen und wie Sie Credentials sicher rotieren.",
+            "es": "Claves de API, alcances, el aislamiento entre proyectos y cómo rotar credenciales sin riesgo.",
+            "fr": "Clés API, portées, frontières entre projets et rotation des clés en toute sécurité.",
+            "pt": "Chaves de API, escopos, fronteiras de projeto e como rotacionar credenciais com segurança.",
+            "uk": "API-ключі, області дії, межі проєктів і безпечна ротація облікових даних."
           },
           "published": true
         },
@@ -136,7 +181,12 @@
             "uk": "Угоди"
           },
           "description": {
-            "en": "Patterns the API follows everywhere — resource ids, pagination, errors, idempotency, long-running operations."
+            "en": "Patterns the API follows everywhere — resource ids, pagination, errors, idempotency, long-running operations.",
+            "de": "Muster, denen die API überall folgt — Ressourcen-IDs, Paginierung, Fehler, Idempotenz, lang laufende Operationen.",
+            "es": "Los patrones que la API sigue en todas partes — ids de recursos, paginación, errores, idempotencia y operaciones de larga duración.",
+            "fr": "Les règles que l’API suit partout — identifiants de ressource, pagination, erreurs, idempotence, opérations longues.",
+            "pt": "Padrões que a API segue em todo lugar — ids de recurso, paginação, erros, idempotência, operações de longa duração.",
+            "uk": "Правила, яких API дотримується всюди: ідентифікатори ресурсів, пагінація, помилки, ідемпотентність, тривалі операції."
           },
           "published": true
         },
@@ -144,10 +194,20 @@
           "path": "rate-limiting",
           "kind": "concept",
           "title": {
-            "en": "Rate limiting"
+            "en": "Rate limiting",
+            "de": "Rate-Limiting",
+            "es": "Límites de tasa",
+            "fr": "Limitation de débit",
+            "pt": "Limites de requisições",
+            "uk": "Ліміти запитів"
           },
           "description": {
-            "en": "Per-key request budgets, the headers we return, and the right backoff strategy."
+            "en": "Per-key request budgets, the headers we return, and the right backoff strategy.",
+            "de": "Request-Budgets pro Key, die Header, die wir zurückgeben, und die richtige Backoff-Strategie.",
+            "es": "Presupuestos de peticiones por clave, las cabeceras que devolvemos y la estrategia de backoff adecuada.",
+            "fr": "Budgets de requêtes par clé, les headers que nous renvoyons et la bonne stratégie de backoff.",
+            "pt": "Orçamentos de requisições por chave, os headers que retornamos e a estratégia de backoff correta.",
+            "uk": "Бюджети запитів на кожен ключ, заголовки, які ми повертаємо, і правильна стратегія backoff."
           },
           "published": true
         },
@@ -155,10 +215,20 @@
           "path": "pagination",
           "kind": "concept",
           "title": {
-            "en": "Pagination"
+            "en": "Pagination",
+            "de": "Paginierung",
+            "es": "Paginación",
+            "fr": "Pagination",
+            "pt": "Paginação",
+            "uk": "Пагінація"
           },
           "description": {
-            "en": "Cursor pagination on every list endpoint. Stable across inserts, no offset drift."
+            "en": "Cursor pagination on every list endpoint. Stable across inserts, no offset drift.",
+            "de": "Cursor-Paginierung auf jedem Listen-Endpoint. Stabil, wenn Einträge hinzukommen, ohne Offset-Drift.",
+            "es": "Paginación por cursor en todos los endpoints de listado. Estable ante inserciones y sin desfases por offset.",
+            "fr": "Pagination par curseur sur chaque endpoint de liste. Stable malgré les insertions, sans dérive d’offset.",
+            "pt": "Paginação por cursor em todo endpoint de listagem. Estável mesmo com inserções, sem desvio de offset.",
+            "uk": "Пагінація за курсором на кожному ендпоінті списку: стабільна під час вставок, без зсуву сторінок."
           },
           "published": true
         },
@@ -166,10 +236,20 @@
           "path": "idempotency",
           "kind": "concept",
           "title": {
-            "en": "Idempotency"
+            "en": "Idempotency",
+            "de": "Idempotenz",
+            "es": "Idempotencia",
+            "fr": "Idempotence",
+            "pt": "Idempotência",
+            "uk": "Ідемпотентність"
           },
           "description": {
-            "en": "Safe-to-retry mutating requests using the Idempotency-Key header."
+            "en": "Safe-to-retry mutating requests using the Idempotency-Key header.",
+            "de": "Ändernde Requests mit dem Header Idempotency-Key gefahrlos wiederholen.",
+            "es": "Peticiones de escritura que puedes reintentar sin riesgo con la cabecera Idempotency-Key.",
+            "fr": "Réessayez sans risque les requêtes de modification grâce au header Idempotency-Key.",
+            "pt": "Repita com segurança requisições que alteram dados, usando o header Idempotency-Key.",
+            "uk": "Безпечні повтори запитів, що змінюють дані, із заголовком Idempotency-Key."
           },
           "published": true
         },
@@ -177,10 +257,20 @@
           "path": "errors",
           "kind": "concept",
           "title": {
-            "en": "Errors"
+            "en": "Errors",
+            "de": "Fehler",
+            "es": "Errores",
+            "fr": "Erreurs",
+            "pt": "Erros",
+            "uk": "Помилки"
           },
           "description": {
-            "en": "The error shape, the error codes that matter, and how to handle each."
+            "en": "The error shape, the error codes that matter, and how to handle each.",
+            "de": "Das Fehlerformat, die wichtigen Fehlercodes und wie Sie mit jedem umgehen.",
+            "es": "El formato de los errores, los códigos de error que importan y cómo tratar cada uno.",
+            "fr": "Le format des erreurs, les codes d’erreur qui comptent et la façon de traiter chacun.",
+            "pt": "O formato do erro, os códigos de erro que importam e como tratar cada um.",
+            "uk": "Формат помилки, коди помилок, які мають значення, і як обробляти кожен із них."
           },
           "published": true
         },
@@ -188,10 +278,20 @@
           "path": "security",
           "kind": "concept",
           "title": {
-            "en": "Security model"
+            "en": "Security model",
+            "de": "Sicherheitsmodell",
+            "es": "Modelo de seguridad",
+            "fr": "Modèle de sécurité",
+            "pt": "Modelo de segurança",
+            "uk": "Модель безпеки"
           },
           "description": {
-            "en": "How keys, scopes, projects, and audit logs combine to bound blast radius."
+            "en": "How keys, scopes, projects, and audit logs combine to bound blast radius.",
+            "de": "Wie Keys, Scopes, Projekte und Audit-Logs zusammen den Schadensradius begrenzen.",
+            "es": "Cómo se combinan claves, alcances, proyectos y registros de auditoría para acotar el radio de impacto.",
+            "fr": "Comment clés, portées, projets et journaux d’audit se combinent pour limiter le rayon d’impact.",
+            "pt": "Como chaves, escopos, projetos e logs de auditoria se combinam para limitar o raio de impacto.",
+            "uk": "Як ключі, області дії, проєкти та журнали аудиту разом обмежують радіус ураження."
           },
           "published": true
         },
@@ -199,10 +299,20 @@
           "path": "versioning",
           "kind": "concept",
           "title": {
-            "en": "Versioning policy"
+            "en": "Versioning policy",
+            "de": "Versionierungsrichtlinie",
+            "es": "Política de versionado",
+            "fr": "Politique de versionnage",
+            "pt": "Política de versionamento",
+            "uk": "Політика версіонування"
           },
           "description": {
-            "en": "How we evolve the API without breaking your code."
+            "en": "How we evolve the API without breaking your code.",
+            "de": "Wie wir die API weiterentwickeln, ohne dass Ihr Code bricht.",
+            "es": "Cómo hacemos evolucionar la API sin romper tu código.",
+            "fr": "Comment nous faisons évoluer l’API sans casser votre code.",
+            "pt": "Como evoluímos a API sem quebrar seu código.",
+            "uk": "Як ми розвиваємо API, не ламаючи ваш код."
           },
           "published": true
         }
@@ -232,7 +342,12 @@
             "uk": "Швидкий старт: перша VM"
           },
           "description": {
-            "en": "Generate an API key, pick a region, and create your first VM in three requests."
+            "en": "Generate an API key, pick a region, and create your first VM in three requests.",
+            "de": "API-Key generieren, eine Region wählen und mit drei Requests Ihre erste VM erstellen.",
+            "es": "Genera una clave de API, elige una región y crea tu primera VM en tres peticiones.",
+            "fr": "Générez une clé API, choisissez une région et créez votre première VM en trois requêtes.",
+            "pt": "Gere uma chave de API, escolha uma região e crie sua primeira VM em três requisições.",
+            "uk": "Згенеруйте API-ключ, оберіть регіон і створіть першу VM трьома запитами."
           },
           "published": true
         },
@@ -240,10 +355,20 @@
           "path": "webhooks",
           "kind": "concept",
           "title": {
-            "en": "Platform webhooks"
+            "en": "Platform webhooks",
+            "de": "Plattform-Webhooks",
+            "es": "Webhooks de la plataforma",
+            "fr": "Webhooks de la plateforme",
+            "pt": "Webhooks da plataforma",
+            "uk": "Вебхуки платформи"
           },
           "description": {
-            "en": "Subscribe to your infrastructure's lifecycle events. HMAC-signed POSTs to a URL you control."
+            "en": "Subscribe to your infrastructure's lifecycle events. HMAC-signed POSTs to a URL you control.",
+            "de": "Die Lebenszyklus-Events Ihrer Infrastruktur abonnieren. HMAC-signierte POSTs an eine URL, die Sie kontrollieren.",
+            "es": "Suscríbete a los eventos del ciclo de vida de tu infraestructura. Peticiones POST firmadas con HMAC a una URL que tú controlas.",
+            "fr": "Abonnez-vous aux événements de cycle de vie de votre infrastructure. Des POST signés en HMAC vers une URL que vous contrôlez.",
+            "pt": "Inscreva-se nos eventos de ciclo de vida da sua infraestrutura. POSTs assinados com HMAC para uma URL que você controla.",
+            "uk": "Підпишіться на події життєвого циклу вашої інфраструктури: POST-запити з підписом HMAC на URL, який ви контролюєте."
           },
           "published": true
         }
@@ -265,10 +390,20 @@
           "path": "guides/postgres-production",
           "kind": "guide",
           "title": {
-            "en": "Run a production Postgres in 10 minutes"
+            "en": "Run a production Postgres in 10 minutes",
+            "de": "Produktionsreifes Postgres in 10 Minuten",
+            "es": "Postgres de producción en 10 minutos",
+            "fr": "Un Postgres de production en 10 minutes",
+            "pt": "Postgres de produção em 10 minutos",
+            "uk": "Продакшн-Postgres за 10 хвилин"
           },
           "description": {
-            "en": "Provision a managed Postgres with HA, backups, and zero-downtime upgrades — three API calls."
+            "en": "Provision a managed Postgres with HA, backups, and zero-downtime upgrades — three API calls.",
+            "de": "Ein verwaltetes Postgres mit HA, Backups und Upgrades ohne Downtime bereitstellen — mit drei API-Aufrufen.",
+            "es": "Provisiona un Postgres gestionado con HA, backups y actualizaciones sin downtime — tres llamadas a la API.",
+            "fr": "Provisionnez un Postgres managé avec HA, sauvegardes et mises à jour sans interruption — en trois appels d’API.",
+            "pt": "Provisione um Postgres gerenciado com HA, backups e upgrades sem downtime — em três chamadas de API.",
+            "uk": "Розгорніть керований Postgres із HA, бекапами й оновленнями без даунтайму — трьома викликами API."
           },
           "published": true
         },
@@ -276,10 +411,20 @@
           "path": "guides/static-site",
           "kind": "guide",
           "title": {
-            "en": "Deploy a static site"
+            "en": "Deploy a static site",
+            "de": "Statische Site deployen",
+            "es": "Despliega un sitio estático",
+            "fr": "Déployer un site statique",
+            "pt": "Implantar um site estático",
+            "uk": "Розгортання статичного сайту"
           },
           "description": {
-            "en": "Object storage as a hosting target — bucket, public read, custom domain, ~5 minutes."
+            "en": "Object storage as a hosting target — bucket, public read, custom domain, ~5 minutes.",
+            "de": "Objektspeicher als Hosting-Ziel — Bucket, öffentlicher Lesezugriff, eigene Domain, ~5 Minuten.",
+            "es": "El almacenamiento de objetos como destino de hosting — bucket, lectura pública, dominio propio, ~5 minutos.",
+            "fr": "Le stockage objet comme hébergement — bucket, lecture publique, domaine personnalisé, ~5 minutes.",
+            "pt": "O armazenamento de objetos como destino de hospedagem — bucket, leitura pública, domínio próprio, ~5 minutos.",
+            "uk": "Обʼєктне сховище як хостинг: bucket, публічний доступ на читання, власний домен, ~5 хвилин."
           },
           "published": true
         },
@@ -287,10 +432,20 @@
           "path": "guides/migrate-from-rds",
           "kind": "guide",
           "title": {
-            "en": "Migrate from AWS RDS"
+            "en": "Migrate from AWS RDS",
+            "de": "Von AWS RDS migrieren",
+            "es": "Migra desde AWS RDS",
+            "fr": "Migrer depuis AWS RDS",
+            "pt": "Migrar do AWS RDS",
+            "uk": "Міграція з AWS RDS"
           },
           "description": {
-            "en": "Live-migrate Postgres or MySQL from RDS with zero data loss and ~30s downtime."
+            "en": "Live-migrate Postgres or MySQL from RDS with zero data loss and ~30s downtime.",
+            "de": "Postgres oder MySQL live von RDS migrieren, ohne Datenverlust und mit ~30 s Downtime.",
+            "es": "Migra en vivo Postgres o MySQL desde RDS sin pérdida de datos y con ~30 s de downtime.",
+            "fr": "Migrez Postgres ou MySQL à chaud depuis RDS, sans perte de données et avec ~30 s d’interruption.",
+            "pt": "Migre Postgres ou MySQL do RDS ao vivo, sem perda de dados e com ~30 s de downtime.",
+            "uk": "Перенесіть Postgres або MySQL з RDS наживо — без втрати даних і з даунтаймом ~30 с."
           },
           "published": true
         },
@@ -298,10 +453,20 @@
           "path": "guides/blue-green",
           "kind": "guide",
           "title": {
-            "en": "Blue/green deploys with floating IPs"
+            "en": "Blue/green deploys with floating IPs",
+            "de": "Blue-Green-Deployments mit Floating-IPs",
+            "es": "Despliegues blue/green con IPs flotantes",
+            "fr": "Déploiements blue/green avec IP flottantes",
+            "pt": "Deploys blue/green com IPs flutuantes",
+            "uk": "Blue/green-розгортання з плаваючими IP"
           },
           "description": {
-            "en": "Zero-downtime deploys by swinging a floating IP between two warm VMs."
+            "en": "Zero-downtime deploys by swinging a floating IP between two warm VMs.",
+            "de": "Deployments ohne Downtime, indem Sie eine Floating-IP zwischen zwei betriebsbereiten VMs umhängen.",
+            "es": "Despliegues sin downtime moviendo una IP flotante entre dos VMs en caliente.",
+            "fr": "Des déploiements sans interruption en basculant une IP flottante entre deux VM déjà démarrées.",
+            "pt": "Deploys sem downtime movendo um IP flutuante entre duas VMs já aquecidas.",
+            "uk": "Розгортання без даунтайму: перекидайте плаваючий IP між двома прогрітими VM."
           },
           "published": true
         },
@@ -309,10 +474,20 @@
           "path": "guides/multi-region",
           "kind": "guide",
           "title": {
-            "en": "Multi-region failover"
+            "en": "Multi-region failover",
+            "de": "Multi-Region-Failover",
+            "es": "Failover multirregión",
+            "fr": "Basculement multi-région",
+            "pt": "Failover entre regiões",
+            "uk": "Failover між регіонами"
           },
           "description": {
-            "en": "DNS-level failover across two regions with health-checked routing."
+            "en": "DNS-level failover across two regions with health-checked routing.",
+            "de": "Failover auf DNS-Ebene über zwei Regionen, mit Routing anhand von Health-Checks.",
+            "es": "Failover a nivel de DNS entre dos regiones, con enrutamiento basado en comprobaciones de estado.",
+            "fr": "Basculement au niveau DNS entre deux régions, avec un routage piloté par des contrôles de santé.",
+            "pt": "Failover no nível do DNS entre duas regiões, com roteamento por verificação de integridade.",
+            "uk": "Failover на рівні DNS між двома регіонами з маршрутизацією за перевірками стану."
           },
           "published": true
         },
@@ -320,10 +495,20 @@
           "path": "guides/monitoring-vms",
           "kind": "guide",
           "title": {
-            "en": "Monitor a VM fleet"
+            "en": "Monitor a VM fleet",
+            "de": "VM-Flotte überwachen",
+            "es": "Monitoriza una flota de VMs",
+            "fr": "Surveiller une flotte de VM",
+            "pt": "Monitorar uma frota de VMs",
+            "uk": "Моніторинг парку VM"
           },
           "description": {
-            "en": "Prometheus scrapes, NimbusNexus-emitted metrics, and the alerts that matter."
+            "en": "Prometheus scrapes, NimbusNexus-emitted metrics, and the alerts that matter.",
+            "de": "Prometheus-Scrapes, von NimbusNexus gelieferte Metriken und die Alerts, auf die es ankommt.",
+            "es": "Scraping con Prometheus, las métricas que emite NimbusNexus y las alertas que importan.",
+            "fr": "Collecte Prometheus, métriques émises par NimbusNexus et les alertes qui comptent.",
+            "pt": "Coleta com Prometheus, métricas emitidas pela NimbusNexus e os alertas que importam.",
+            "uk": "Збір метрик у Prometheus, метрики від NimbusNexus і алерти, які мають значення."
           },
           "published": true
         },
@@ -331,10 +516,20 @@
           "path": "guides/container-deploy",
           "kind": "guide",
           "title": {
-            "en": "Container deployment patterns"
+            "en": "Container deployment patterns",
+            "de": "Container-Deployment-Muster",
+            "es": "Patrones de despliegue de contenedores",
+            "fr": "Modèles de déploiement de conteneurs",
+            "pt": "Padrões de deploy de contêineres",
+            "uk": "Патерни розгортання контейнерів"
           },
           "description": {
-            "en": "Single VM, systemd-managed Docker, behind a floating IP."
+            "en": "Single VM, systemd-managed Docker, behind a floating IP.",
+            "de": "Eine einzelne VM, Docker unter systemd, hinter einer Floating-IP.",
+            "es": "Una sola VM y Docker gestionado con systemd, detrás de una IP flotante.",
+            "fr": "Une seule VM, Docker géré par systemd, derrière une IP flottante.",
+            "pt": "Uma única VM, Docker gerenciado pelo systemd, atrás de um IP flutuante.",
+            "uk": "Одна VM, Docker під керуванням systemd, за плаваючим IP."
           },
           "published": true
         },
@@ -342,10 +537,20 @@
           "path": "guides/networking-setup",
           "kind": "guide",
           "title": {
-            "en": "Project networking setup"
+            "en": "Project networking setup",
+            "de": "Projektnetzwerk einrichten",
+            "es": "Configuración de red del proyecto",
+            "fr": "Configuration réseau d’un projet",
+            "pt": "Configuração de rede do projeto",
+            "uk": "Налаштування мережі проєкту"
           },
           "description": {
-            "en": "Networks, subnets, routers, and security groups — canonical wiring for a multi-tier app."
+            "en": "Networks, subnets, routers, and security groups — canonical wiring for a multi-tier app.",
+            "de": "Netzwerke, Subnetze, Router und Sicherheitsgruppen — der Standardaufbau für eine mehrschichtige App.",
+            "es": "Redes, subredes, routers y grupos de seguridad — la configuración de referencia para una aplicación multicapa.",
+            "fr": "Réseaux, sous-réseaux, routeurs et groupes de sécurité — le câblage de référence d’une application multi-tiers.",
+            "pt": "Redes, sub-redes, roteadores e grupos de segurança — a montagem de referência para uma aplicação multicamadas.",
+            "uk": "Мережі, підмережі, маршрутизатори й групи безпеки — типова схема для багаторівневого застосунку."
           },
           "published": true
         },
@@ -353,10 +558,20 @@
           "path": "guides/cost-optimization",
           "kind": "guide",
           "title": {
-            "en": "Optimizing your monthly bill"
+            "en": "Optimizing your monthly bill",
+            "de": "Monatsrechnung optimieren",
+            "es": "Optimiza tu factura mensual",
+            "fr": "Optimiser votre facture mensuelle",
+            "pt": "Otimizar a fatura mensal",
+            "uk": "Оптимізація місячного рахунку"
           },
           "description": {
-            "en": "The five highest-leverage things to do if your invoice is bigger than you expected."
+            "en": "The five highest-leverage things to do if your invoice is bigger than you expected.",
+            "de": "Die fünf wirksamsten Maßnahmen, wenn Ihre Rechnung höher ausfällt als erwartet.",
+            "es": "Las cinco medidas más eficaces si tu factura es mayor de lo que esperabas.",
+            "fr": "Les cinq leviers les plus efficaces si votre facture est plus élevée que prévu.",
+            "pt": "As cinco ações de maior impacto se sua fatura veio maior do que você esperava.",
+            "uk": "Пʼять найдієвіших кроків, якщо рахунок більший, ніж ви очікували."
           },
           "published": true
         }
@@ -387,7 +602,12 @@
             "uk": "Віртуальні машини"
           },
           "description": {
-            "en": "Provision, inspect, resize, and destroy VMs."
+            "en": "Provision, inspect, resize, and destroy VMs.",
+            "de": "VMs bereitstellen, abfragen, in der Größe ändern und löschen.",
+            "es": "Provisiona, inspecciona, redimensiona y destruye VMs.",
+            "fr": "Provisionnez, inspectez, redimensionnez et détruisez des VM.",
+            "pt": "Provisione, inspecione, redimensione e destrua VMs.",
+            "uk": "Розгортайте, переглядайте, змінюйте розмір і видаляйте VM."
           },
           "published": true
         },
@@ -404,7 +624,12 @@
             "uk": "Розміри VM"
           },
           "description": {
-            "en": "Catalog of compute shapes across the gp, co, mo, and gx families."
+            "en": "Catalog of compute shapes across the gp, co, mo, and gx families.",
+            "de": "Katalog der Compute-Größen in den Familien gp, co, mo und gx.",
+            "es": "Catálogo de configuraciones de cómputo de las familias gp, co, mo y gx.",
+            "fr": "Catalogue des configurations de calcul des familles gp, co, mo et gx.",
+            "pt": "Catálogo de configurações de computação nas famílias gp, co, mo e gx.",
+            "uk": "Каталог обчислювальних конфігурацій у сімействах gp, co, mo і gx."
           },
           "published": true
         },
@@ -416,12 +641,17 @@
             "en": "VM images",
             "de": "VM-Images",
             "es": "Imágenes de VM",
-            "fr": "Images VM",
+            "fr": "Images de VM",
             "pt": "Imagens de VM",
             "uk": "Образи VM"
           },
           "description": {
-            "en": "OS boot images — public templates plus project-owned custom images."
+            "en": "OS boot images — public templates plus project-owned custom images.",
+            "de": "OS-Boot-Images — öffentliche Vorlagen und projekteigene Custom-Images.",
+            "es": "Imágenes de arranque del SO — plantillas públicas e imágenes personalizadas del proyecto.",
+            "fr": "Images de démarrage OS — modèles publics et images personnalisées propres au projet.",
+            "pt": "Imagens de boot do SO — templates públicos e imagens personalizadas do projeto.",
+            "uk": "Завантажувальні образи ОС: публічні шаблони та власні образи проєкту."
           },
           "published": true
         },
@@ -431,14 +661,19 @@
           "openapiTag": "ssh-keys",
           "title": {
             "en": "SSH keys",
-            "de": "SSH-Schlüssel",
+            "de": "SSH-Keys",
             "es": "Claves SSH",
             "fr": "Clés SSH",
             "pt": "Chaves SSH",
             "uk": "SSH-ключі"
           },
           "description": {
-            "en": "Public keys registered on the project and injected into VMs at boot."
+            "en": "Public keys registered on the project and injected into VMs at boot.",
+            "de": "Öffentliche Schlüssel, die im Projekt registriert und beim Boot in VMs eingespielt werden.",
+            "es": "Claves públicas registradas en el proyecto e inyectadas en las VMs al arrancar.",
+            "fr": "Clés publiques enregistrées sur le projet et injectées dans les VM au démarrage.",
+            "pt": "Chaves públicas registradas no projeto e injetadas nas VMs no boot.",
+            "uk": "Публічні ключі, зареєстровані в проєкті, які додаються у VM під час завантаження."
           },
           "published": true
         },
@@ -447,10 +682,20 @@
           "kind": "reference",
           "openapiTag": "vm-interfaces",
           "title": {
-            "en": "VM interfaces"
+            "en": "VM interfaces",
+            "de": "VM-Schnittstellen",
+            "es": "Interfaces de VM",
+            "fr": "Interfaces de VM",
+            "pt": "Interfaces de VM",
+            "uk": "Інтерфейси VM"
           },
           "description": {
-            "en": "Attach and detach network interfaces on a running VM."
+            "en": "Attach and detach network interfaces on a running VM.",
+            "de": "Netzwerkschnittstellen an einer laufenden VM anhängen und trennen.",
+            "es": "Conecta y desconecta interfaces de red en una VM en ejecución.",
+            "fr": "Attachez et détachez des interfaces réseau sur une VM en cours d’exécution.",
+            "pt": "Anexe e desanexe interfaces de rede em uma VM em execução.",
+            "uk": "Підʼєднуйте й відʼєднуйте мережеві інтерфейси запущеної VM."
           },
           "published": true
         }
@@ -476,12 +721,17 @@
             "en": "Block storage",
             "de": "Blockspeicher",
             "es": "Almacenamiento en bloques",
-            "fr": "Stockage en blocs",
+            "fr": "Stockage en bloc",
             "pt": "Armazenamento em blocos",
-            "uk": "Блочне сховище"
+            "uk": "Блокове сховище"
           },
           "description": {
-            "en": "Persistent NVMe volumes attached to VMs. Three tiers, live resize, snapshots."
+            "en": "Persistent NVMe volumes attached to VMs. Three tiers, live resize, snapshots.",
+            "de": "Persistente NVMe-Volumes, die an VMs angehängt werden. Drei Tiers, Live-Resize, Snapshots.",
+            "es": "Volúmenes NVMe persistentes conectados a VMs. Tres tiers, redimensionado en caliente y snapshots.",
+            "fr": "Volumes NVMe persistants attachés aux VM. Trois tiers, redimensionnement à chaud, snapshots.",
+            "pt": "Volumes NVMe persistentes anexados a VMs. Três tiers, redimensionamento ao vivo, snapshots.",
+            "uk": "Постійні NVMe-томи, підʼєднані до VM. Три рівні, зміна розміру наживо, снапшоти."
           },
           "published": true
         },
@@ -495,10 +745,15 @@
             "es": "Almacenamiento de objetos",
             "fr": "Stockage objet",
             "pt": "Armazenamento de objetos",
-            "uk": "Об'єктне сховище"
+            "uk": "Обʼєктне сховище"
           },
           "description": {
-            "en": "S3-compatible buckets with three storage classes and free in-region transfer to VMs."
+            "en": "S3-compatible buckets with three storage classes and free in-region transfer to VMs.",
+            "de": "S3-kompatible Buckets mit drei Storage-Klassen und kostenlosem Transfer zu VMs in derselben Region.",
+            "es": "Buckets compatibles con S3, con tres clases de almacenamiento y transferencia gratuita a las VMs de la misma región.",
+            "fr": "Buckets compatibles S3, avec trois classes de stockage et un transfert intra-région gratuit vers les VM.",
+            "pt": "Buckets compatíveis com S3, com três classes de armazenamento e transferência gratuita para VMs na mesma região.",
+            "uk": "S3-сумісні bucket-и з трьома класами сховища та безкоштовною передачею даних до VM у межах регіону."
           },
           "published": true
         },
@@ -510,12 +765,17 @@
             "en": "Cold storage",
             "de": "Cold Storage",
             "es": "Almacenamiento en frío",
-            "fr": "Stockage froid",
+            "fr": "Stockage à froid",
             "pt": "Armazenamento frio",
             "uk": "Холодне сховище"
           },
           "description": {
-            "en": "Archive-tier storage with the cheapest per-GB rate and separately-metered retrieval."
+            "en": "Archive-tier storage with the cheapest per-GB rate and separately-metered retrieval.",
+            "de": "Speicher im Archiv-Tier mit dem günstigsten Preis pro GB und separat abgerechnetem Abruf.",
+            "es": "Almacenamiento del tier de archivado, con la tarifa por GB más baja y la recuperación medida aparte.",
+            "fr": "Le tier d’archivage : le tarif par GB le plus bas, et une récupération facturée séparément.",
+            "pt": "Armazenamento no tier de arquivo, com a menor tarifa por GB e recuperação medida à parte.",
+            "uk": "Архівне сховище з найнижчим тарифом за GB і окремою тарифікацією отримання даних."
           },
           "published": true
         },
@@ -529,10 +789,15 @@
             "es": "Snapshots",
             "fr": "Snapshots",
             "pt": "Snapshots",
-            "uk": "Снепшоти"
+            "uk": "Снапшоти"
           },
           "description": {
-            "en": "Point-in-time copies of VMs, block volumes, and managed databases."
+            "en": "Point-in-time copies of VMs, block volumes, and managed databases.",
+            "de": "Point-in-Time-Kopien von VMs, Block-Volumes und verwalteten Datenbanken.",
+            "es": "Copias en un momento dado de VMs, volúmenes de bloques y bases de datos gestionadas.",
+            "fr": "Copies à un instant T de VM, de volumes block et de bases de données managées.",
+            "pt": "Cópias pontuais de VMs, volumes de blocos e bancos de dados gerenciados.",
+            "uk": "Копії VM, блокових томів і керованих баз даних на певний момент часу."
           },
           "published": true
         },
@@ -546,10 +811,15 @@
             "es": "Backups",
             "fr": "Sauvegardes",
             "pt": "Backups",
-            "uk": "Резервні копії"
+            "uk": "Бекапи"
           },
           "description": {
-            "en": "Scheduled and on-demand backups with deduplication, retention policies, and cross-region restore."
+            "en": "Scheduled and on-demand backups with deduplication, retention policies, and cross-region restore.",
+            "de": "Geplante und On-Demand-Backups mit Deduplizierung, Aufbewahrungsrichtlinien und Cross-Region-Restore.",
+            "es": "Backups programados y bajo demanda, con deduplicación, políticas de retención y restauración entre regiones.",
+            "fr": "Sauvegardes planifiées et à la demande, avec déduplication, politiques de rétention et restauration inter-région.",
+            "pt": "Backups agendados e sob demanda, com deduplicação, políticas de retenção e restauração entre regiões.",
+            "uk": "Заплановані бекапи й бекапи на вимогу з дедуплікацією, політиками зберігання та міжрегіональним відновленням."
           },
           "published": true
         },
@@ -558,10 +828,20 @@
           "kind": "reference",
           "openapiTag": "scheduled-backups",
           "title": {
-            "en": "Scheduled backups"
+            "en": "Scheduled backups",
+            "de": "Geplante Backups",
+            "es": "Backups programados",
+            "fr": "Sauvegardes planifiées",
+            "pt": "Backups agendados",
+            "uk": "Заплановані бекапи"
           },
           "description": {
-            "en": "Recurring backup schedules — daily, weekly, custom. Separate from on-demand backups."
+            "en": "Recurring backup schedules — daily, weekly, custom. Separate from on-demand backups.",
+            "de": "Wiederkehrende Backup-Zeitpläne — täglich, wöchentlich, individuell. Getrennt von On-Demand-Backups.",
+            "es": "Programaciones de backups recurrentes — diarias, semanales o personalizadas. Independientes de los backups bajo demanda.",
+            "fr": "Planifications de sauvegarde récurrentes — quotidiennes, hebdomadaires, personnalisées. Distinctes des sauvegardes à la demande.",
+            "pt": "Agendamentos recorrentes de backup — diários, semanais, personalizados. Separados dos backups sob demanda.",
+            "uk": "Регулярні розклади бекапів — щоденні, щотижневі, власні. Окремо від бекапів на вимогу."
           },
           "published": true
         }
@@ -592,7 +872,12 @@
             "uk": "Керовані бази даних"
           },
           "description": {
-            "en": "Managed Postgres, MySQL, MongoDB, Redis, Kafka, and OpenSearch — provision, snapshot, restore."
+            "en": "Managed Postgres, MySQL, MongoDB, Redis, Kafka, and OpenSearch — provision, snapshot, restore.",
+            "de": "Verwaltetes Postgres, MySQL, MongoDB, Redis, Kafka und OpenSearch — bereitstellen, Snapshots erstellen, wiederherstellen.",
+            "es": "Postgres, MySQL, MongoDB, Redis, Kafka y OpenSearch gestionados — provisiona, haz snapshots y restaura.",
+            "fr": "Postgres, MySQL, MongoDB, Redis, Kafka et OpenSearch managés — provisionnez, prenez des snapshots, restaurez.",
+            "pt": "Postgres, MySQL, MongoDB, Redis, Kafka e OpenSearch gerenciados — provisione, faça snapshots, restaure.",
+            "uk": "Керовані Postgres, MySQL, MongoDB, Redis, Kafka та OpenSearch: розгортання, снапшоти, відновлення."
           },
           "published": true
         }
@@ -623,7 +908,12 @@
             "uk": "Регіони"
           },
           "description": {
-            "en": "Geographic locations NimbusNexus serves, with live + pre-launch status."
+            "en": "Geographic locations NimbusNexus serves, with live + pre-launch status.",
+            "de": "Geografische Standorte, die NimbusNexus bedient, mit Status Live oder Pre-Launch.",
+            "es": "Las ubicaciones geográficas en las que opera NimbusNexus, con su estado: activa o en prelanzamiento.",
+            "fr": "Les emplacements géographiques desservis par NimbusNexus, actifs ou en pré-lancement.",
+            "pt": "Locais geográficos atendidos pela NimbusNexus, com status ativo e de pré-lançamento.",
+            "uk": "Географічні локації NimbusNexus — активні й ті, що готуються до запуску."
           },
           "published": true
         },
@@ -635,12 +925,17 @@
             "en": "Floating IPs",
             "de": "Floating-IPs",
             "es": "IPs flotantes",
-            "fr": "IPs flottantes",
+            "fr": "IP flottantes",
             "pt": "IPs flutuantes",
             "uk": "Плаваючі IP"
           },
           "description": {
-            "en": "Region-scoped public IPs that can be detached from one VM and reattached to another."
+            "en": "Region-scoped public IPs that can be detached from one VM and reattached to another.",
+            "de": "Öffentliche IPs pro Region, die Sie von einer VM trennen und an eine andere anhängen können.",
+            "es": "IPs públicas de alcance regional que se pueden desasociar de una VM y asociar a otra.",
+            "fr": "IP publiques propres à une région, détachables d’une VM et rattachables à une autre.",
+            "pt": "IPs públicos com escopo de região que podem ser desanexados de uma VM e anexados a outra.",
+            "uk": "Публічні IP у межах регіону, які можна відʼєднати від однієї VM і підʼєднати до іншої."
           },
           "published": true
         },
@@ -657,7 +952,12 @@
             "uk": "Мережі"
           },
           "description": {
-            "en": "L2 broadcast domains that VMs and load balancers attach to. The base primitive of a project's VPC."
+            "en": "L2 broadcast domains that VMs and load balancers attach to. The base primitive of a project's VPC.",
+            "de": "L2-Broadcast-Domains, an die VMs und Load Balancer angebunden werden. Der Grundbaustein der VPC eines Projekts.",
+            "es": "Dominios de broadcast L2 a los que se conectan las VMs y los balanceadores de carga. La primitiva base de la VPC de un proyecto.",
+            "fr": "Domaines de diffusion L2 auxquels s’attachent les VM et les load balancers. La brique de base du VPC d’un projet.",
+            "pt": "Domínios de broadcast L2 aos quais VMs e balanceadores de carga se conectam. A primitiva básica da VPC de um projeto.",
+            "uk": "Широкомовні L2-домени, до яких підʼєднуються VM і балансувальники навантаження. Базовий примітив VPC проєкту."
           },
           "published": true
         },
@@ -674,7 +974,12 @@
             "uk": "Підмережі"
           },
           "description": {
-            "en": "IP-address blocks carved out of a network. Each subnet has its own CIDR, gateway, and DHCP policy."
+            "en": "IP-address blocks carved out of a network. Each subnet has its own CIDR, gateway, and DHCP policy.",
+            "de": "IP-Adressblöcke, die aus einem Netzwerk abgeteilt werden. Jedes Subnetz hat einen eigenen CIDR-Block, ein eigenes Gateway und eine eigene DHCP-Richtlinie.",
+            "es": "Bloques de direcciones IP obtenidos de una red. Cada subred tiene su propio CIDR, gateway y política de DHCP.",
+            "fr": "Blocs d’adresses IP découpés dans un réseau. Chaque sous-réseau a son propre CIDR, sa passerelle et sa politique DHCP.",
+            "pt": "Blocos de endereços IP recortados de uma rede. Cada sub-rede tem seu próprio CIDR, gateway e política de DHCP.",
+            "uk": "Блоки IP-адрес, виділені з мережі. Кожна підмережа має власні CIDR, шлюз і політику DHCP."
           },
           "published": true
         },
@@ -691,7 +996,12 @@
             "uk": "Групи безпеки"
           },
           "description": {
-            "en": "Stateful firewall rule sets applied to VM network interfaces."
+            "en": "Stateful firewall rule sets applied to VM network interfaces.",
+            "de": "Zustandsbehaftete Firewall-Regelsätze für die Netzwerkschnittstellen von VMs.",
+            "es": "Conjuntos de reglas de firewall con estado aplicados a las interfaces de red de las VMs.",
+            "fr": "Ensembles de règles de pare-feu avec état, appliqués aux interfaces réseau des VM.",
+            "pt": "Conjuntos de regras de firewall stateful aplicados às interfaces de rede das VMs.",
+            "uk": "Набори правил фаєрвола з відстеженням стану для мережевих інтерфейсів VM."
           },
           "published": true
         },
@@ -708,7 +1018,12 @@
             "uk": "Маршрутизатори"
           },
           "description": {
-            "en": "Connect tenant subnets to the project's external gateway."
+            "en": "Connect tenant subnets to the project's external gateway.",
+            "de": "Tenant-Subnetze mit dem externen Gateway des Projekts verbinden.",
+            "es": "Conecta las subredes de tenant al gateway externo del proyecto.",
+            "fr": "Reliez les sous-réseaux tenant à la passerelle externe du projet.",
+            "pt": "Conecte as sub-redes de tenant ao gateway externo do projeto.",
+            "uk": "Підʼєднуйте підмережі тенанта до зовнішнього шлюзу проєкту."
           },
           "published": true
         },
@@ -720,12 +1035,17 @@
             "en": "Load balancers",
             "de": "Load Balancer",
             "es": "Balanceadores de carga",
-            "fr": "Répartiteurs de charge",
+            "fr": "Load balancers",
             "pt": "Balanceadores de carga",
             "uk": "Балансувальники навантаження"
           },
           "description": {
-            "en": "Managed L4 / L7 traffic distribution across a pool of backend VMs."
+            "en": "Managed L4 / L7 traffic distribution across a pool of backend VMs.",
+            "de": "Verwaltete Traffic-Verteilung (L4 / L7) über einen Pool von Backend-VMs.",
+            "es": "Distribución gestionada de tráfico L4 / L7 entre un pool de VMs de backend.",
+            "fr": "Répartition managée du trafic L4 / L7 sur un pool de VM backend.",
+            "pt": "Distribuição gerenciada de tráfego L4 / L7 entre um pool de VMs de backend.",
+            "uk": "Керований розподіл трафіку L4 / L7 між бекенд-VM у пулі."
           },
           "published": true
         },
@@ -734,10 +1054,20 @@
           "kind": "reference",
           "openapiTag": "network-ports",
           "title": {
-            "en": "Network ports"
+            "en": "Network ports",
+            "de": "Netzwerkports",
+            "es": "Puertos de red",
+            "fr": "Ports réseau",
+            "pt": "Portas de rede",
+            "uk": "Мережеві порти"
           },
           "description": {
-            "en": "L2/L3 ports on a network. The primitive VM interfaces and load balancers bind to."
+            "en": "L2/L3 ports on a network. The primitive VM interfaces and load balancers bind to.",
+            "de": "L2/L3-Ports in einem Netzwerk. Der Baustein, an den VM-Schnittstellen und Load Balancer gebunden werden.",
+            "es": "Puertos L2/L3 de una red. La primitiva a la que se vinculan las interfaces de VM y los balanceadores de carga.",
+            "fr": "Ports L2/L3 sur un réseau. La brique à laquelle se lient les interfaces de VM et les load balancers.",
+            "pt": "Portas L2/L3 em uma rede. A primitiva à qual as interfaces de VM e os balanceadores de carga se vinculam.",
+            "uk": "Порти L2/L3 у мережі — примітив, до якого привʼязуються інтерфейси VM і балансувальники навантаження."
           },
           "published": true
         },
@@ -746,10 +1076,20 @@
           "kind": "reference",
           "openapiTag": "address-groups",
           "title": {
-            "en": "Address groups"
+            "en": "Address groups",
+            "de": "Adressgruppen",
+            "es": "Grupos de direcciones",
+            "fr": "Groupes d’adresses",
+            "pt": "Grupos de endereços",
+            "uk": "Групи адрес"
           },
           "description": {
-            "en": "Named sets of CIDRs reusable across security group rules."
+            "en": "Named sets of CIDRs reusable across security group rules.",
+            "de": "Benannte CIDR-Sätze, die Sie in Regeln von Sicherheitsgruppen wiederverwenden können.",
+            "es": "Conjuntos de CIDRs con nombre, reutilizables en las reglas de los grupos de seguridad.",
+            "fr": "Ensembles nommés de CIDR, réutilisables dans les règles des groupes de sécurité.",
+            "pt": "Conjuntos nomeados de CIDRs, reutilizáveis nas regras de grupos de segurança.",
+            "uk": "Іменовані набори CIDR для повторного використання в правилах груп безпеки."
           },
           "published": true
         },
@@ -758,10 +1098,20 @@
           "kind": "reference",
           "openapiTag": "network-sharing",
           "title": {
-            "en": "Network sharing"
+            "en": "Network sharing",
+            "de": "Netzwerkfreigabe",
+            "es": "Redes compartidas",
+            "fr": "Partage de réseau",
+            "pt": "Compartilhamento de rede",
+            "uk": "Спільні мережі"
           },
           "description": {
-            "en": "Share a network between projects in the same workspace."
+            "en": "Share a network between projects in the same workspace.",
+            "de": "Ein Netzwerk für andere Projekte im selben Workspace freigeben.",
+            "es": "Comparte una red entre proyectos del mismo workspace.",
+            "fr": "Partagez un réseau entre les projets d’un même espace de travail.",
+            "pt": "Compartilhe uma rede entre projetos do mesmo workspace.",
+            "uk": "Діліться мережею між проєктами одного робочого простору."
           },
           "published": true
         },
@@ -770,10 +1120,20 @@
           "kind": "reference",
           "openapiTag": "qos-policies",
           "title": {
-            "en": "QoS policies"
+            "en": "QoS policies",
+            "de": "QoS-Richtlinien",
+            "es": "Políticas de QoS",
+            "fr": "Politiques QoS",
+            "pt": "Políticas de QoS",
+            "uk": "Політики QoS"
           },
           "description": {
-            "en": "Bandwidth limits, DSCP marking, and minimum-bandwidth guarantees on network ports."
+            "en": "Bandwidth limits, DSCP marking, and minimum-bandwidth guarantees on network ports.",
+            "de": "Bandbreitenlimits, DSCP-Markierung und garantierte Mindestbandbreite auf Netzwerkports.",
+            "es": "Límites de ancho de banda, marcado DSCP y garantías de ancho de banda mínimo en los puertos de red.",
+            "fr": "Limites de bande passante, marquage DSCP et bande passante minimale garantie sur les ports réseau.",
+            "pt": "Limites de banda, marcação DSCP e garantias de banda mínima em portas de rede.",
+            "uk": "Обмеження смуги пропускання, маркування DSCP і гарантована мінімальна смуга на мережевих портах."
           },
           "published": true
         }
@@ -804,7 +1164,12 @@
             "uk": "DNS-зони"
           },
           "description": {
-            "en": "Authoritative DNS zones hosted on NimbusNexus nameservers."
+            "en": "Authoritative DNS zones hosted on NimbusNexus nameservers.",
+            "de": "Autoritative DNS-Zonen auf den Nameservern von NimbusNexus.",
+            "es": "Zonas DNS autoritativas alojadas en los servidores de nombres de NimbusNexus.",
+            "fr": "Zones DNS faisant autorité, hébergées sur les serveurs de noms NimbusNexus.",
+            "pt": "Zonas DNS autoritativas hospedadas nos servidores de nomes da NimbusNexus.",
+            "uk": "Авторитативні DNS-зони на серверах імен NimbusNexus."
           },
           "published": true
         },
@@ -821,7 +1186,12 @@
             "uk": "DNS-записи"
           },
           "description": {
-            "en": "A, AAAA, CNAME, MX, TXT, SRV, NS records inside a zone."
+            "en": "A, AAAA, CNAME, MX, TXT, SRV, NS records inside a zone.",
+            "de": "A-, AAAA-, CNAME-, MX-, TXT-, SRV- und NS-Einträge innerhalb einer Zone.",
+            "es": "Registros A, AAAA, CNAME, MX, TXT, SRV y NS dentro de una zona.",
+            "fr": "Enregistrements A, AAAA, CNAME, MX, TXT, SRV et NS d’une zone.",
+            "pt": "Registros A, AAAA, CNAME, MX, TXT, SRV e NS dentro de uma zona.",
+            "uk": "Записи A, AAAA, CNAME, MX, TXT, SRV і NS у зоні."
           },
           "published": true
         },
@@ -830,10 +1200,20 @@
           "kind": "reference",
           "openapiTag": "reverse-dns",
           "title": {
-            "en": "Reverse DNS (PTR records)"
+            "en": "Reverse DNS (PTR records)",
+            "de": "Reverse DNS (PTR-Einträge)",
+            "es": "DNS inverso (registros PTR)",
+            "fr": "DNS inverse (enregistrements PTR)",
+            "pt": "DNS reverso (registros PTR)",
+            "uk": "Зворотний DNS (записи PTR)"
           },
           "description": {
-            "en": "PTR records for floating IPs — the hostname that reverse-resolves your IP."
+            "en": "PTR records for floating IPs — the hostname that reverse-resolves your IP.",
+            "de": "PTR-Einträge für Floating-IPs — der Hostname, den die Rückwärtsauflösung Ihrer IP ergibt.",
+            "es": "Registros PTR para IPs flotantes — el nombre de host que devuelve la resolución inversa de tu IP.",
+            "fr": "Enregistrements PTR des IP flottantes — le nom d’hôte obtenu par résolution inverse de votre IP.",
+            "pt": "Registros PTR para IPs flutuantes — o hostname que a resolução reversa do seu IP retorna.",
+            "uk": "Записи PTR для плаваючих IP — імʼя хоста, яке повертає зворотний DNS-запит для вашого IP."
           },
           "published": true
         }
@@ -864,7 +1244,12 @@
             "uk": "Користувачі"
           },
           "description": {
-            "en": "Identity records inside a project — assign roles, generate API keys, assume trusts."
+            "en": "Identity records inside a project — assign roles, generate API keys, assume trusts.",
+            "de": "Identitätsdatensätze innerhalb eines Projekts — Rollen zuweisen, API-Keys generieren, Trusts übernehmen.",
+            "es": "Registros de identidad dentro de un proyecto — asigna roles, genera claves de API y asume relaciones de confianza.",
+            "fr": "Les identités d’un projet — attribuez des rôles, générez des clés API, utilisez des délégations.",
+            "pt": "Registros de identidade dentro de um projeto — atribua funções, gere chaves de API, assuma relações de confiança.",
+            "uk": "Записи ідентичності в проєкті: призначайте ролі, генеруйте API-ключі, використовуйте довіри."
           },
           "published": true
         },
@@ -881,7 +1266,12 @@
             "uk": "Проєкти"
           },
           "description": {
-            "en": "The unit of isolation for resources, billing, and access control."
+            "en": "The unit of isolation for resources, billing, and access control.",
+            "de": "Die Isolationseinheit für Ressourcen, Abrechnung und Zugriffskontrolle.",
+            "es": "La unidad de aislamiento para recursos, facturación y control de acceso.",
+            "fr": "L’unité d’isolation des ressources, de la facturation et du contrôle d’accès.",
+            "pt": "A unidade de isolamento para recursos, faturamento e controle de acesso.",
+            "uk": "Одиниця ізоляції для ресурсів, білінгу та керування доступом."
           },
           "published": true
         },
@@ -898,7 +1288,12 @@
             "uk": "Ролі"
           },
           "description": {
-            "en": "Built-in and custom roles, plus the role-assignment endpoints that grant a user a role on a project."
+            "en": "Built-in and custom roles, plus the role-assignment endpoints that grant a user a role on a project.",
+            "de": "Integrierte und benutzerdefinierte Rollen sowie die Endpoints für Rollenzuweisungen, die einem Benutzer eine Rolle in einem Projekt erteilen.",
+            "es": "Roles predefinidos y personalizados, y los endpoints de asignación de roles que conceden a un usuario un rol en un proyecto.",
+            "fr": "Rôles intégrés et personnalisés, et les endpoints d’attribution qui donnent à un utilisateur un rôle sur un projet.",
+            "pt": "Funções predefinidas e personalizadas, mais os endpoints de atribuição de função que concedem a um usuário uma função em um projeto.",
+            "uk": "Вбудовані та власні ролі, а також ендпоінти призначення ролей, що надають користувачу роль у проєкті."
           },
           "published": true
         },
@@ -907,10 +1302,20 @@
           "kind": "reference",
           "openapiTag": "workspaces",
           "title": {
-            "en": "Workspaces"
+            "en": "Workspaces",
+            "de": "Workspaces",
+            "es": "Workspaces",
+            "fr": "Espaces de travail",
+            "pt": "Workspaces",
+            "uk": "Робочі простори"
           },
           "description": {
-            "en": "The isolation tier above projects. A workspace contains projects; projects contain resources."
+            "en": "The isolation tier above projects. A workspace contains projects; projects contain resources.",
+            "de": "Die Isolationsebene über Projekten. Ein Workspace enthält Projekte, Projekte enthalten Ressourcen.",
+            "es": "El nivel de aislamiento por encima de los proyectos. Un workspace contiene proyectos; los proyectos contienen recursos.",
+            "fr": "Le niveau d’isolation au-dessus des projets. Un espace de travail contient des projets ; les projets contiennent des ressources.",
+            "pt": "O nível de isolamento acima dos projetos. Um workspace contém projetos; os projetos contêm recursos.",
+            "uk": "Рівень ізоляції над проєктами: робочий простір містить проєкти, а проєкти — ресурси."
           },
           "published": true
         },
@@ -919,10 +1324,20 @@
           "kind": "reference",
           "openapiTag": "user-groups",
           "title": {
-            "en": "User groups"
+            "en": "User groups",
+            "de": "Benutzergruppen",
+            "es": "Grupos de usuarios",
+            "fr": "Groupes d’utilisateurs",
+            "pt": "Grupos de usuários",
+            "uk": "Групи користувачів"
           },
           "description": {
-            "en": "Groups of users for shared role assignment. Useful when teams grow."
+            "en": "Groups of users for shared role assignment. Useful when teams grow.",
+            "de": "Gruppen von Benutzern für gemeinsame Rollenzuweisungen. Nützlich, wenn Teams wachsen.",
+            "es": "Grupos de usuarios para asignar roles en común. Útiles cuando los equipos crecen.",
+            "fr": "Des groupes d’utilisateurs pour attribuer des rôles en commun. Utile quand les équipes grandissent.",
+            "pt": "Grupos de usuários para atribuir funções em conjunto. Úteis quando os times crescem.",
+            "uk": "Групи користувачів для спільного призначення ролей. Корисні, коли команди ростуть."
           },
           "published": true
         },
@@ -931,10 +1346,20 @@
           "kind": "reference",
           "openapiTag": "cross-project-trusts",
           "title": {
-            "en": "Cross-project trusts"
+            "en": "Cross-project trusts",
+            "de": "Projektübergreifende Trusts",
+            "es": "Confianza entre proyectos",
+            "fr": "Délégations inter-projets",
+            "pt": "Confiança entre projetos",
+            "uk": "Міжпроєктні довіри"
           },
           "description": {
-            "en": "Time-bounded permission grants between projects."
+            "en": "Time-bounded permission grants between projects.",
+            "de": "Zeitlich begrenzte Vergabe von Berechtigungen zwischen Projekten.",
+            "es": "Concesiones de permisos temporales entre proyectos.",
+            "fr": "Des permissions accordées entre projets pour une durée limitée.",
+            "pt": "Concessões temporárias de permissão entre projetos.",
+            "uk": "Надання дозволів між проєктами на обмежений час."
           },
           "published": true
         }
@@ -949,7 +1374,7 @@
         "es": "Cuenta",
         "fr": "Compte",
         "pt": "Conta",
-        "uk": "Обліковий запис"
+        "uk": "Акаунт"
       },
       "items": [
         {
@@ -965,7 +1390,12 @@
             "uk": "Квоти"
           },
           "description": {
-            "en": "Per-project limits on VMs, vCPU, RAM, storage, floating IPs, and other resources."
+            "en": "Per-project limits on VMs, vCPU, RAM, storage, floating IPs, and other resources.",
+            "de": "Limits pro Projekt für VMs, vCPU, RAM, Speicher, Floating-IPs und weitere Ressourcen.",
+            "es": "Límites por proyecto de VMs, vCPU, RAM, almacenamiento, IPs flotantes y otros recursos.",
+            "fr": "Limites par projet sur les VM, les vCPU, la RAM, le stockage, les IP flottantes et les autres ressources.",
+            "pt": "Limites por projeto para VMs, vCPU, RAM, armazenamento, IPs flutuantes e outros recursos.",
+            "uk": "Ліміти проєкту на VM, vCPU, RAM, сховище, плаваючі IP та інші ресурси."
           },
           "published": true
         }
@@ -976,7 +1406,7 @@
       "group": "infrastructure",
       "title": {
         "en": "Account controls",
-        "de": "Account-Steuerung",
+        "de": "Kontoeinstellungen",
         "es": "Controles de cuenta",
         "fr": "Contrôles du compte",
         "pt": "Controles da conta",
@@ -988,10 +1418,20 @@
           "kind": "reference",
           "openapiTag": "account-overview",
           "title": {
-            "en": "Account overview"
+            "en": "Account overview",
+            "de": "Kontoübersicht",
+            "es": "Resumen de la cuenta",
+            "fr": "Vue d’ensemble du compte",
+            "pt": "Visão geral da conta",
+            "uk": "Огляд акаунта"
           },
           "description": {
-            "en": "Top-level account metadata — owner, billing contact, region access, plan tier."
+            "en": "Top-level account metadata — owner, billing contact, region access, plan tier.",
+            "de": "Übergeordnete Kontometadaten — Inhaber, Abrechnungskontakt, Regionszugriff, Tarif.",
+            "es": "Metadatos generales de la cuenta — propietario, contacto de facturación, acceso a regiones y plan.",
+            "fr": "Les métadonnées du compte — propriétaire, contact de facturation, accès aux régions, niveau de plan.",
+            "pt": "Metadados de nível superior da conta — proprietário, contato de faturamento, acesso a regiões, nível do plano.",
+            "uk": "Метадані акаунта верхнього рівня: власник, контакт для білінгу, доступ до регіонів, рівень плану."
           },
           "published": true
         },
@@ -1000,10 +1440,20 @@
           "kind": "reference",
           "openapiTag": "two-factor-auth",
           "title": {
-            "en": "Two-factor authentication"
+            "en": "Two-factor authentication",
+            "de": "Zwei-Faktor-Authentifizierung",
+            "es": "Autenticación de dos factores",
+            "fr": "Authentification à deux facteurs",
+            "pt": "Autenticação de dois fatores",
+            "uk": "Двофакторна автентифікація"
           },
           "description": {
-            "en": "TOTP and WebAuthn second factors on your account."
+            "en": "TOTP and WebAuthn second factors on your account.",
+            "de": "TOTP und WebAuthn als zweiter Faktor für Ihr Konto.",
+            "es": "Segundos factores TOTP y WebAuthn en tu cuenta.",
+            "fr": "Seconds facteurs TOTP et WebAuthn sur votre compte.",
+            "pt": "Segundos fatores TOTP e WebAuthn na sua conta.",
+            "uk": "Другі фактори TOTP і WebAuthn для вашого акаунта."
           },
           "published": true
         },
@@ -1012,10 +1462,20 @@
           "kind": "reference",
           "openapiTag": "notifications",
           "title": {
-            "en": "Notifications"
+            "en": "Notifications",
+            "de": "Benachrichtigungen",
+            "es": "Notificaciones",
+            "fr": "Notifications",
+            "pt": "Notificações",
+            "uk": "Сповіщення"
           },
           "description": {
-            "en": "Per-account notification preferences."
+            "en": "Per-account notification preferences.",
+            "de": "Benachrichtigungseinstellungen pro Konto.",
+            "es": "Preferencias de notificación de la cuenta.",
+            "fr": "Préférences de notification par compte.",
+            "pt": "Preferências de notificação por conta.",
+            "uk": "Налаштування сповіщень для акаунта."
           },
           "published": true
         },
@@ -1024,10 +1484,20 @@
           "kind": "reference",
           "openapiTag": "phone-verification",
           "title": {
-            "en": "Phone verification"
+            "en": "Phone verification",
+            "de": "Telefonverifizierung",
+            "es": "Verificación telefónica",
+            "fr": "Vérification du téléphone",
+            "pt": "Verificação de telefone",
+            "uk": "Підтвердження телефону"
           },
           "description": {
-            "en": "Verify a phone number for SMS-based 2FA and account recovery."
+            "en": "Verify a phone number for SMS-based 2FA and account recovery.",
+            "de": "Eine Telefonnummer für 2FA per SMS und die Kontowiederherstellung verifizieren.",
+            "es": "Verifica un número de teléfono para la 2FA por SMS y la recuperación de la cuenta.",
+            "fr": "Vérifiez un numéro de téléphone pour la 2FA par SMS et la récupération du compte.",
+            "pt": "Verifique um número de telefone para 2FA por SMS e recuperação de conta.",
+            "uk": "Підтвердьте номер телефону для 2FA через SMS і відновлення акаунта."
           },
           "published": true
         },
@@ -1036,10 +1506,20 @@
           "kind": "reference",
           "openapiTag": "region-requests",
           "title": {
-            "en": "Region requests"
+            "en": "Region requests",
+            "de": "Regionsanfragen",
+            "es": "Solicitudes de región",
+            "fr": "Demandes de région",
+            "pt": "Solicitações de região",
+            "uk": "Запити на регіони"
           },
           "description": {
-            "en": "Request access to a region, or a quota uplift in a region you already have."
+            "en": "Request access to a region, or a quota uplift in a region you already have.",
+            "de": "Zugriff auf eine Region beantragen oder eine Kontingenterhöhung in einer Region, die Sie bereits nutzen.",
+            "es": "Solicita acceso a una región, o un aumento de cuota en una región a la que ya tienes acceso.",
+            "fr": "Demandez l’accès à une région, ou une augmentation de quota dans une région où vous avez déjà accès.",
+            "pt": "Solicite acesso a uma região ou um aumento de cota em uma região à qual você já tem acesso.",
+            "uk": "Запросіть доступ до регіону або збільшення квоти в регіоні, до якого вже маєте доступ."
           },
           "published": true
         }
@@ -1053,7 +1533,7 @@
         "de": "Abrechnung",
         "es": "Facturación",
         "fr": "Facturation",
-        "pt": "Faturação",
+        "pt": "Faturamento",
         "uk": "Білінг"
       },
       "items": [
@@ -1062,10 +1542,20 @@
           "kind": "reference",
           "openapiTag": "subscriptions",
           "title": {
-            "en": "Subscriptions"
+            "en": "Subscriptions",
+            "de": "Abonnements",
+            "es": "Suscripciones",
+            "fr": "Abonnements",
+            "pt": "Assinaturas",
+            "uk": "Підписки"
           },
           "description": {
-            "en": "Plan tier, billing cycle, upgrade and downgrade endpoints."
+            "en": "Plan tier, billing cycle, upgrade and downgrade endpoints.",
+            "de": "Tarif, Abrechnungszeitraum sowie Endpoints für Upgrade und Downgrade.",
+            "es": "Plan, ciclo de facturación y endpoints para subir o bajar de plan.",
+            "fr": "Niveau de plan, cycle de facturation et endpoints pour passer à un plan supérieur ou inférieur.",
+            "pt": "Nível do plano, ciclo de faturamento e endpoints de upgrade e downgrade.",
+            "uk": "Рівень плану, розрахунковий період, ендпоінти переходу на вищий і нижчий план."
           },
           "published": false
         },
@@ -1074,10 +1564,20 @@
           "kind": "reference",
           "openapiTag": "invoices",
           "title": {
-            "en": "Invoices"
+            "en": "Invoices",
+            "de": "Rechnungen",
+            "es": "Facturas",
+            "fr": "Factures",
+            "pt": "Faturas",
+            "uk": "Рахунки"
           },
           "description": {
-            "en": "Monthly invoices — list, fetch, view the breakdown."
+            "en": "Monthly invoices — list, fetch, view the breakdown.",
+            "de": "Monatsrechnungen — auflisten, abrufen, Aufschlüsselung ansehen.",
+            "es": "Facturas mensuales — listado, consulta y desglose.",
+            "fr": "Les factures mensuelles — listez-les, récupérez-les, consultez leur détail.",
+            "pt": "Faturas mensais — liste, busque, veja o detalhamento.",
+            "uk": "Місячні рахунки: список, отримання, деталізація."
           },
           "published": true
         },
@@ -1086,10 +1586,20 @@
           "kind": "reference",
           "openapiTag": "payment-methods",
           "title": {
-            "en": "Payment methods"
+            "en": "Payment methods",
+            "de": "Zahlungsmethoden",
+            "es": "Métodos de pago",
+            "fr": "Moyens de paiement",
+            "pt": "Métodos de pagamento",
+            "uk": "Способи оплати"
           },
           "description": {
-            "en": "Saved cards, ACH accounts, and default-payment configuration."
+            "en": "Saved cards, ACH accounts, and default-payment configuration.",
+            "de": "Gespeicherte Karten, ACH-Konten und die Einstellung der Standard-Zahlungsmethode.",
+            "es": "Tarjetas guardadas, cuentas ACH y configuración del método de pago por defecto.",
+            "fr": "Cartes enregistrées, comptes ACH et configuration du moyen de paiement par défaut.",
+            "pt": "Cartões salvos, contas ACH e configuração do pagamento padrão.",
+            "uk": "Збережені картки, ACH-рахунки й налаштування способу оплати за замовчуванням."
           },
           "published": true
         },
@@ -1098,10 +1608,20 @@
           "kind": "reference",
           "openapiTag": "pricing-data",
           "title": {
-            "en": "Pricing data"
+            "en": "Pricing data",
+            "de": "Preisdaten",
+            "es": "Datos de precios",
+            "fr": "Données tarifaires",
+            "pt": "Dados de preços",
+            "uk": "Дані про ціни"
           },
           "description": {
-            "en": "Programmatic access to the canonical price list. Read-only."
+            "en": "Programmatic access to the canonical price list. Read-only.",
+            "de": "Programmatischer Zugriff auf die maßgebliche Preisliste. Nur lesend.",
+            "es": "Acceso programático a la lista de precios oficial. Solo lectura.",
+            "fr": "Accès programmatique à la grille tarifaire de référence. En lecture seule.",
+            "pt": "Acesso programático à lista de preços oficial. Somente leitura.",
+            "uk": "Програмний доступ до офіційного прайс-листа. Лише для читання."
           },
           "published": true
         }
@@ -1113,7 +1633,7 @@
       "title": {
         "en": "SDKs & CLI",
         "de": "SDKs & CLI",
-        "es": "SDK y CLI",
+        "es": "SDKs y CLI",
         "fr": "SDK et CLI",
         "pt": "SDKs e CLI",
         "uk": "SDK та CLI"
@@ -1123,10 +1643,20 @@
           "path": "sdks/typescript",
           "kind": "sdk",
           "title": {
-            "en": "TypeScript SDK"
+            "en": "TypeScript SDK",
+            "de": "TypeScript-SDK",
+            "es": "SDK de TypeScript",
+            "fr": "SDK TypeScript",
+            "pt": "SDK para TypeScript",
+            "uk": "SDK для TypeScript"
           },
           "description": {
-            "en": "Typed client for the NimbusNexus REST API. ESM + CJS, Node 20+, browser-friendly."
+            "en": "Typed client for the NimbusNexus REST API. ESM + CJS, Node 20+, browser-friendly.",
+            "de": "Typisierter Client für die REST-API von NimbusNexus. ESM + CJS, Node 20+, browsertauglich.",
+            "es": "Cliente tipado para la API REST de NimbusNexus. ESM + CJS, Node 20+, compatible con navegadores.",
+            "fr": "Client typé pour l’API REST NimbusNexus. ESM + CJS, Node 20+, compatible navigateur.",
+            "pt": "Cliente tipado para a API REST da NimbusNexus. ESM + CJS, Node 20+, compatível com navegadores.",
+            "uk": "Типізований клієнт для REST API NimbusNexus. ESM + CJS, Node 20+, працює і в браузері."
           },
           "published": false
         },
@@ -1134,10 +1664,20 @@
           "path": "sdks/python",
           "kind": "sdk",
           "title": {
-            "en": "Python SDK"
+            "en": "Python SDK",
+            "de": "Python-SDK",
+            "es": "SDK de Python",
+            "fr": "SDK Python",
+            "pt": "SDK para Python",
+            "uk": "SDK для Python"
           },
           "description": {
-            "en": "Typed Python client. Sync + async, Pydantic models, Python 3.11+."
+            "en": "Typed Python client. Sync + async, Pydantic models, Python 3.11+.",
+            "de": "Typisierter Python-Client. Sync + async, Pydantic-Modelle, Python 3.11+.",
+            "es": "Cliente de Python tipado. Síncrono y asíncrono, modelos Pydantic, Python 3.11+.",
+            "fr": "Client Python typé. Sync + async, modèles Pydantic, Python 3.11+.",
+            "pt": "Cliente Python tipado. Síncrono + assíncrono, modelos Pydantic, Python 3.11+.",
+            "uk": "Типізований клієнт для Python. Синхронний та асинхронний, моделі Pydantic, Python 3.11+."
           },
           "published": false
         },
@@ -1145,10 +1685,20 @@
           "path": "sdks/go",
           "kind": "sdk",
           "title": {
-            "en": "Go SDK"
+            "en": "Go SDK",
+            "de": "Go-SDK",
+            "es": "SDK de Go",
+            "fr": "SDK Go",
+            "pt": "SDK para Go",
+            "uk": "SDK для Go"
           },
           "description": {
-            "en": "Idiomatic Go client. Context-aware, no dependencies, Go 1.22+."
+            "en": "Idiomatic Go client. Context-aware, no dependencies, Go 1.22+.",
+            "de": "Idiomatischer Go-Client. Mit Context-Unterstützung, ohne Abhängigkeiten, Go 1.22+.",
+            "es": "Cliente de Go idiomático. Compatible con context, sin dependencias, Go 1.22+.",
+            "fr": "Client Go idiomatique. Gestion du contexte, aucune dépendance, Go 1.22+.",
+            "pt": "Cliente Go idiomático. Com suporte a context, sem dependências, Go 1.22+.",
+            "uk": "Ідіоматичний клієнт для Go. Підтримка context, без залежностей, Go 1.22+."
           },
           "published": false
         },
@@ -1156,10 +1706,20 @@
           "path": "cli",
           "kind": "cli",
           "title": {
-            "en": "CLI"
+            "en": "CLI",
+            "de": "CLI",
+            "es": "CLI",
+            "fr": "CLI",
+            "pt": "CLI",
+            "uk": "CLI"
           },
           "description": {
-            "en": "nimbus — the command-line interface for the REST API."
+            "en": "nimbus — the command-line interface for the REST API.",
+            "de": "nimbus — die Kommandozeilenschnittstelle für die REST-API.",
+            "es": "nimbus — la interfaz de línea de comandos de la API REST.",
+            "fr": "nimbus — l’interface en ligne de commande de l’API REST.",
+            "pt": "nimbus — a interface de linha de comando da API REST.",
+            "uk": "nimbus — інтерфейс командного рядка для REST API."
           },
           "published": false
         }
@@ -1169,17 +1729,32 @@
       "id": "product-webhooks",
       "group": "apps",
       "title": {
-        "en": "Webhooks"
+        "en": "Webhooks",
+        "de": "Webhooks",
+        "es": "Webhooks",
+        "fr": "Webhooks",
+        "pt": "Webhooks",
+        "uk": "Webhooks"
       },
       "items": [
         {
           "path": "product-webhooks",
           "kind": "concept",
           "title": {
-            "en": "Overview"
+            "en": "Overview",
+            "de": "Überblick",
+            "es": "Resumen",
+            "fr": "Vue d’ensemble",
+            "pt": "Visão geral",
+            "uk": "Огляд"
           },
           "description": {
-            "en": "The managed webhook platform — publish once, and we sign, retry, and replay every delivery to your subscribers."
+            "en": "The managed webhook platform — publish once, and we sign, retry, and replay every delivery to your subscribers.",
+            "de": "Die Managed-Webhook-Plattform — Sie veröffentlichen einmal, wir signieren jede Zustellung an Ihre Abonnenten, wiederholen sie und spielen sie erneut ab.",
+            "es": "La plataforma de webhooks gestionada — publica una vez y nosotros firmamos, reintentamos y reenviamos cada entrega a tus suscriptores.",
+            "fr": "La plateforme de webhooks managée — publiez une fois, nous signons, réessayons et rejouons chaque livraison vers vos abonnés.",
+            "pt": "A plataforma de webhooks gerenciada — publique uma vez e nós assinamos, repetimos e reenviamos cada entrega aos seus assinantes.",
+            "uk": "Керована платформа вебхуків: опублікуйте подію один раз, а ми підпишемо, повторимо й переграємо кожну доставку вашим підписникам."
           },
           "published": true
         },
@@ -1187,10 +1762,20 @@
           "path": "product-webhooks/quickstart",
           "kind": "quickstart",
           "title": {
-            "en": "Quickstart"
+            "en": "Quickstart",
+            "de": "Schnellstart",
+            "es": "Inicio rápido",
+            "fr": "Démarrage rapide",
+            "pt": "Início rápido",
+            "uk": "Швидкий старт"
           },
           "description": {
-            "en": "Register an endpoint, publish an event, and verify the signed delivery."
+            "en": "Register an endpoint, publish an event, and verify the signed delivery.",
+            "de": "Einen Endpoint registrieren, ein Event veröffentlichen und die signierte Zustellung prüfen.",
+            "es": "Registra un endpoint, publica un evento y verifica la entrega firmada.",
+            "fr": "Enregistrez un endpoint, publiez un événement et vérifiez la livraison signée.",
+            "pt": "Registre um endpoint, publique um evento e verifique a entrega assinada.",
+            "uk": "Зареєструйте ендпоінт, опублікуйте подію й перевірте підписану доставку."
           },
           "published": true
         },
@@ -1198,10 +1783,20 @@
           "path": "product-webhooks/sources",
           "kind": "concept",
           "title": {
-            "en": "Sources"
+            "en": "Sources",
+            "de": "Quellen",
+            "es": "Fuentes",
+            "fr": "Sources",
+            "pt": "Fontes",
+            "uk": "Джерела"
           },
           "description": {
-            "en": "Receive webhooks from Stripe, GitHub or any HMAC sender and deliver them to your endpoints."
+            "en": "Receive webhooks from Stripe, GitHub or any HMAC sender and deliver them to your endpoints.",
+            "de": "Webhooks von Stripe, GitHub oder jedem HMAC-Absender empfangen und an Ihre Endpoints zustellen.",
+            "es": "Recibe webhooks de Stripe, GitHub o cualquier emisor que firme con HMAC y entrégalos a tus endpoints.",
+            "fr": "Recevez les webhooks de Stripe, de GitHub ou de tout expéditeur HMAC et livrez-les à vos endpoints.",
+            "pt": "Receba webhooks do Stripe, do GitHub ou de qualquer remetente que assine com HMAC e entregue-os aos seus endpoints.",
+            "uk": "Приймайте вебхуки від Stripe, GitHub чи будь-якого відправника з підписом HMAC і доставляйте їх на свої ендпоінти."
           },
           "published": true
         },
@@ -1209,10 +1804,20 @@
           "path": "product-webhooks/deliveries",
           "kind": "concept",
           "title": {
-            "en": "Deliveries and retries"
+            "en": "Deliveries and retries",
+            "de": "Zustellungen und Retries",
+            "es": "Entregas y reintentos",
+            "fr": "Livraisons et réessais",
+            "pt": "Entregas e retentativas",
+            "uk": "Доставки та повтори"
           },
           "description": {
-            "en": "Delivery states, the retry schedule, the dead-letter queue, and sending things again."
+            "en": "Delivery states, the retry schedule, the dead-letter queue, and sending things again.",
+            "de": "Zustellstatus, der Retry-Zeitplan, die Dead-Letter-Queue und erneutes Senden.",
+            "es": "Los estados de una entrega, el calendario de reintentos, la cola dead-letter y cómo volver a enviar.",
+            "fr": "Les états d’une livraison, le calendrier des réessais, la dead-letter queue et les renvois.",
+            "pt": "Estados de entrega, o cronograma de retentativas, a dead-letter queue e como reenviar.",
+            "uk": "Стани доставок, розклад повторів, dead-letter черга й повторне надсилання."
           },
           "published": true
         },
@@ -1220,10 +1825,20 @@
           "path": "product-webhooks/endpoint-verification",
           "kind": "concept",
           "title": {
-            "en": "Endpoint verification"
+            "en": "Endpoint verification",
+            "de": "Endpoint-Verifizierung",
+            "es": "Verificación de endpoints",
+            "fr": "Vérification des endpoints",
+            "pt": "Verificação de endpoint",
+            "uk": "Верифікація ендпоінтів"
           },
           "description": {
-            "en": "The signed challenge an endpoint echoes back before it receives events."
+            "en": "The signed challenge an endpoint echoes back before it receives events.",
+            "de": "Die signierte Challenge, die ein Endpoint zurücksendet, bevor er Events empfängt.",
+            "es": "El desafío firmado que un endpoint debe devolver antes de recibir eventos.",
+            "fr": "Le challenge signé qu’un endpoint doit renvoyer avant de recevoir des événements.",
+            "pt": "O desafio assinado que um endpoint devolve antes de receber eventos.",
+            "uk": "Підписаний challenge, який ендпоінт має повернути у відповіді, перш ніж почне отримувати події."
           },
           "published": true
         },
@@ -1231,10 +1846,20 @@
           "path": "product-webhooks/event-types",
           "kind": "concept",
           "title": {
-            "en": "Event types"
+            "en": "Event types",
+            "de": "Event-Typen",
+            "es": "Tipos de evento",
+            "fr": "Types d’événements",
+            "pt": "Tipos de evento",
+            "uk": "Типи подій"
           },
           "description": {
-            "en": "The catalog of type names, the policy for unknown ones, and payload schemas."
+            "en": "The catalog of type names, the policy for unknown ones, and payload schemas.",
+            "de": "Der Katalog der Typnamen, die Richtlinie für unbekannte Typen und Payload-Schemas.",
+            "es": "El catálogo de nombres de tipo, la política para los desconocidos y los esquemas de payload.",
+            "fr": "Le catalogue des noms de types, la politique pour les types inconnus et les schémas de payload.",
+            "pt": "O catálogo de nomes de tipo, a política para os desconhecidos e os schemas de payload.",
+            "uk": "Каталог назв типів, політика для невідомих типів і схеми payload-у."
           },
           "published": true
         },
@@ -1242,10 +1867,20 @@
           "path": "product-webhooks/captured-requests",
           "kind": "concept",
           "title": {
-            "en": "Captured requests"
+            "en": "Captured requests",
+            "de": "Erfasste Requests",
+            "es": "Peticiones capturadas",
+            "fr": "Requêtes capturées",
+            "pt": "Requisições capturadas",
+            "uk": "Перехоплені запити"
           },
           "description": {
-            "en": "The raw requests that reached a source — headers, body and what we answered."
+            "en": "The raw requests that reached a source — headers, body and what we answered.",
+            "de": "Die Requests, wie sie bei einer Quelle ankamen — Header, Body und unsere Antwort.",
+            "es": "Las peticiones en bruto que llegaron a una fuente — cabeceras, cuerpo y lo que respondimos.",
+            "fr": "Les requêtes brutes reçues par une source — headers, corps et ce que nous avons répondu.",
+            "pt": "As requisições brutas que chegaram a uma fonte — headers, corpo e o que respondemos.",
+            "uk": "Сирі запити, що надійшли до джерела: заголовки, тіло й те, що ми відповіли."
           },
           "published": true
         },
@@ -1253,10 +1888,20 @@
           "path": "product-webhooks/signatures",
           "kind": "concept",
           "title": {
-            "en": "Signature verification"
+            "en": "Signature verification",
+            "de": "Signaturprüfung",
+            "es": "Verificación de firmas",
+            "fr": "Vérification de signature",
+            "pt": "Verificação de assinatura",
+            "uk": "Перевірка підпису"
           },
           "description": {
-            "en": "The signing contract for delivered webhooks — headers, the HMAC construction, and the three rules for checking it."
+            "en": "The signing contract for delivered webhooks — headers, the HMAC construction, and the three rules for checking it.",
+            "de": "Die Signaturspezifikation für zugestellte Webhooks — Header, HMAC-Konstruktion und die drei Regeln für die Prüfung.",
+            "es": "El contrato de firma de los webhooks entregados — cabeceras, cómo se construye el HMAC y las tres reglas para comprobarlo.",
+            "fr": "Le contrat de signature des webhooks livrés — headers, construction HMAC et les trois règles pour la vérifier.",
+            "pt": "O contrato de assinatura dos webhooks entregues — headers, a construção do HMAC e as três regras para verificá-la.",
+            "uk": "Контракт підпису доставлених вебхуків: заголовки, побудова HMAC і три правила перевірки."
           },
           "published": true
         },
@@ -1264,10 +1909,20 @@
           "path": "product-webhooks/sdks",
           "kind": "sdk",
           "title": {
-            "en": "SDKs"
+            "en": "SDKs",
+            "de": "SDKs",
+            "es": "SDKs",
+            "fr": "SDK",
+            "pt": "SDKs",
+            "uk": "SDK"
           },
           "description": {
-            "en": "Typed clients for Python, TypeScript, and Go — verify, publish, buffer, and manage from code."
+            "en": "Typed clients for Python, TypeScript, and Go — verify, publish, buffer, and manage from code.",
+            "de": "Typisierte Clients für Python, TypeScript und Go — aus Ihrem Code prüfen, veröffentlichen, puffern und verwalten.",
+            "es": "Clientes tipados para Python, TypeScript y Go — verifica, publica, guarda en buffer y gestiona desde tu código.",
+            "fr": "Clients typés pour Python, TypeScript et Go — vérifiez, publiez, mettez en tampon et gérez depuis votre code.",
+            "pt": "Clientes tipados para Python, TypeScript e Go — verifique, publique, armazene em buffer e gerencie pelo código.",
+            "uk": "Типізовані клієнти для Python, TypeScript і Go: перевіряйте, публікуйте, буферизуйте й керуйте з коду."
           },
           "published": true
         },
@@ -1275,10 +1930,20 @@
           "path": "product-webhooks/cli",
           "kind": "cli",
           "title": {
-            "en": "CLI"
+            "en": "CLI",
+            "de": "CLI",
+            "es": "CLI",
+            "fr": "CLI",
+            "pt": "CLI",
+            "uk": "CLI"
           },
           "description": {
-            "en": "nn-webhooks — a single static binary for publishing events and draining the dead-letter queue."
+            "en": "nn-webhooks — a single static binary for publishing events and draining the dead-letter queue.",
+            "de": "nn-webhooks — ein einzelnes statisches Binary zum Veröffentlichen von Events und Abarbeiten der Dead-Letter-Queue.",
+            "es": "nn-webhooks — un único binario estático para publicar eventos y vaciar la cola dead-letter.",
+            "fr": "nn-webhooks — un binaire statique unique pour publier des événements et vider la dead-letter queue.",
+            "pt": "nn-webhooks — um único binário estático para publicar eventos e esvaziar a dead-letter queue.",
+            "uk": "nn-webhooks — один статичний бінарний файл для публікації подій і розбору dead-letter черги."
           },
           "published": true
         }
@@ -1288,17 +1953,32 @@
       "id": "product-inboxes",
       "group": "apps",
       "title": {
-        "en": "Inboxes"
+        "en": "Inboxes",
+        "de": "Inboxes",
+        "es": "Inboxes",
+        "fr": "Inboxes",
+        "pt": "Inboxes",
+        "uk": "Inboxes"
       },
       "items": [
         {
           "path": "product-inboxes",
           "kind": "concept",
           "title": {
-            "en": "Overview"
+            "en": "Overview",
+            "de": "Überblick",
+            "es": "Resumen",
+            "fr": "Vue d’ensemble",
+            "pt": "Visão geral",
+            "uk": "Огляд"
           },
           "description": {
-            "en": "Disposable email addresses for testing — create one, point the system under test at it, and read what arrives in the dashboard or over the API."
+            "en": "Disposable email addresses for testing — create one, point the system under test at it, and read what arrives in the dashboard or over the API.",
+            "de": "Wegwerf-E-Mail-Adressen für Tests — eine Adresse anlegen, das zu testende System darauf richten und im Dashboard oder über die API lesen, was ankommt.",
+            "es": "Direcciones de email desechables para tests — crea una, apunta a ella el sistema bajo prueba y lee lo que llega en la consola o por la API.",
+            "fr": "Des adresses e-mail jetables pour vos tests — créez-en une, pointez-y le système testé et lisez ce qui arrive dans la console ou via l’API.",
+            "pt": "Endereços de e-mail descartáveis para testes — crie um, aponte o sistema sob teste para ele e leia o que chega no painel ou pela API.",
+            "uk": "Одноразові поштові адреси для тестування: створіть адресу, націльте на неї систему, яку тестуєте, і читайте отримане в консолі або через API."
           },
           "published": true
         },
@@ -1306,10 +1986,20 @@
           "path": "product-inboxes/quickstart",
           "kind": "quickstart",
           "title": {
-            "en": "Quickstart"
+            "en": "Quickstart",
+            "de": "Schnellstart",
+            "es": "Inicio rápido",
+            "fr": "Démarrage rapide",
+            "pt": "Início rápido",
+            "uk": "Швидкий старт"
           },
           "description": {
-            "en": "Create a disposable email address, send it a message, and read the message back — in the dashboard or with curl."
+            "en": "Create a disposable email address, send it a message, and read the message back — in the dashboard or with curl.",
+            "de": "Eine Wegwerf-E-Mail-Adresse anlegen, ihr eine Nachricht senden und die Nachricht zurücklesen — im Dashboard oder mit curl.",
+            "es": "Crea una dirección de email desechable, envíale un mensaje y léelo de vuelta — en la consola o con curl.",
+            "fr": "Créez une adresse e-mail jetable, envoyez-lui un message et relisez-le — dans la console ou avec curl.",
+            "pt": "Crie um endereço de e-mail descartável, envie uma mensagem para ele e leia a mensagem de volta — no painel ou com curl.",
+            "uk": "Створіть одноразову поштову адресу, надішліть на неї лист і прочитайте його — у консолі або через curl."
           },
           "published": true
         },
@@ -1317,10 +2007,20 @@
           "path": "product-inboxes/addresses",
           "kind": "concept",
           "title": {
-            "en": "Addresses and the phrase"
+            "en": "Addresses and the phrase",
+            "de": "Adressen und die Phrase",
+            "es": "Direcciones y la frase",
+            "fr": "Les adresses et la phrase",
+            "pt": "Endereços e a frase",
+            "uk": "Адреси та фраза"
           },
           "description": {
-            "en": "Why a disposable address refuses mail whose subject lacks its phrase, and how expiry, retention and deletion differ."
+            "en": "Why a disposable address refuses mail whose subject lacks its phrase, and how expiry, retention and deletion differ.",
+            "de": "Warum eine Wegwerf-Adresse Mail ohne ihre Phrase im Betreff ablehnt und wie sich Ablauf, Aufbewahrung und Löschung unterscheiden.",
+            "es": "Por qué una dirección desechable rechaza el correo cuyo asunto no lleva su frase, y en qué se diferencian la caducidad, la retención y el borrado.",
+            "fr": "Pourquoi une adresse jetable refuse le courrier dont l’objet ne contient pas sa phrase, et ce qui distingue expiration, rétention et suppression.",
+            "pt": "Por que um endereço descartável recusa e-mails sem a frase no assunto e como expiração, retenção e exclusão se diferenciam.",
+            "uk": "Чому одноразова адреса відхиляє листи без її фрази в темі та чим відрізняються закінчення строку дії, зберігання й видалення."
           },
           "published": true
         }
@@ -1330,17 +2030,32 @@
       "id": "product-bins",
       "group": "apps",
       "title": {
-        "en": "Request Bins"
+        "en": "Request Bins",
+        "de": "Request Bins",
+        "es": "Request Bins",
+        "fr": "Request Bins",
+        "pt": "Request Bins",
+        "uk": "Request Bins"
       },
       "items": [
         {
           "path": "product-bins",
           "kind": "concept",
           "title": {
-            "en": "Overview"
+            "en": "Overview",
+            "de": "Überblick",
+            "es": "Resumen",
+            "fr": "Vue d’ensemble",
+            "pt": "Visão geral",
+            "uk": "Огляд"
           },
           "description": {
-            "en": "Public URLs that record every HTTP request sent to them — point any app, script or service at one and read exactly what it sent, in the console or over the API."
+            "en": "Public URLs that record every HTTP request sent to them — point any app, script or service at one and read exactly what it sent, in the console or over the API.",
+            "de": "Öffentliche URLs, die jeden an sie gesendeten HTTP-Request aufzeichnen — eine App, ein Skript oder einen Dienst darauf richten und in der Konsole oder über die API genau lesen, was gesendet wurde.",
+            "es": "URLs públicas que registran cada petición HTTP que reciben — apunta cualquier aplicación, script o servicio a una y lee exactamente lo que envió, en la consola o por la API.",
+            "fr": "Des URL publiques qui enregistrent chaque requête HTTP reçue — pointez-y une application, un script ou un service et lisez exactement ce qu’il a envoyé, dans la console ou via l’API.",
+            "pt": "URLs públicas que registram cada requisição HTTP recebida — aponte qualquer app, script ou serviço para uma delas e leia exatamente o que ele enviou, no console ou pela API.",
+            "uk": "Публічні URL-адреси, що записують кожен надісланий на них HTTP-запит: націльте на одну з них будь-який застосунок, скрипт чи сервіс і прочитайте, що саме він надіслав, — у консолі або через API."
           },
           "published": true
         },
@@ -1348,10 +2063,20 @@
           "path": "product-bins/quickstart",
           "kind": "quickstart",
           "title": {
-            "en": "Quickstart"
+            "en": "Quickstart",
+            "de": "Schnellstart",
+            "es": "Inicio rápido",
+            "fr": "Démarrage rapide",
+            "pt": "Início rápido",
+            "uk": "Швидкий старт"
           },
           "description": {
-            "en": "Create a bin, send it a request with curl, and read what it recorded — in the console, then over the API."
+            "en": "Create a bin, send it a request with curl, and read what it recorded — in the console, then over the API.",
+            "de": "Einen Bin anlegen, ihm mit curl einen Request senden und lesen, was er aufgezeichnet hat — erst in der Konsole, dann über die API.",
+            "es": "Crea un bin, envíale una petición con curl y lee lo que registró — primero en la consola y después por la API.",
+            "fr": "Créez un bin, envoyez-lui une requête avec curl et lisez ce qu’il a enregistré — dans la console, puis via l’API.",
+            "pt": "Crie um bin, envie uma requisição para ele com curl e leia o que ele registrou — no console e depois pela API.",
+            "uk": "Створіть bin, надішліть на нього запит через curl і прочитайте, що він записав, — спершу в консолі, потім через API."
           },
           "published": true
         },
@@ -1359,10 +2084,20 @@
           "path": "product-bins/forwarding",
           "kind": "concept",
           "title": {
-            "en": "Forwarding"
+            "en": "Forwarding",
+            "de": "Weiterleitung",
+            "es": "Reenvío",
+            "fr": "Transfert",
+            "pt": "Encaminhamento",
+            "uk": "Пересилання"
           },
           "description": {
-            "en": "Send each request a bin records on to your own server, with retries, and see what your server answered."
+            "en": "Send each request a bin records on to your own server, with retries, and see what your server answered.",
+            "de": "Jeden Request, den ein Bin aufzeichnet, mit Retries an Ihren eigenen Server weiterleiten und sehen, was Ihr Server geantwortet hat.",
+            "es": "Reenvía a tu propio servidor cada petición que registra un bin, con reintentos, y mira qué respondió tu servidor.",
+            "fr": "Transférez chaque requête qu’un bin enregistre vers votre propre serveur, avec réessais, et voyez ce que votre serveur a répondu.",
+            "pt": "Repasse cada requisição que um bin registra para o seu próprio servidor, com retentativas, e veja o que o seu servidor respondeu.",
+            "uk": "Надсилайте кожен запит, який записує bin, далі на власний сервер, з повторами, і дивіться, що відповів ваш сервер."
           },
           "published": true
         },
@@ -1370,10 +2105,20 @@
           "path": "product-bins/reference",
           "kind": "reference",
           "title": {
-            "en": "Reference"
+            "en": "Reference",
+            "de": "Referenz",
+            "es": "Referencia",
+            "fr": "Référence",
+            "pt": "Referência",
+            "uk": "Довідник"
           },
           "description": {
-            "en": "Every route of the API, what a bin URL answers and records, who may do what, and each plan's limits."
+            "en": "Every route of the API, what a bin URL answers and records, who may do what, and each plan's limits.",
+            "de": "Jede Route der API, was eine Bin-URL antwortet und aufzeichnet, wer was darf und die Limits jedes Tarifs.",
+            "es": "Todas las rutas de la API, qué responde y qué registra la URL de un bin, quién puede hacer qué y los límites de cada plan.",
+            "fr": "Chaque route de l’API, ce qu’une URL de bin répond et enregistre, qui peut faire quoi et les limites de chaque plan.",
+            "pt": "Todas as rotas da API, o que a URL de um bin responde e registra, quem pode fazer o quê e os limites de cada plano.",
+            "uk": "Усі маршрути API, що URL bin-а відповідає й записує, хто що може робити, і ліміти кожного плану."
           },
           "published": true
         }
@@ -1396,10 +2141,20 @@
           "kind": "reference",
           "openapiSpec": "webhooks",
           "title": {
-            "en": "Webhooks API"
+            "en": "Webhooks API",
+            "de": "Webhooks-API",
+            "es": "API de Webhooks",
+            "fr": "API Webhooks",
+            "pt": "API de Webhooks",
+            "uk": "API Webhooks"
           },
           "description": {
-            "en": "Every Webhooks operation: events, endpoints, deliveries, sources, event types and more."
+            "en": "Every Webhooks operation: events, endpoints, deliveries, sources, event types and more.",
+            "de": "Jede Operation von Webhooks — Events, Endpoints, Zustellungen, Quellen, Event-Typen und mehr.",
+            "es": "Todas las operaciones de Webhooks: eventos, endpoints, entregas, fuentes, tipos de evento y más.",
+            "fr": "Toutes les opérations de Webhooks : événements, endpoints, livraisons, sources, types d’événements et plus encore.",
+            "pt": "Todas as operações de Webhooks: eventos, endpoints, entregas, fontes, tipos de evento e mais.",
+            "uk": "Усі операції Webhooks: події, ендпоінти, доставки, джерела, типи подій тощо."
           },
           "published": true
         },
@@ -1408,10 +2163,20 @@
           "kind": "reference",
           "openapiSpec": "inboxes",
           "title": {
-            "en": "Inboxes API"
+            "en": "Inboxes API",
+            "de": "Inboxes-API",
+            "es": "API de Inboxes",
+            "fr": "API Inboxes",
+            "pt": "API de Inboxes",
+            "uk": "API Inboxes"
           },
           "description": {
-            "en": "Every Inboxes operation: disposable addresses, the messages they receive, plan and usage."
+            "en": "Every Inboxes operation: disposable addresses, the messages they receive, plan and usage.",
+            "de": "Jede Operation von Inboxes — Wegwerf-Adressen, die Nachrichten, die sie empfangen, Tarif und Verbrauch.",
+            "es": "Todas las operaciones de Inboxes: direcciones desechables, los mensajes que reciben, plan y consumo.",
+            "fr": "Toutes les opérations d’Inboxes : adresses jetables, messages reçus, plan et consommation.",
+            "pt": "Todas as operações de Inboxes: endereços descartáveis, as mensagens que eles recebem, plano e uso.",
+            "uk": "Усі операції Inboxes: одноразові адреси, повідомлення, які вони отримують, план і споживання."
           },
           "published": true
         },
@@ -1420,10 +2185,20 @@
           "kind": "reference",
           "openapiSpec": "qr",
           "title": {
-            "en": "QR Codes API"
+            "en": "QR Codes API",
+            "de": "QR-Codes-API",
+            "es": "API de códigos QR",
+            "fr": "API QR Codes",
+            "pt": "API de Códigos QR",
+            "uk": "API QR-кодів"
           },
           "description": {
-            "en": "Every QR Codes operation: tracked codes, routing rules, scan analytics, domains and scan webhooks."
+            "en": "Every QR Codes operation: tracked codes, routing rules, scan analytics, domains and scan webhooks.",
+            "de": "Jede Operation von QR-Codes — trackbare Codes, Routing-Regeln, Scan-Analytics, Domains und Scan-Webhooks.",
+            "es": "Todas las operaciones de códigos QR: códigos rastreables, reglas de enrutado, analíticas de escaneo, dominios y webhooks de escaneo.",
+            "fr": "Toutes les opérations de QR Codes : QR codes traçables, règles de routage, statistiques de scan, domaines et webhooks de scan.",
+            "pt": "Todas as operações de Códigos QR: códigos rastreáveis, regras de roteamento, análise de leituras, domínios e webhooks de leitura.",
+            "uk": "Усі операції QR-кодів: трекінгові коди, правила маршрутизації, аналітика сканувань, домени й вебхуки сканувань."
           },
           "published": true
         },
@@ -1432,10 +2207,20 @@
           "kind": "reference",
           "openapiSpec": "newsletters",
           "title": {
-            "en": "Newsletters API"
+            "en": "Newsletters API",
+            "de": "Newsletters-API",
+            "es": "API de Newsletters",
+            "fr": "API Newsletters",
+            "pt": "API de Newsletters",
+            "uk": "API Newsletters"
           },
           "description": {
-            "en": "Every Newsletters operation: lists, sign-up forms, subscribers and issues."
+            "en": "Every Newsletters operation: lists, sign-up forms, subscribers and issues.",
+            "de": "Jede Operation von Newsletters — Listen, Anmeldeformulare, Abonnenten und Ausgaben.",
+            "es": "Todas las operaciones de Newsletters: listas, formularios de suscripción, suscriptores y ediciones.",
+            "fr": "Toutes les opérations de Newsletters : listes, formulaires d’inscription, abonnés et numéros.",
+            "pt": "Todas as operações de Newsletters: listas, formulários de inscrição, assinantes e edições.",
+            "uk": "Усі операції Newsletters: списки, форми підписки, підписники й випуски."
           },
           "published": false
         },
@@ -1444,10 +2229,20 @@
           "kind": "reference",
           "openapiSpec": "bins",
           "title": {
-            "en": "Request Bins API"
+            "en": "Request Bins API",
+            "de": "Request-Bins-API",
+            "es": "API de Request Bins",
+            "fr": "API Request Bins",
+            "pt": "API de Request Bins",
+            "uk": "API Request Bins"
           },
           "description": {
-            "en": "Every Request Bins operation: bins, the requests they record, plan and usage."
+            "en": "Every Request Bins operation: bins, the requests they record, plan and usage.",
+            "de": "Jede Operation von Request Bins — Bins, die Requests, die sie aufzeichnen, Tarif und Verbrauch.",
+            "es": "Todas las operaciones de Request Bins: bins, las peticiones que registran, plan y consumo.",
+            "fr": "Toutes les opérations de Request Bins : bins, requêtes enregistrées, plan et consommation.",
+            "pt": "Todas as operações de Request Bins: bins, as requisições que eles registram, plano e uso.",
+            "uk": "Усі операції Request Bins: bin-и, запити, які вони записують, план і споживання."
           },
           "published": true
         }
