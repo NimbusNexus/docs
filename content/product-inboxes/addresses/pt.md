@@ -2,7 +2,7 @@
 title: "Endereços e a frase"
 description: "Por que um endereço descartável recusa e-mails sem a frase no assunto e como expiração, retenção e exclusão se diferenciam."
 publishedAt: 2026-08-18
-updatedAt: 2026-10-19
+updatedAt: 2026-10-27
 kind: concept
 ---
 
@@ -46,13 +46,15 @@ Elas são fáceis de confundir e se comportam de formas diferentes.
 
 | | O que acontece | Reversível |
 | --- | --- | --- |
-| **Expiração** | O endereço chega a `expires_at`, é aposentado e os e-mails armazenados nele são excluídos. | Não |
-| **Exclusão** | Você o encerra antes com `DELETE /v1/inboxes/{id}`. Ele é aposentado na hora, como na expiração. | Não |
-| **Desativação** | O endereço para de aceitar e-mails e mantém o que já tem. | Sim — ative-o de novo |
+| **Expiração** | A caixa de entrada chega a `expires_at`, o endereço dela é aposentado e os e-mails armazenados nela são excluídos. | Não |
+| **Exclusão** | Você o encerra antes: **Delete inbox…** no painel, ou `DELETE /v1/inboxes/{id}`. Ele é aposentado na hora, como na expiração. | Não |
+| **Desativação** | O endereço para de aceitar e-mails e a caixa de entrada mantém o que já tem: **Disable** no painel, ou `PATCH` com `{"status": "disabled"}`. | Sim — ative-o de novo |
+
+No painel, essas opções ficam no menu ⋯ da página da caixa de entrada, junto com **Rename…** e **Empty inbox…**, que exclui os e-mails da caixa de entrada e mantém a caixa de entrada e o endereço dela. Os membros podem renomear, desativar e ativar uma caixa de entrada; esvaziá-la e excluí-la cabe aos proprietários e admins do workspace. A página de uma caixa de entrada desativada indica isso, com um botão **Enable**. O tempo de vida de uma caixa de entrada é escolhido quando ela é criada e não pode ser alterado depois; uma vez expirada ou excluída, a página dela diz "This inbox no longer exists".
 
 Um endereço aposentado **nunca é reemitido**, nem para você nem para ninguém: todo endereço que já existiu fica registrado, e um novo é conferido contra esse registro antes de ser emitido. Isso é uma propriedade de segurança, e não um detalhe de implementação — reciclar um endereço descartável acabaria entregando a redefinição de senha de um desconhecido na execução de testes de outra pessoa. O estoque não se esgota: um endereço tem 12 caracteres de um alfabeto de 32 caracteres, cerca de 1,15 × 10¹⁸ combinações.
 
-Recorra à **desativação** quando uma suíte de testes estiver inundando um endereço e você quiser que isso pare por uma hora. Recorra à **exclusão** quando tiver terminado e quiser a vaga de volta — os planos limitam quantos endereços você pode ter ao mesmo tempo. Versões antigas desta documentação, e o log de auditoria da API, chamam a exclusão de *release*.
+Recorra à **desativação** quando uma suíte de testes estiver inundando um endereço e você quiser que isso pare por uma hora. Recorra ao **esvaziamento** quando quiser manter o endereço e recomeçar sem nenhum e-mail. Recorra à **exclusão** quando tiver terminado e quiser a vaga de volta — os planos limitam quantas caixas de entrada você pode ter ao mesmo tempo. Versões antigas desta documentação, e o log de auditoria da API, chamam a exclusão de *release*.
 
 ## Expiração não é retenção {#expiry-vs-retention}
 
