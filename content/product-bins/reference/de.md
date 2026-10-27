@@ -2,7 +2,7 @@
 title: "Referenz für Request Bins"
 description: "Jede Route der Request-Bins-API, was eine Bin-URL antwortet und aufzeichnet, wer was darf und die Limits jedes Tarifs."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-26
+updatedAt: 2026-10-27
 kind: reference
 ---
 
@@ -97,6 +97,7 @@ Die Basis-URL ist `https://bins.nimbusnexus.net/v1`. Requests und Antworten sind
 | `POST /v1/bins/{id}/forward-test` | Einen [Test](#forward-test) an die Weiterleitungs-URL des Bins senden und zurückgeben, was sie geantwortet hat | write |
 | `DELETE /v1/bins/{id}` | Einen Bin löschen; `204` | admin |
 | `GET /v1/bins/{id}/requests` | Die [erfassten Requests](#requests) eines Bins, neueste zuerst | read; mit einem Key ein bezahlter Tarif |
+| `GET /v1/requests` | Die [erfassten Requests](#all-requests) aller Bins in einer Liste, neueste zuerst | read; mit einem Key ein bezahlter Tarif |
 | `GET /v1/bins/{id}/paths` | Die Requests eines Bins, [nach Pfad gruppiert](#paths) | read; mit einem Key ein bezahlter Tarif |
 | `GET /v1/requests/{id}` | Ein erfasster Request vollständig, mit seinen [Weiterleitungen](#forwards) | read; mit einem Key ein bezahlter Tarif |
 | `DELETE /v1/bins/{id}/requests` | Einen Bin leeren; `200` mit `{"deleted": <count>}` | admin |
@@ -130,7 +131,7 @@ Listen werden mit `limit` (1 bis 200, Standard 50) und `offset` (0 bis 10.000) p
 | `slug` | Der Teil der URL nach `/b/`. |
 | `url` | Die URL, die Sie Absendern geben. |
 | `label` | Ihr Name für den Bin. |
-| `status` | `active` oder `disabled`: Ihr Schalter. Ein deaktivierter Bin antwortet Absendern und zeichnet nichts auf. |
+| `status` | `enabled` oder `disabled`: Ihr Schalter. Ein deaktivierter Bin antwortet Absendern und zeichnet nichts auf. |
 | `expires_at` | Wann der Bin endet, oder `null`, wenn er bis zum Löschen lebt. |
 | `created_at` | Wann er angelegt wurde. |
 | `suspended` | `true`, solange NimbusNexus den Bin abgeschaltet hat ([Sperrung](#suspension)). |
@@ -148,7 +149,11 @@ Listen werden mit `limit` (1 bis 200, Standard 50) und `offset` (0 bis 10.000) p
 
 ### Bin ändern oder löschen {#change}
 
-`PATCH /v1/bins/{id}` erwartet `label`, `status` (`active` oder `disabled`), `forward_url` ([Weiterleitung](#forwarding)) oder eine beliebige Kombination davon und antwortet mit dem Bin. Deaktivieren beendet das Aufzeichnen und behält, was der Bin enthält. Ein deaktivierter Bin zählt weiterhin zu den Bins des Tarifs.
+`PATCH /v1/bins/{id}` erwartet `label`, `status` (`enabled` oder `disabled`), `forward_url` ([Weiterleitung](#forwarding)) oder eine beliebige Kombination davon und antwortet mit dem Bin. Deaktivieren beendet das Aufzeichnen und behält, was der Bin enthält. Ein deaktivierter Bin zählt weiterhin zu den Bins des Tarifs.
+
+Wo `status` jetzt `enabled` ist, war es früher `active`, und keine Antwort enthält mehr `active`. `PATCH` akzeptiert weiterhin `"status": "active"`, und der Bin kommt als `enabled` zurück, aber diese Schreibweise ist als veraltet markiert und wird ab einem Datum, das noch angekündigt wird, abgewiesen. Senden Sie daher `enabled`.
+
+In der Konsole enthält das Menü ⋯ auf der Seite eines Bins **Rename…**, **Disable** oder **Enable**, **Empty bin…** und **Delete bin…**, und die Weiterleitung legen Sie auf seiner Karte **Forwarding** fest. Die Seite eines deaktivierten Bins weist darauf hin, mit einer Schaltfläche **Enable**.
 
 `DELETE /v1/bins/{id}` löscht einen Bin endgültig. Seine URL hört sofort auf aufzuzeichnen, auch wenn Absender weiterhin `200` erhalten; sein Slug wird nie wieder vergeben, weder an Sie noch an jemand anderen; und was er aufgezeichnet hat, wird kurz danach gelöscht. Sein Platz unter den Bins des Tarifs wird sofort frei.
 
@@ -156,7 +161,7 @@ Listen werden mit `limit` (1 bis 200, Standard 50) und `offset` (0 bis 10.000) p
 
 ### Erfasste Requests {#requests}
 
-`GET /v1/bins/{id}/requests` listet die Requests eines Bins auf, neueste zuerst:
+`GET /v1/bins/{id}/requests` listet die Requests eines Bins auf, neueste zuerst, und `GET /v1/requests` listet die Requests [aller Bins](#all-requests) in einer Liste auf. Beide akzeptieren diese Parameter:
 
 | Parameter | Bedeutung |
 | --- | --- |
@@ -165,9 +170,14 @@ Listen werden mit `limit` (1 bis 200, Standard 50) und `offset` (0 bis 10.000) p
 | `method` | Nur Requests, die mit dieser Methode gesendet wurden, in beliebiger Schreibweise. Wiederholen Sie den Parameter für mehrere Methoden: `?method=PUT&method=DELETE`. |
 | `path` | Nur Requests, die an genau diesen Pfad gesendet wurden: was auf den Slug folgte, ab dem `/`, ohne den Query-String, so wie die Liste ihn anzeigt. Groß- und Kleinschreibung spielt eine Rolle. [Requests nach Pfad](#paths) listet die Pfade eines Bins auf. |
 | `q` | Nur Requests, die diesen Text enthalten, bis zu 200 Zeichen, ohne Beachtung der Groß- und Kleinschreibung: im Pfad und Query-String wie gesendet (`/orders?id=42`), in einem Header als `name: value` oder im gespeicherten Body. Ein Body, der kein UTF-8-Text ist, wird so durchsucht, dass jedes Byte über 127 (und NUL) als `\` mit drei Oktalziffern geschrieben und ein Backslash verdoppelt wird. |
+| `in` | Wo `q` sucht: `all`, der Standard, oder nur `path` (Pfad und Query-String), `headers` (jeder Header als `name: value`) oder `body`. |
+| `header` | Nur die Werte dieses Headers, mit dem Namen in beliebiger Schreibweise, und jeder davon, wenn der Header mehrmals gesendet wurde. Ohne `q` jeder Request, der den Header enthält. Der Parameter passt zu `in` `all` oder `headers`. |
+| `field` | Nur dieses Feld eines JSON-Bodys, angegeben als `data.object.id` oder `items[0].sku`: Ein String wird so durchsucht, wie er ist, eine Zahl so, wie JSON sie schreibt, ein Objekt oder Array als JSON-Text. Ohne `q` jeder Request, dessen Body das Feld hat. Ein Body, der kein JSON ist oder bei 1 MiB abgeschnitten wurde, hat keine Felder. Der Parameter passt zu `in` `all` oder `body` und nicht zu `header`. |
 | `limit`, `offset` | Paginierung wie bei Bins. Jenseits von Offset 10.000 grenzen Sie das Fenster stattdessen mit `until` ein. |
 
-Eine Suche (`q`) paginiert anders als der Rest. Sie liest die Requests des Bins vom neuesten an und stoppt, sobald sie `limit` Treffer hat oder 16 MiB an Requests (oder 5.000 davon) gelesen hat, je nachdem, was zuerst eintritt. Eine Seite kann daher weniger Treffer als `limit` enthalten oder gar keine, während ältere Requests noch ungelesen sind. Eine solche Seite hat `next_offset` `null` und ein `next_until`: Übergeben Sie es als `until`, mit denselben Werten für `q`, `method`, `path` und `since`, um dort weiterzusuchen, wo die Suche aufgehört hat. `next_until` ist `null`, sobald die Suche den ältesten Request des Bins gelesen hat. Mit `q` überspringt `offset` so viele Requests, bevor die Suche zu lesen beginnt.
+Eine Suche mit `header` oder `field` und einem anderen `in` oder mit `header` und `field` zugleich wird mit einem `422` `validation_error` abgewiesen, dessen Eintrag den Typ `bins.search_conflict` hat.
+
+Eine Suche (`q`, `header` oder `field`) paginiert anders als der Rest. Sie liest die Requests der Liste vom neuesten an und stoppt, sobald sie `limit` Treffer hat oder 16 MiB an Requests (oder 5.000 davon) gelesen hat, je nachdem, was zuerst eintritt. Eine Seite kann daher weniger Treffer als `limit` enthalten oder gar keine, während ältere Requests noch ungelesen sind. Die Seite einer Suche hat `next_offset` `null` und, bis die Suche den ältesten Request der Liste gelesen hat, ein `next_until`: Übergeben Sie es als `until`, mit derselben Suche und denselben Werten für `method`, `path` und `since`, um dort weiterzusuchen, wo die Suche aufgehört hat. Mit einer Suche überspringt `offset` so viele Requests, bevor die Suche zu lesen beginnt.
 
 ```json
 {
@@ -203,7 +213,13 @@ Jeder Eintrag:
 | `request_id` | Die ID, die die Bin-URL diesem Request gegeben hat; das ist die `X-Request-ID`, die sein Absender zurückbekam. |
 | `forwards` | Was aus seinen [Weiterleitungen](#forwards) wurde, die neueste zuerst; leer, wenn sein Bin beim Eintreffen nicht weiterleitete. |
 
-Mit einem API-Key brauchen beide Routen einen bezahlten Tarif: In Free antworten sie mit `402` `not_entitled`, mit `details.feature` `read_api`. Die Konsole liest sie in jedem Tarif. Ein Request nach seinem `expires_at` oder in einem Bin, der geleert oder gelöscht wurde oder abgelaufen ist, antwortet mit `404`.
+Mit einem API-Key brauchen `GET /v1/bins/{id}/requests`, `GET /v1/requests` und `GET /v1/requests/{id}` einen bezahlten Tarif: In Free antworten sie mit `402` `not_entitled`, mit `details.feature` `read_api`. Die Konsole liest sie in jedem Tarif. Ein Request nach seinem `expires_at` oder in einem Bin, der geleert oder gelöscht wurde oder abgelaufen ist, antwortet mit `404`.
+
+### Requests aller Bins {#all-requests}
+
+`GET /v1/requests` listet die Requests aller Bins des Workspaces in einer Liste auf, neueste zuerst. Die Route akzeptiert die oben beschriebenen Parameter der Liste eines Bins und paginiert genauso, über `next_offset` oder bei einer Suche über `next_until`. Ihre Einträge sind die Einträge der Liste eines Bins, jeder mit der `bin_id` des Bins, an den er ging; um neben jedem die Bezeichnung oder URL seines Bins anzuzeigen, gleichen Sie `bin_id` mit `GET /v1/bins` ab.
+
+Die Liste enthält die Requests der Bins, die noch existieren. Die Requests eines gelöschten oder abgelaufenen Bins verschwinden sofort daraus, und die eines deaktivierten oder gesperrten Bins bleiben, so wie sie in der eigenen Liste dieses Bins bleiben. Die Seite **All bins** in der Konsole zeigt diese Liste, mit derselben Suche und denselben Methodenfiltern wie die Seite eines Bins und ohne **By path**.
 
 ### Requests nach Pfad {#paths}
 
@@ -414,7 +430,7 @@ Die Fehler der API verwenden das unter [Fehler](/docs/errors) beschriebene Forma
 | `404` | `not_found` | Kein solcher Bin oder Request in Ihrem Workspace, oder er wurde gelöscht oder ist abgelaufen; `details.reason` ist `bin` oder `request`. |
 | `405` | `method_not_allowed` | Der Pfad existiert, aber nicht für diese Methode. |
 | `413` | `payload_too_large` | Ein Request-Body über 2 MiB. |
-| `422` | `validation_error` | Ein Parameter oder Feld hat die Validierung nicht bestanden. Ein NUL-Zeichen im Pfad, in der Query oder in einem JSON-Body ergibt den Eintragstyp `bins.nul_character`, und eine Weiterleitungs-URL, an die ein Bin nicht weiterleitet, ergibt `bins.forward_target` ([Weiterleitung](#forwarding)). |
+| `422` | `validation_error` | Ein Parameter oder Feld hat die Validierung nicht bestanden. Ein NUL-Zeichen im Pfad, in der Query oder in einem JSON-Body ergibt den Eintragstyp `bins.nul_character`, eine Weiterleitungs-URL, an die ein Bin nicht weiterleitet, ergibt `bins.forward_target` ([Weiterleitung](#forwarding)), und eine Suche, deren Teile einander widersprechen, ergibt `bins.search_conflict` ([Erfasste Requests](#requests)). |
 | `429` | `rate_limited` | Mehr als 10 Tests für einen Bin innerhalb einer Minute; `details.retry_after` gibt an, wann Sie es erneut versuchen können. |
 | `500` | `internal_error` | Auf unserer Seite ist etwas kaputtgegangen. |
 | `503` | `unavailable` | Eine Weiterleitungs-URL festlegen oder einen Test senden, während die Weiterleitung für den gesamten Dienst ausgeschaltet ist (`details.reason` `forwarding_disabled`), oder ein Test, der nicht innerhalb von 3 Sekunden zum Senden übernommen wurde, sodass nichts gesendet wurde (`forwarder_unavailable`). |
