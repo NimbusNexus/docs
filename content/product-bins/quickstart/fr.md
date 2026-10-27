@@ -2,7 +2,7 @@
 title: "Démarrage rapide Request Bins"
 description: "Créez un bin, envoyez-lui une requête avec curl et lisez ce qu’il a enregistré — dans la console, puis via l’API."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-26
+updatedAt: 2026-10-27
 kind: quickstart
 ---
 
@@ -17,7 +17,7 @@ De zéro à une requête enregistrée en deux ou trois minutes. Vous allez crée
 
 ## 1. Créer un bin {#create}
 
-Dans la console, choisissez **Create a bin** (**New bin** une fois que vous en avez un). Le libellé est facultatif et les expéditeurs ne le voient jamais. Sur un plan payant, vous pouvez aussi choisir une durée de vie, qui ne pourra pas être modifiée ensuite. Choisissez **Create bin**.
+Dans la console, choisissez **Create a bin** (**New bin** une fois que vous en avez un). Le libellé est facultatif et les expéditeurs ne le voient jamais. **Lifetime** est préréglé sur la valeur par défaut de votre plan, 24 heures sur Free et jusqu’à suppression sur les plans payants ; vous pouvez choisir une durée plus courte, ou saisir la vôtre avec **Custom…**, jusqu’à la plus longue que permet votre plan. La durée de vie ne pourra pas être modifiée ensuite. Choisissez **Create bin**.
 
 La page du bin s’ouvre. En haut se trouvent sa **Bin URL**, par exemple `https://nnbin.net/b/k7xq2mbn9tfa`, et une commande **Try it**, chacune avec un bouton de copie.
 
@@ -74,7 +74,7 @@ curl -X POST https://bins.nimbusnexus.net/v1/bins \
   "slug": "w4tz8hcv2qnd",
   "url": "https://nnbin.net/b/w4tz8hcv2qnd",
   "label": "Quickstart",
-  "status": "active",
+  "status": "enabled",
   "expires_at": null,
   "created_at": "2026-10-22T09:12:01Z",
   "request_count": 0
@@ -113,7 +113,8 @@ curl https://bins.nimbusnexus.net/v1/bins/bin_3f9a1c7e5b2d8f4a6c0e9b17/requests 
       "expires_at": "2026-10-29T09:12:04Z"
     }
   ],
-  "next_offset": null
+  "next_offset": null,
+  "next_until": null
 }
 ```
 
@@ -179,7 +180,7 @@ curl -X DELETE https://bins.nimbusnexus.net/v1/bins/bin_3f9a1c7e5b2d8f4a6c0e9b17
   -H "Authorization: Bearer $BINS_API_KEY"
 ```
 
-La suppression est **définitive** : l’URL cesse aussitôt d’enregistrer, ce que le bin a enregistré est supprimé, et son slug n’est plus jamais émis, ni pour vous ni pour personne. Les expéditeurs en reçoivent toujours `200`. Pour arrêter plutôt d’enregistrer pendant un moment, passez le bin à `{"status": "disabled"}` avec `PATCH`, puis de nouveau à `{"status": "active"}` plus tard. Pour garder le bin et effacer ce qu’il contient, videz-le avec `DELETE /v1/bins/{id}/requests`. Sur Free, un bin expire 24 heures après sa création, ce qui y met fin de la même façon qu’une suppression.
+La suppression est **définitive** : l’URL cesse aussitôt d’enregistrer, ce que le bin a enregistré est supprimé, et son slug n’est plus jamais émis, ni pour vous ni pour personne. Les expéditeurs en reçoivent toujours `200`. Pour arrêter plutôt d’enregistrer pendant un moment, passez le bin à `{"status": "disabled"}` avec `PATCH`, puis de nouveau à `{"status": "enabled"}` plus tard. Pour garder le bin et effacer ce qu’il contient, videz-le avec `DELETE /v1/bins/{id}/requests`. Dans la console, les trois se trouvent dans le menu ⋯ de la page du bin : **Delete bin…**, **Disable** et **Empty bin…**. Sur Free, un bin expire au plus tard 24 heures après sa création, ce qui y met fin de la même façon qu’une suppression.
 
 ## Étapes suivantes {#next-steps}
 

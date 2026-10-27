@@ -2,22 +2,22 @@
 title: "Démarrage rapide Inboxes"
 description: "Créez une adresse e-mail jetable, envoyez-lui un message et relisez-le — dans la console ou avec curl."
 publishedAt: 2026-08-18
-updatedAt: 2026-10-22
+updatedAt: 2026-10-27
 kind: quickstart
 ---
 
 # Démarrage rapide Inboxes
 
-De zéro à quelque chose sur quoi faire une assertion. Vous allez créer une adresse e-mail, lui envoyer du vrai courrier et relire son code à usage unique.
+De zéro à quelque chose sur quoi faire une assertion. Vous allez créer une boîte, envoyer du vrai courrier à son adresse et relire son code à usage unique.
 
 ## Avant de commencer {#before}
 
-- **Dans la console, sur tous les plans.** Ouvrez Inboxes et choisissez **New address**. La carte de la nouvelle adresse indique exactement où envoyer : l’adresse, et sa phrase si elle en a une. Ce qui arrive apparaît en dessous en quelques secondes. C’est tout le parcours sur le plan gratuit.
+- **Dans la console, sur tous les plans.** Ouvrez Inboxes, choisissez **Create an inbox**, puis **Create inbox** : le libellé est facultatif, et la durée de vie est préréglée sur la valeur par défaut de votre plan. La page de la nouvelle boîte indique exactement où envoyer, chaque élément avec un bouton de copie : l’adresse, et sa phrase si elle en a une. Ce qui arrive apparaît dans la liste en dessous en quelques secondes. C’est tout le parcours sur le plan gratuit.
 - **Via l’API, sur un plan payant.** La lecture par programme exige Starter ou plus — sur le plan gratuit, les routes des messages répondent `not_entitled`. Il vous faut aussi une clé API créée dans la console de compte avec **Inboxes** comme produit ; voir [Obtenir l’accès](/docs/product-inboxes#access).
 
 Tous les chemins ci-dessous sont relatifs à `{{INBOXES_BASE_URL}}`, et chaque requête porte `Authorization: Bearer <your key>`.
 
-## 1. Créer une adresse {#allocate}
+## 1. Créer une boîte {#allocate}
 
 ```bash
 curl -X POST {{INBOXES_BASE_URL}}/v1/inboxes \
@@ -76,13 +76,16 @@ curl "{{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945/messages?extr
       "extracted": { "otp": "100017" }
     }
   ],
-  "next_offset": null
+  "next_offset": null,
+  "next_until": null
 }
 ```
 
 Tout l’intérêt est dans `extracted.otp`. Un test qui vérifie un parcours d’inscription veut généralement une seule chose — le code — et `?extract=otp` le place dans la réponse de liste : le cas courant ne demande donc pas de seconde requête. Sans `extract`, `extracted` vaut `null` ; `extract=links` renvoie à la place les liens du message, et `extract=all` renvoie les deux.
 
-Pour le message complet, avec les deux parties du corps et les verdicts SPF/DKIM/DMARC :
+Pour trouver un message parmi beaucoup d’autres, cherchez dans la liste : `q=verification` garde les messages qui contiennent ce texte, et `in=subject` (ou `from`, `headers` ou `body`) restreint l’endroit où chercher. Une recherche se pagine par `next_until` plutôt que par `next_offset` ; [Rechercher des messages](/docs/product-inboxes#search) donne chaque paramètre.
+
+Pour le message complet, avec les deux parties du corps, les verdicts SPF/DKIM/DMARC et les headers :
 
 ```bash
 curl {{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945/messages/msg_bd160c0bcf8db20fba4e535d \
@@ -111,7 +114,7 @@ curl -X DELETE {{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945 \
   -H "Authorization: Bearer $INBOXES_API_KEY"
 ```
 
-La suppression est **définitive** : la boîte et son contenu sont supprimés, et l’adresse est retirée pour ne plus jamais pouvoir être émise, ni pour vous ni pour personne. C’est délibéré — une adresse jetable recyclée livrerait le courrier d’un inconnu dans votre boîte. Pour en mettre une en pause à la place, passez-la à `{"status": "disabled"}` avec `PATCH`, et réactivez-la plus tard.
+La suppression est **définitive** : la boîte et son contenu sont supprimés, et l’adresse est retirée pour ne plus jamais pouvoir être émise, ni pour vous ni pour personne. C’est délibéré — une adresse jetable recyclée livrerait le courrier d’un inconnu dans votre boîte. Pour en mettre une en pause à la place, passez-la à `{"status": "disabled"}` avec `PATCH`, et réactivez-la plus tard. Dans la console, les deux se trouvent dans le menu ⋯ de la page de la boîte : **Delete inbox…** et **Disable**.
 
 ## Étapes suivantes {#next-steps}
 

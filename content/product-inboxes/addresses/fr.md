@@ -2,7 +2,7 @@
 title: "Les adresses et la phrase"
 description: "Pourquoi une adresse jetable refuse le courrier dont l’objet ne contient pas sa phrase, et ce qui distingue expiration, rétention et suppression."
 publishedAt: 2026-08-18
-updatedAt: 2026-10-19
+updatedAt: 2026-10-27
 kind: concept
 ---
 
@@ -46,13 +46,15 @@ Elles sont faciles à confondre et se comportent différemment.
 
 | | Ce qui se passe | Réversible |
 | --- | --- | --- |
-| **Expiration** | L’adresse atteint `expires_at`, est retirée, et son courrier stocké est supprimé. | Non |
-| **Supprimer** | Vous y mettez fin plus tôt avec `DELETE /v1/inboxes/{id}`. Retirée immédiatement, comme à l’expiration. | Non |
-| **Désactiver** | L’adresse cesse d’accepter du courrier et conserve ce qu’elle contient déjà. | Oui — réactivez-la |
+| **Expiration** | La boîte atteint `expires_at`, son adresse est retirée, et son courrier stocké est supprimé. | Non |
+| **Supprimer** | Vous y mettez fin plus tôt : **Delete inbox…** dans la console, ou `DELETE /v1/inboxes/{id}`. Retirée immédiatement, comme à l’expiration. | Non |
+| **Désactiver** | L’adresse cesse d’accepter du courrier et la boîte conserve ce qu’elle contient déjà : **Disable** dans la console, ou `PATCH` avec `{"status": "disabled"}`. | Oui — réactivez-la |
+
+Dans la console, ces actions se trouvent dans le menu ⋯ de la page de la boîte, avec **Rename…** et **Empty inbox…**, qui supprime le courrier de la boîte et conserve la boîte et son adresse. Les membres peuvent renommer, désactiver et activer une boîte ; seuls les propriétaires et les admins de l’espace de travail peuvent la vider et la supprimer. La page d’une boîte désactivée l’indique, avec un bouton **Enable**. La durée de vie d’une boîte est choisie à sa création et ne peut pas être modifiée ensuite ; une fois la boîte expirée ou supprimée, sa page affiche « This inbox no longer exists ».
 
 Une adresse retirée n’est **jamais réattribuée**, ni à vous ni à personne : chaque adresse ayant existé est enregistrée, et une nouvelle adresse est comparée à ce registre avant d’être émise. C’est une propriété de sécurité plutôt qu’un détail d’implémentation — recycler une adresse jetable finirait par livrer la réinitialisation de mot de passe d’un inconnu dans l’exécution de test de quelqu’un d’autre. Le stock ne s’épuise pas : une adresse fait 12 caractères tirés d’un alphabet de 32 caractères, soit environ 1.15 × 10¹⁸ combinaisons.
 
-Choisissez **désactiver** quand une suite de tests bombarde une adresse et que vous voulez que cela cesse pendant une heure. Choisissez **supprimer** quand vous avez terminé et voulez récupérer l’emplacement — les plans plafonnent le nombre d’adresses que vous pouvez détenir à la fois. Les anciennes versions de cette documentation, ainsi que le journal d’audit de l’API, appellent la suppression *release*.
+Choisissez **désactiver** quand une suite de tests bombarde une adresse et que vous voulez que cela cesse pendant une heure. Choisissez **vider** quand vous voulez garder l’adresse et repartir sans aucun courrier. Choisissez **supprimer** quand vous avez terminé et voulez récupérer l’emplacement — les plans plafonnent le nombre de boîtes que vous pouvez détenir à la fois. Les anciennes versions de cette documentation, ainsi que le journal d’audit de l’API, appellent la suppression *release*.
 
 ## L’expiration n’est pas la rétention {#expiry-vs-retention}
 

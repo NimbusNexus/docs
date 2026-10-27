@@ -2,7 +2,7 @@
 title: "Erreurs"
 description: "Le format des erreurs, les codes d’erreur qu’envoient les API Webhooks, Inboxes et Request Bins, et la façon de traiter chacun."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-23
+updatedAt: 2026-10-27
 kind: concept
 ---
 
@@ -173,7 +173,13 @@ Les règles propres à Webhooks sur les headers personnalisés, les délais de `
 
 Le `loc` des règles sur les headers personnalisés est `["body", "custom_headers"]`, et `params.header` est le nom tel que vous l’avez envoyé ; la valeur d’un header n’est jamais renvoyée. Un nom de plan que l’API ne connaît pas, sur une route réservée aux opérateurs de la plateforme, donne une entrée `enum` sans `params`. Jusqu’à la mise à jour signalée en haut de cette page, toutes ces entrées avaient le type `value_error`.
 
-Request Bins envoie un type d’entrée qui lui est propre : `bins.nul_character`, pour un caractère NUL dans le chemin, la query string ou un corps JSON, que l’API ne peut pas stocker. Son `loc` est `["path"]`, `["query", <name>]` ou `["body"]`, et l’entrée ne porte pas de `params`.
+Inboxes envoie un type d’entrée qui lui est propre : `inboxes.search_conflict`, pour une recherche de messages sur `GET /v1/inboxes/{id}/messages` ou `GET /v1/messages` qui nomme un `header` avec `in` réglé sur `subject`, `from` ou `body`. Son `loc` est `["query", "in"]`, et l’entrée ne porte pas de `params` ([Rechercher des messages](/docs/product-inboxes#search)).
+
+Request Bins en envoie trois :
+
+- `bins.nul_character` : un caractère NUL dans le chemin, la query string ou un corps JSON, que l’API ne peut pas stocker. Son `loc` est `["path"]`, `["query", <name>]` ou `["body"]`, et l’entrée ne porte pas de `params`.
+- `bins.forward_target` : une URL de transfert vers laquelle un bin refuse de transférer. Son `loc` est `["body", "forward_url"]`, et `params.reason` indique pourquoi ([Transfert](/docs/product-bins/reference#forwarding)).
+- `bins.search_conflict` : une recherche sur `GET /v1/bins/{id}/requests` ou `GET /v1/requests` dont le `header` ou le `field` ne va pas avec son `in`, avec le `loc` `["query", "in"]`, ou qui nomme à la fois un `header` et un `field`, avec le `loc` `["query", "field"]`. L’entrée ne porte pas de `params` ([Requêtes capturées](/docs/product-bins/reference#requests)).
 
 Un libellé Inboxes qui dépasse sa limite d’un caractère :
 
@@ -229,7 +235,7 @@ Ce sont tous des `402`. Réessayer la même requête ne sert jamais à rien : qu
 
 Sur Webhooks, la limite d’endpoints est `quota_exceeded` sur `POST /v1/endpoints`, avec `details.reason` `allocation`, `metric` `endpoints`, `limit` (le plafond du plan) et `current` (les endpoints que compte l’espace de travail). Une source RabbitMQ sur un plan inférieur à Pro est `not_entitled` avec `details.feature` `rabbitmq_sources` : sur `POST /v1/sources`, et sur un `PATCH /v1/sources/{id}` d’une source RabbitMQ dont le corps définit `status` à `enabled` ou définit l’un des champs `broker_identifier`, `broker_host`, `broker_port`, `broker_vhost`, `broker_user`, `broker_exchange`, `broker_topic` ou `broker_queues`, même à la valeur qu’il a déjà. Les autres modifications, comme renommer ou désactiver la source, restent autorisées. Un `max_attempts` au-dessus du plafond du plan n’est pas un `402` : c’est un `422` `validation_error` ([Validation des requêtes](#codes-validation)).
 
-Sur Request Bins, la limite de bins est `quota_exceeded` sur `POST /v1/bins`. Lire les requêtes capturées avec une clé API sur Free donne `not_entitled`, avec `details.feature` `read_api`, sur `GET /v1/bins/{id}/requests` et `GET /v1/requests/{id}` ; la console les lit sur tous les plans. Tant qu’un espace de travail est gelé ou suspendu, toute écriture sauf une suppression est refusée avec `workspace_frozen` ou `workspace_suspended`, et les lectures restent ouvertes. Les bins continuent d’enregistrer tant que l’espace de travail est gelé et s’arrêtent tant qu’il est suspendu ([Plans et limites](/docs/product-bins/reference#limits)).
+Sur Request Bins, la limite de bins est `quota_exceeded` sur `POST /v1/bins`. Lire les requêtes capturées avec une clé API sur Free donne `not_entitled`, avec `details.feature` `read_api`, sur `GET /v1/bins/{id}/requests`, `GET /v1/requests` et `GET /v1/requests/{id}` ; la console les lit sur tous les plans. Tant qu’un espace de travail est gelé ou suspendu, toute écriture sauf une suppression est refusée avec `workspace_frozen` ou `workspace_suspended`, et les lectures restent ouvertes. Les bins continuent d’enregistrer tant que l’espace de travail est gelé et s’arrêtent tant qu’il est suspendu ([Plans et limites](/docs/product-bins/reference#limits)).
 
 ### Ressources {#codes-resources}
 
