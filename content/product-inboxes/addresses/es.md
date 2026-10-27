@@ -2,7 +2,7 @@
 title: "Direcciones y la frase"
 description: "Por qué una dirección desechable rechaza el correo cuyo asunto no lleva su frase, y en qué se diferencian la caducidad, la retención y el borrado."
 publishedAt: 2026-08-18
-updatedAt: 2026-10-19
+updatedAt: 2026-10-27
 kind: concept
 ---
 
@@ -46,13 +46,15 @@ Es fácil confundirlas, y se comportan de forma distinta.
 
 | | Qué ocurre | Reversible |
 | --- | --- | --- |
-| **Caducidad** | La dirección llega a `expires_at`, se retira y su correo guardado se borra. | No |
-| **Borrar** | La terminas antes de tiempo con `DELETE /v1/inboxes/{id}`. Se retira de inmediato, igual que con la caducidad. | No |
-| **Desactivar** | La dirección deja de aceptar correo y conserva lo que ya tiene. | Sí — vuelve a activarla |
+| **Caducidad** | El inbox llega a `expires_at`, su dirección se retira y su correo guardado se borra. | No |
+| **Borrar** | Lo terminas antes de tiempo: **Delete inbox…** en la consola, o `DELETE /v1/inboxes/{id}`. Se retira de inmediato, igual que con la caducidad. | No |
+| **Desactivar** | La dirección deja de aceptar correo y el inbox conserva lo que ya tiene: **Disable** en la consola, o `PATCH` con `{"status": "disabled"}`. | Sí — vuelve a activarla |
+
+En la consola, estas opciones están en el menú ⋯ de la página del inbox, junto con **Rename…** y **Empty inbox…**, que borra el correo del inbox y conserva el inbox y su dirección. Los miembros pueden renombrar, desactivar y activar un inbox; vaciarlo y borrarlo corresponde a los propietarios y administradores del workspace. La página de un inbox desactivado lo indica, con un botón **Enable**. La vida útil de un inbox se elige al crearlo y no se puede cambiar después; cuando ha caducado o se ha borrado, su página dice "This inbox no longer exists".
 
 Una dirección retirada **nunca se vuelve a emitir**, ni para ti ni para nadie: se registra cada dirección que ha existido, y cada nueva se comprueba contra ese registro antes de emitirse. Es una propiedad de seguridad, no un detalle de implementación — reciclar una dirección desechable acabaría entregando el restablecimiento de contraseña de un desconocido en la ejecución de tests de otra persona. Las direcciones no se agotan: una dirección son 12 caracteres de un alfabeto de 32, unas 1,15 × 10¹⁸ combinaciones.
 
-Recurre a **desactivar** cuando una suite de tests esté inundando una dirección y quieras que pare durante una hora. Recurre a **borrar** cuando hayas terminado y quieras recuperar el hueco — los planes limitan cuántas direcciones puedes tener a la vez. Las versiones anteriores de esta documentación, y el registro de auditoría de la API, llaman *release* a borrar.
+Recurre a **desactivar** cuando una suite de tests esté inundando una dirección y quieras que pare durante una hora. Recurre a **vaciar** cuando quieras conservar la dirección y volver a empezar sin correo. Recurre a **borrar** cuando hayas terminado y quieras recuperar el hueco — los planes limitan cuántos inboxes puedes tener a la vez. Las versiones anteriores de esta documentación, y el registro de auditoría de la API, llaman *release* a borrar.
 
 ## La caducidad no es la retención {#expiry-vs-retention}
 

@@ -2,22 +2,22 @@
 title: "Inicio rápido de Inboxes"
 description: "Crea una dirección de email desechable, envíale un mensaje y léelo de vuelta — en la consola o con curl."
 publishedAt: 2026-08-18
-updatedAt: 2026-10-22
+updatedAt: 2026-10-27
 kind: quickstart
 ---
 
 # Inicio rápido de Inboxes
 
-De cero a algo que puedes comprobar en un test. Vas a crear una dirección de email, enviarle correo real y leer su código de un solo uso.
+De cero a algo que puedes comprobar en un test. Vas a crear un inbox, enviar correo real a su dirección y leer su código de un solo uso.
 
 ## Antes de empezar {#before}
 
-- **En la consola, con cualquier plan.** Abre Inboxes y elige **New address**. La tarjeta de la nueva dirección muestra exactamente a qué enviar: la dirección, y su frase si tiene una. Lo que llega aparece debajo en cuestión de segundos. Ese es todo el flujo en el plan gratuito.
+- **En la consola, con cualquier plan.** Abre Inboxes, elige **Create an inbox** y después **Create inbox**: la etiqueta es opcional, y la vida útil parte del valor por defecto de tu plan. La página del nuevo inbox muestra exactamente a qué enviar, cada una con un botón para copiarla: la dirección, y su frase si tiene una. Lo que llega aparece en la lista de abajo en cuestión de segundos. Ese es todo el flujo en el plan gratuito.
 - **Por la API, con un plan de pago.** Leer de forma programática requiere Starter o superior — en el plan gratuito las rutas de mensajes responden `not_entitled`. También necesitas una clave de API emitida en la consola de la cuenta con **Inboxes** como producto; consulta [Cómo obtener acceso](/docs/product-inboxes#access).
 
 Todas las rutas siguientes son relativas a `{{INBOXES_BASE_URL}}`, y todas las peticiones llevan `Authorization: Bearer <your key>`.
 
-## 1. Crea una dirección {#allocate}
+## 1. Crea un inbox {#allocate}
 
 ```bash
 curl -X POST {{INBOXES_BASE_URL}}/v1/inboxes \
@@ -76,13 +76,16 @@ curl "{{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945/messages?extr
       "extracted": { "otp": "100017" }
     }
   ],
-  "next_offset": null
+  "next_offset": null,
+  "next_until": null
 }
 ```
 
 `extracted.otp` es lo importante. Un test que comprueba un flujo de registro suele querer exactamente una cosa — el código — y `?extract=otp` lo pone en la respuesta de la lista, así que el caso habitual no necesita una segunda petición. Sin `extract`, `extracted` es `null`; `extract=links` devuelve en su lugar los enlaces del mensaje, y `extract=all` devuelve ambos.
 
-Para el mensaje completo, incluidas las dos partes del cuerpo y los veredictos de SPF/DKIM/DMARC:
+Para encontrar un mensaje entre muchos, busca en la lista: `q=verification` se queda con los mensajes que contienen el texto, y con `in=subject` (o `from`, `headers` o `body`) se acota dónde busca. Una búsqueda se pagina por `next_until` en lugar de `next_offset`; [Búsqueda de mensajes](/docs/product-inboxes#search) tiene todos los parámetros.
+
+Para el mensaje completo, incluidas las dos partes del cuerpo, los veredictos de SPF/DKIM/DMARC y las cabeceras:
 
 ```bash
 curl {{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945/messages/msg_bd160c0bcf8db20fba4e535d \
@@ -111,7 +114,7 @@ curl -X DELETE {{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945 \
   -H "Authorization: Bearer $INBOXES_API_KEY"
 ```
 
-Borrar es **permanente**: el inbox y lo que contiene se borran, y la dirección se retira para que nunca se pueda volver a emitir, ni para ti ni para nadie. Es deliberado — una dirección desechable reciclada entregaría el correo de un desconocido en tu inbox. Para pausarla en su lugar, haz `PATCH` con `{"status": "disabled"}` y vuelve a activarla más tarde.
+Borrar es **permanente**: el inbox y lo que contiene se borran, y la dirección se retira para que nunca se pueda volver a emitir, ni para ti ni para nadie. Es deliberado — una dirección desechable reciclada entregaría el correo de un desconocido en tu inbox. Para pausarla en su lugar, haz `PATCH` con `{"status": "disabled"}` y vuelve a activarla más tarde. En la consola, ambas opciones están en el menú ⋯ de la página del inbox: **Delete inbox…** y **Disable**.
 
 ## Próximos pasos {#next-steps}
 
