@@ -2,7 +2,7 @@
 title: Request Bins reference
 description: Every route of the Request Bins API, what a bin URL answers and records, who may do what, and each plan's limits.
 publishedAt: 2026-10-22
-updatedAt: 2026-10-23
+updatedAt: 2026-10-26
 kind: reference
 ---
 
@@ -35,15 +35,15 @@ A `200` carries an `X-Request-ID` header, and the captured request's `request_id
 
 ### What a bin records {#edge-records}
 
-- **Body:** a body of any size is accepted. Its full size is counted in `size_bytes`; the first 1 MiB is passed on for storage, and the first 64 KiB of that is stored. `truncated` is `true` when the stored body is shorter than `size_bytes`. The body is stored as the bytes that arrived, never parsed or changed.
+- **Body:** a body of any size is accepted. Its full size is counted in `size_bytes`, and its first 1 MiB is stored, so a body up to 1 MiB is stored whole. `truncated` is `true` when the body was over 1 MiB, and the stored body is then shorter than `size_bytes`. The body is stored as the bytes that arrived, never parsed or changed.
 - **Headers:** in arrival order with duplicates kept, up to 256 of them; a name is cut at 256 characters and a value at 8,192. The values of `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` and `X-API-Key` are replaced with `[redacted]` before anything is stored. Every other header is kept as sent.
 - **Path:** cut at 2,048 characters.
 - **Content type:** the `Content-Type` header, as `content_type`.
 - **Source address:** the address that sent the request, as `source_ip`.
 
-### Repeats {#edge-repeats}
+### Every request is a row {#edge-repeats}
 
-A request with the same method, path, query string and body as one the bin already holds isn't stored again, even when its headers differ. Instead, that request's `seen_count` goes up by one, and its `received_at`, `expires_at` and `request_id` move to the latest arrival, while its headers stay those of the first arrival. The query string is compared exactly as sent, so `?a=1&b=2` and `?b=2&a=1` are two requests. Headers are left out of the match because a provider's retry carries a new signature and timestamp. A repeat counts toward the month's requests.
+Every request is stored as a row of its own. A request sent again, even with the same method, path, query string and body as one the bin already holds, is a new row with its own headers, source address, time and `request_id`, and it counts toward the month's requests like any other. So a provider's retries appear one by one, each with its own signature and timestamp. `seen_count` is `1` on every new row. A request stored before 25 October 2026 may differ until it ages out: its body may have been cut at 64 KiB, and its `seen_count` may count every time the same request arrived.
 
 ### When nothing is recorded {#edge-refusals}
 
@@ -93,10 +93,12 @@ The base URL is `https://bins.nimbusnexus.net/v1`. Requests and answers are JSON
 | `POST /v1/bins` | Create a bin; `201` with [the bin](#bin) | write |
 | `GET /v1/bins` | The workspace's bins, newest first; `url` or `slug` finds one | read |
 | `GET /v1/bins/{id}` | One bin | read |
-| `PATCH /v1/bins/{id}` | Rename a bin, or disable and enable it | write |
+| `PATCH /v1/bins/{id}` | Rename a bin, disable and enable it, or set its [forward URL](#forwarding) | write |
+| `POST /v1/bins/{id}/forward-test` | Send a [test](#forward-test) to the bin's forward URL and return what it answered | write |
 | `DELETE /v1/bins/{id}` | Delete a bin; `204` | admin |
 | `GET /v1/bins/{id}/requests` | A bin's [captured requests](#requests), newest first | read; with a key, a paid plan |
-| `GET /v1/requests/{id}` | One captured request in full | read; with a key, a paid plan |
+| `GET /v1/bins/{id}/paths` | A bin's requests [grouped by path](#paths) | read; with a key, a paid plan |
+| `GET /v1/requests/{id}` | One captured request in full, with its [forwards](#forwards) | read; with a key, a paid plan |
 | `DELETE /v1/bins/{id}/requests` | Empty a bin; `200` with `{"deleted": <count>}` | admin |
 | `GET /v1/plan` | The workspace's plan and its limits | read |
 | `GET /v1/usage` | This month's requests and the bins held, against the plan | read |
@@ -137,13 +139,16 @@ Lists are paged with `limit` (1 to 200, default 50) and `offset` (0 to 10,000). 
 | `last_refused_summary`, `last_refused_reason`, `last_refused_at` | The last of those, as `METHOD /path`; `quota_exceeded` or `workspace_suspended`; and when it came. |
 | `browser_post_count` | Browser form posts the bin has received. |
 | `last_browser_form_origin`, `last_browser_form_at` | The page that sent the last one, and when. |
-| `request_count` | Requests recorded since the bin was created or last emptied, repeats included. |
+| `request_count` | Requests recorded since the bin was created or last emptied. |
 | `last_request_at` | When the last one arrived, or `null`. |
 | `period_requests` | This month's requests counted for the bin, against `bin_request_ceiling` in [`GET /v1/usage`](#plan). |
+| `forward_url` | Where the bin [forwards](#forwarding) each request it records, or `null` when it doesn't. |
+| `forward_paused_at`, `forward_paused_reason` | When forwarding [paused](/docs/product-bins/forwarding#paused) after failed sends, and why: `failed_in_a_row` or `failing_for_an_hour`. `null` and empty while it isn't paused. |
+| `forward_last_error`, `forward_last_error_at` | The last send that failed: what went wrong, such as `HTTP 503` or a timeout, never what the request held; and when. |
 
 ### Change or delete a bin {#change}
 
-`PATCH /v1/bins/{id}` takes `label`, `status` (`active` or `disabled`), or both, and answers with the bin. Disabling stops recording and keeps what the bin holds. A disabled bin still counts toward the plan's bins.
+`PATCH /v1/bins/{id}` takes `label`, `status` (`active` or `disabled`), `forward_url` ([Forwarding](#forwarding)), or any of them, and answers with the bin. Disabling stops recording and keeps what the bin holds. A disabled bin still counts toward the plan's bins.
 
 `DELETE /v1/bins/{id}` deletes a bin for good. Its URL stops recording at once, though senders still get `200`; its slug is never issued again, to you or anyone; and what it recorded is deleted shortly after. Its place among the plan's bins frees at once.
 
@@ -158,10 +163,11 @@ Lists are paged with `limit` (1 to 200, default 50) and `offset` (0 to 10,000). 
 | `since` | Only requests received after this instant. Pass the newest `received_at` you have seen to poll for new ones. |
 | `until` | Only requests received at or before this instant: the way back through older ones. |
 | `method` | Only requests sent with this method, in any case. Repeat it for any of several: `?method=PUT&method=DELETE`. |
+| `path` | Only requests sent to exactly this path: what followed the slug, from its `/`, without the query string, as the list shows it. Case matters. [Requests by path](#paths) lists a bin's paths. |
 | `q` | Only requests containing this text, up to 200 characters, ignoring case: in the path and query string as sent (`/orders?id=42`), in a header as `name: value`, or in the stored body. A body that isn't UTF-8 text is searched with each byte above 127 (and NUL) written as `\` and three octal digits, and a backslash doubled. |
 | `limit`, `offset` | Paging, as for bins. Past offset 10,000, narrow the window with `until` instead. |
 
-A search (`q`) pages differently from the rest. It reads the bin's requests newest first and stops when it has `limit` matches or has read 16 MiB of requests (or 5,000 of them), whichever comes first, so a page can hold fewer matches than `limit`, or none, while older requests are still unread. Such a page has `next_offset` `null` and a `next_until`: pass it back as `until`, with the same `q`, `method` and `since`, to search on from where it stopped. `next_until` is `null` once the search has read the bin's oldest request. With `q`, `offset` skips that many requests before the search starts reading.
+A search (`q`) pages differently from the rest. It reads the bin's requests newest first and stops when it has `limit` matches or has read 16 MiB of requests (or 5,000 of them), whichever comes first, so a page can hold fewer matches than `limit`, or none, while older requests are still unread. Such a page has `next_offset` `null` and a `next_until`: pass it back as `until`, with the same `q`, `method`, `path` and `since`, to search on from where it stopped. `next_until` is `null` once the search has read the bin's oldest request. With `q`, `offset` skips that many requests before the search starts reading.
 
 ```json
 {
@@ -183,9 +189,9 @@ Each item:
 | `source_ip` | The address it came from. |
 | `content_type` | Its `Content-Type` header, or empty. |
 | `size_bytes` | The body's full size, as sent. |
-| `truncated` | `true` when the stored body is shorter than `size_bytes`. |
-| `seen_count` | How many times this request arrived: the same method, path, query string and body. |
-| `received_at` | When it last arrived. |
+| `truncated` | `true` when the body was over 1 MiB, so only its first 1 MiB is stored. |
+| `seen_count` | `1`: every request is a [row of its own](#edge-repeats). |
+| `received_at` | When it arrived. |
 | `expires_at` | When it will be deleted: the plan's retention after `received_at`, or the bin's own `expires_at` if that comes first. |
 
 `GET /v1/requests/{id}` returns one request with every field above, and:
@@ -193,10 +199,115 @@ Each item:
 | Field | What |
 | --- | --- |
 | `headers` | Objects with a `name` and a `value`, in arrival order, duplicates kept, credentials `[redacted]`. |
-| `body_base64` | The stored body, base64-encoded because it need not be text: at most 64 KiB. |
-| `request_id` | The id the bin URL gave the delivery that last wrote this request, which is the `X-Request-ID` that sender got back. |
+| `body_base64` | The stored body, base64-encoded because it need not be text: at most 1 MiB. |
+| `request_id` | The id the bin URL gave this request, which is the `X-Request-ID` its sender got back. |
+| `forwards` | What became of [forwarding](#forwards) it, the newest first; empty when its bin wasn't forwarding when it arrived. |
 
 With an API key, both routes need a paid plan: on Free they answer `402` `not_entitled`, with `details.feature` `read_api`. The console reads them on every plan. A request past its `expires_at`, or in a bin that has been emptied, deleted or has expired, answers `404`.
+
+### Requests by path {#paths}
+
+`GET /v1/bins/{id}/paths` groups a bin's newest 10,000 requests by path, the most recently used path first. The query string is left out, so `/orders?id=1` and `/orders?id=2` are one path, while paths are compared as sent, so `/users/1` and `/users/2` are two. `method` keeps only those methods, as on the request list, and `limit` and `offset` page as they do for bins.
+
+```json
+{
+  "items": [
+    {
+      "path": "/stripe/events",
+      "requests": 42,
+      "methods": ["POST", "GET"],
+      "last_received_at": "2026-10-26T09:12:04Z"
+    }
+  ],
+  "next_offset": null,
+  "counted": 57,
+  "capped": false
+}
+```
+
+| Field | What |
+| --- | --- |
+| `path` | What followed the slug, without the query string. |
+| `requests` | How many of the counted requests were sent to it. |
+| `methods` | The methods they were sent with, the most used first. |
+| `last_received_at` | When the last of them arrived. |
+
+`counted` says how many requests were grouped, and `capped` is `true` when the bin holds more than that, so older paths and counts are missing. Counting only the newest 10,000 keeps one call as quick on a bin of millions as on a bin of ten. To list one path's requests, pass it as `path` to `GET /v1/bins/{id}/requests`. With an API key the route needs a paid plan, as the request routes do.
+
+In the console, **By path** above a bin's list shows the same groups, refreshed every 10 seconds, with the method chips applied. Picking a path lists its requests, with the path shown as a chip above the list; removing the chip lists every request again.
+
+### Forwarding {#forwarding}
+
+A bin on Starter, Pro or Custom can send each request it records on to one https URL of yours. [Forwarding](/docs/product-bins/forwarding) covers what is sent, the retries, the limits and when forwarding pauses; this section covers the API.
+
+`PATCH /v1/bins/{id}` with `forward_url` sets the URL, and `null` or `""` stops forwarding. Setting a URL again, even the same one, resumes a bin whose forwarding [paused](/docs/product-bins/forwarding#paused), and starts its count of failed sends again. On Free the answer is `402` `not_entitled`, with `details.feature` `forwarding`. A URL a bin won't forward to is a `422` `validation_error` whose entry has the type `bins.forward_target`, the `loc` `["body", "forward_url"]`, and a `params.reason`:
+
+| `reason` | Why |
+| --- | --- |
+| `scheme` | It isn't `https`. |
+| `credentials` | It carries a user name or password. |
+| `host` | It has no host, or its host isn't a valid name. |
+| `port` | Its port isn't between 1 and 65535. |
+| `length` | It is over 2,048 characters. |
+| `own_domain` | Its host is `nnbin.net`, `nimbusnexus.net` or a name under them, or resolves to one of our own addresses. |
+| `not_public` | Its host doesn't resolve, or resolves to an address that isn't public, such as a private, loopback or link-local one. |
+| `missing` | A test send to a bin with no forward URL. |
+
+Treat `reason`, `forward_paused_reason` and a forward's `reason` as open strings, and keep a default for a value you don't know.
+
+When forwarding pauses, the workspace is told once, by email and by a webhook with the event type `bind.forwarding.paused`; [When forwarding pauses](/docs/product-bins/forwarding#paused) shows the webhook's body.
+
+### Test a forward URL {#forward-test}
+
+`POST /v1/bins/{id}/forward-test` takes no body. It sends a test event to the bin's forward URL at once and answers `200` with what came back ([Checking the URL first](/docs/product-bins/forwarding#test) shows the event):
+
+| Field | What |
+| --- | --- |
+| `ok` | `true` when your server answered `2xx` or `3xx`. |
+| `answer` | What it answered: `status`; `headers`, objects with a `name` and a `value`, in the order sent; the first 8 KiB of the body as `body_base64`; and `truncated`, `true` when the body went on past that. `null` when no answer came. |
+| `duration_ms` | How long the send took. |
+| `error` | Why no answer came, such as a timeout or a refused connection; empty when one did. |
+
+The call waits up to 13 seconds for the answer, and a server slower than that gives `ok` `false` with an `error` saying so. A bin can send 10 tests a minute: past that, the answer is `429` `rate_limited`, and `details.retry_after` says how many seconds until the next is allowed. `503` `unavailable`, with `details.reason` `forwarder_unavailable`, means the test wasn't picked up for sending within 3 seconds, so nothing was sent: try again shortly. A URL found not to be public at the send is refused with the `422` above.
+
+### A request's forwards {#forwards}
+
+`GET /v1/requests/{id}` carries `forwards`: what became of forwarding the request, the newest first, and empty when its bin wasn't forwarding when it arrived. [Seeing what happened](/docs/product-bins/forwarding#forwards) shows one in full. Each item:
+
+| Field | What |
+| --- | --- |
+| `id` | `fwd_` and 24 hex characters. |
+| `state` | Where it stands, from the table below. |
+| `reason` | Why it wasn't forwarded, when `state` is `not_forwarded`; empty otherwise. |
+| `url` | Where it goes: the forward URL as it was when the request arrived, with the request's path and query added. |
+| `attempts`, `max_attempts` | The attempts made so far, and the most the plan allowed when it was queued. |
+| `next_attempt_at` | When the next attempt is due, while `state` is `retrying`; otherwise `null`. |
+| `last_error` | What went wrong on the last attempt, such as `HTTP 503` or a timeout, or why it is waiting; empty once it is sent. |
+| `answer` | What your server answered on the last attempt, shaped as in a [test](#forward-test). `null` when that attempt got no answer. |
+| `duration_ms` | How long the last attempt took; `null` before the first. |
+| `created_at` | When it was queued. |
+| `sent_at` | When it was sent; `null` until then. |
+
+| `state` | What it means |
+| --- | --- |
+| `queued` | Waiting for its first attempt. |
+| `sending` | An attempt is under way. |
+| `sent` | Your server answered `2xx` or `3xx`. |
+| `retrying` | An attempt failed, and another is due at `next_attempt_at`. |
+| `failed` | Given up: the plan's attempts are used up, or an attempt ended in a way that isn't retried, such as a `404`. |
+| `not_forwarded` | Recorded and never sent; `reason` says why. |
+
+| `reason` | Why it wasn't forwarded |
+| --- | --- |
+| `paused` | Forwarding was paused when the request arrived, or when its turn came. |
+| `body_too_large` | The body is larger than the plan forwards, or was over 1 MiB. |
+| `url_too_long` | The forward URL with the request's path and query added is over 8,192 characters. |
+| `queue_full` | 1,000 of the bin's forwards hadn't finished yet. |
+| `forwarding_off` | Forwarding was stopped before its turn. |
+| `bin_gone` | The bin was deleted or expired before its turn. |
+| `suspended` | The bin or its workspace was suspended before its turn. |
+| `not_entitled` | The plan stopped including forwarding before its turn. |
+| `request_gone` | The request reached the end of its retention before its turn. |
 
 ### Plan and usage {#plan}
 
@@ -215,7 +326,11 @@ With an API key, both routes need a paid plan: on Free they answer `402` `not_en
     "read_api": 1,
     "bin_max_sources": 200,
     "bin_max_browser_posts": 5,
-    "bin_share_pct": 50
+    "bin_share_pct": 50,
+    "forwarding": 1,
+    "forward_max_body_bytes": 262144,
+    "forward_rate_per_min": 60,
+    "forward_max_attempts": 3
   },
   "past_due": false,
   "suspended": false,
@@ -242,7 +357,7 @@ With an API key, both routes need a paid plan: on Free they answer `402` `not_en
 
 ## Who can do what {#authority}
 
-| | Read bins, plan and usage | Read captured requests | Create, rename, disable and enable bins | Delete and empty bins |
+| | Read bins, plan and usage | Read captured requests | Create, rename, disable and enable bins, and set up forwarding | Delete and empty bins |
 | --- | --- | --- | --- | --- |
 | Workspace owner or admin | yes | yes | yes | yes |
 | Member | yes | yes | yes | no |
@@ -269,10 +384,14 @@ A workspace has Request Bins once an owner or admin has opened the console, or a
 | `read_api` | Reading captured requests with a key | no | yes | yes | yes |
 | `bin_max_sources` | Distinct senders before a bin is suspended | 50 | 200 | 500 | 2,000 |
 | `bin_max_browser_posts` | Browser form posts before a bin is suspended | 3 | 5 | 5 | 10 |
+| `forwarding` | [Forwarding](#forwarding) each request to your own server | no | yes | yes | yes |
+| `forward_max_body_bytes` | The largest body a forward carries | — | 256 KiB | 1 MiB | 1 MiB |
+| `forward_rate_per_min` | Forwards one bin sends a minute; more wait their turn | — | 60 | 300 | 600 |
+| `forward_max_attempts` | Attempts to send one forward | — | 3 | 5 | 5 |
 
-`GET /v1/plan` reports lifetimes in minutes, with `0` meaning until deleted (`bin_ttl_minutes`) or no plan limit (`bin_ttl_max_minutes`), and `read_api` as `1` or `0`. Prices are on the [overview](/docs/product-bins#limits).
+`GET /v1/plan` reports lifetimes in minutes, with `0` meaning until deleted (`bin_ttl_minutes`) or no plan limit (`bin_ttl_max_minutes`), `read_api` and `forwarding` as `1` or `0`, `forward_max_body_bytes` in bytes, and the forwarding numbers as `0` on Free. Prices are on the [overview](/docs/product-bins#limits).
 
-- **The month** is a calendar month in UTC: `period` in `GET /v1/usage`. Every request a bin records counts, repeats included. A refused or rate-limited request doesn't.
+- **The month** is a calendar month in UTC: `period` in `GET /v1/usage`. Every request a bin records counts. A refused or rate-limited request doesn't.
 - **Past the month's requests**, or past one bin's share of them (`bin_request_ceiling`), bins answer `200` and record nothing until the next month, and `refused_count` shows it. No API call is refused for it.
 - **Retention and lifetime are separate clocks.** A request is deleted when the plan's retention runs out or when its bin ends, whichever comes first.
 - **Notices:** when the workspace reaches 80% and then 100% of the month's requests, it is told by email, which goes to the workspace owner unless you choose another address, and by a webhook with the event type `bind.quota.threshold_reached` if you set one up. Both are under **Notifications** in your account console.
@@ -289,20 +408,23 @@ The API's errors use the shape described in [Errors](/docs/errors), with the cod
 | `401` | `unauthorized` | No credential, a revoked one, or a console sign-in that has ended; `details.reason` says which. |
 | `401` | `invalid_credential` | A key that doesn't verify, has expired, or was created for another product. |
 | `402` | `quota_exceeded` | Creating a bin while the plan's bins are all in use. |
-| `402` | `not_entitled` | Reading captured requests with a key on Free. |
+| `402` | `not_entitled` | On Free: reading captured requests with a key (`details.feature` `read_api`), or setting a forward URL or sending a test (`forwarding`). |
 | `402` | `workspace_frozen`, `workspace_suspended` | Creating or changing a bin while a payment is overdue, or after service has stopped. |
 | `403` | `forbidden` | `details.reason` is `role`, `project_confined`, `product_not_enabled`, `csrf` or `no_workspace`. |
 | `404` | `not_found` | No such bin or request in your workspace, or it has been deleted or has expired; `details.reason` is `bin` or `request`. |
 | `405` | `method_not_allowed` | The path exists, but not for this method. |
 | `413` | `payload_too_large` | A request body over 2 MiB. |
-| `422` | `validation_error` | A parameter or field failed validation. A NUL character in the path, the query or a JSON body is the entry type `bins.nul_character`. |
+| `422` | `validation_error` | A parameter or field failed validation. A NUL character in the path, the query or a JSON body is the entry type `bins.nul_character`, and a forward URL a bin won't forward to is `bins.forward_target` ([Forwarding](#forwarding)). |
+| `429` | `rate_limited` | More than 10 test sends to one bin in a minute; `details.retry_after` says when to try again. |
 | `500` | `internal_error` | Something broke on our side. |
+| `503` | `unavailable` | Setting a forward URL or sending a test while forwarding is switched off for the whole service (`details.reason` `forwarding_disabled`), or a test that wasn't picked up for sending within 3 seconds, so nothing was sent (`forwarder_unavailable`). |
 
-The API sends no `409` and no `429`.
+The API sends no `409`, and `429` only for test sends.
 
 ## What's next {#next-steps}
 
 - [Quickstart](/docs/product-bins/quickstart) — create a bin and read what it recorded.
+- [Forwarding](/docs/product-bins/forwarding) — what a forward sends, the retries, the limits and where forwards come from.
 - [Request Bins API](/docs/reference/bins) — every operation, with the request in curl, TypeScript, Python or Go.
 - [Errors](/docs/errors) — the error shape, every `details` key, and a pattern for handling them.
 - [Product overview](/docs/product-bins) — prices, and what Request Bins does not do.

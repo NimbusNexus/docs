@@ -1356,6 +1356,17 @@
           "published": true
         },
         {
+          "path": "product-bins/forwarding",
+          "kind": "concept",
+          "title": {
+            "en": "Forwarding"
+          },
+          "description": {
+            "en": "Send each request a bin records on to your own server, with retries, and see what your server answered."
+          },
+          "published": true
+        },
+        {
           "path": "product-bins/reference",
           "kind": "reference",
           "title": {

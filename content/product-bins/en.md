@@ -2,7 +2,7 @@
 title: Request Bins
 description: Public URLs that record every HTTP request sent to them — point any app, script or service at one and read exactly what it sent, in the console or over the API.
 publishedAt: 2026-10-22
-updatedAt: 2026-10-23
+updatedAt: 2026-10-26
 kind: concept
 ---
 
@@ -10,7 +10,7 @@ kind: concept
 
 NimbusNexus Request Bins gives you **bins**: public URLs that record every HTTP request sent to them, with any method, to any path under the URL, with any body. Point whatever sends HTTP at one — a webhook provider, your own app, a script, a CI job — and read exactly what arrived: the method, path, query, headers, body and the address it came from, in the console or over the REST API.
 
-> **Not the page you wanted?** A bin records what it receives and stops there: it doesn't pass requests on, and it answers every sender the same way. To receive a provider's webhooks and deliver them to your own endpoints, with retries, use a [Webhooks source](/docs/product-webhooks/sources).
+> **Not the page you wanted?** A bin records what it receives and answers every sender the same way. On a paid plan it can also pass each request on to one URL of yours, as it arrived ([Forwarding](/docs/product-bins/forwarding)), but it doesn't check signatures or deliver to several endpoints. To verify a provider's webhooks and deliver them as events to your endpoints, with a dead-letter queue and redelivery, use a [Webhooks source](/docs/product-webhooks/sources).
 
 ## At a glance {#at-a-glance}
 
@@ -19,6 +19,7 @@ NimbusNexus Request Bins gives you **bins**: public URLs that record every HTTP 
 | What you create | A **bin**: a URL such as `https://nnbin.net/b/k7xq2mbn9tfa` |
 | What it records | Every request to that URL or any path under it, with any method (`GET`, `POST`, WebDAV's `PROPFIND`, a sender's own), any headers and any body |
 | What a sender gets back | `200` and `{"status":"accepted"}`, at once |
+| Forwarding | On Starter, Pro and Custom, a bin can also send each request on to your own https URL ([Forwarding](/docs/product-bins/forwarding)) |
 | Console | `https://bins.nimbusnexus.net` |
 | API base URL | `https://bins.nimbusnexus.net/v1` |
 | Authentication | `Authorization: Bearer <key>`, a key created in the account console with **Request Bins** as the product |
@@ -31,7 +32,7 @@ NimbusNexus Request Bins gives you **bins**: public URLs that record every HTTP 
 
 1. **Create** a bin — in the console with **New bin**, or with `POST /v1/bins`. Its URL records from that moment.
 2. **Send** it requests. Give the URL to whatever you want to watch — a provider's webhook settings, your app's configuration, a script, a CI job — or `curl` it yourself. Anything after the slug is yours to choose: a request to `https://nnbin.net/b/k7xq2mbn9tfa/orders/42` is recorded with the path `/orders/42`.
-3. **Read** what arrived. It appears in the console within seconds, and on paid plans at `GET /v1/bins/{id}/requests`. To find one request among many, search for text in paths, headers and bodies, or keep only some methods: **Search** and the method chips above the list in the console, `q` and `method` in the API ([Captured requests](/docs/product-bins/reference#requests)).
+3. **Read** what arrived. It appears in the console within seconds, and on paid plans at `GET /v1/bins/{id}/requests`. To find one request among many, search for text in paths, headers and bodies, or keep only some methods: **Search** and the method chips above the list in the console, `q` and `method` in the API ([Captured requests](/docs/product-bins/reference#requests)). To see which paths a sender used, switch the list to **By path**: it counts the requests to each path, and picking one lists them. `GET /v1/bins/{id}/paths` does the same in the API ([Requests by path](/docs/product-bins/reference#paths)).
 4. **Delete** the bin when you are done, or let it expire.
 
 The [quickstart](/docs/product-bins/quickstart) does all four.
@@ -54,10 +55,14 @@ The reference has the details: [what a bin URL answers](/docs/product-bins/refer
 
 For each request, a bin keeps the method, the path after the slug, the query string, the headers in the order they arrived, the body, the address it came from, and when it arrived. A few rules shape what you read back:
 
-- **Bodies are stored up to 64 KiB.** A larger body keeps its first 64 KiB, `truncated` is `true`, and `size_bytes` still says how large it really was.
+- **Bodies are stored whole, up to 1 MiB.** A larger body keeps its first 1 MiB, `truncated` is `true`, and `size_bytes` still says how large it really was.
 - **Credentials are redacted.** The values of `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` and `X-API-Key` are replaced with `[redacted]` before anything is stored. Every other header is kept as sent, signature headers included, since a signature is what you need to see when verifying one fails.
 - **Nothing is changed or run.** A body is stored as the bytes that arrived, and the console shows it as text, never as markup.
-- **A repeat is one row.** A request with the same method, path, query string and body as one the bin already holds adds one to that request's `seen_count` rather than being stored again, so a sender's retries are counted, not duplicated.
+- **Every request is a row of its own.** A request sent again, with the same method, path, query string and body, is stored again, with its own headers, address and time, so each of a sender's retries can be opened on its own.
+
+## Forwarding {#forwarding}
+
+On Starter, Pro and Custom, a bin can also send each request it records on to your own server. Give it a forward URL, and the method, path, query, headers and body go on to that URL as they arrived, while the sender still gets the bin's `200` at once. The bin tries again when your server fails, and keeps what your server answered beside the request, so you see what a sender sent and what your endpoint made of it. Credentials aren't forwarded: the headers a bin redacts never leave it. [Forwarding](/docs/product-bins/forwarding) has the rules, the retries, the limits and the address forwards come from.
 
 ## Plans and limits {#limits}
 
@@ -69,12 +74,13 @@ For each request, a bin keeps the method, the path after the slug, the query str
 | Kept for (retention) | 1 day | 7 days | 30 days | 90 days |
 | Bin lifetime | 24 hours | until deleted, or up to 7 days if you set one | until deleted, or up to 30 days | until deleted, or up to a year |
 | Read over the API | no (console only) | yes | yes | yes |
+| [Forwarding](/docs/product-bins/forwarding), per bin | no | 60 requests a minute | 300 requests a minute | 600 requests a minute |
 | Distinct senders per bin | 50 | 200 | 500 | 2,000 |
 | Browser form posts per bin | 3 | 5 | 5 | 10 |
 
 Free is enough to see exactly what any app, script or service sends: one bin, 1,000 requests a month, read in the console.
 
-The month is a calendar month in UTC, and every request a bin records counts, repeats included. Past the month's requests, bins keep answering `200` and record nothing until the next month begins; requests refused that way don't count. One bin may use only part of the month — all of it on Free, half on Starter, 40% on Pro and a quarter on Custom — so one busy or leaked URL can't use up the requests of the workspace's other bins.
+The month is a calendar month in UTC, and every request a bin records counts. Past the month's requests, bins keep answering `200` and record nothing until the next month begins; requests refused that way don't count. One bin may use only part of the month — all of it on Free, half on Starter, 40% on Pro and a quarter on Custom — so one busy or leaked URL can't use up the requests of the workspace's other bins.
 
 The last two rows are abuse limits, described under [Suspended bins](#suspended).
 
@@ -100,7 +106,7 @@ Choose its permission when you create it: **Read** reads bins and what they reco
 ## What it will not do {#not}
 
 - **It does not answer with your response.** Every bin answers `200` with `{"status":"accepted"}`; a status, headers or body of your choosing is not built.
-- **It does not forward.** What arrives is recorded, not passed on to another URL, and it can't be replayed.
+- **It does not replay.** A recorded request can't be sent again on demand. [Forwarding](/docs/product-bins/forwarding) sends each request on once, as it arrives.
 - **It does not push.** There is no stream and no callback: poll `GET /v1/bins/{id}/requests` with `since`, as the console does every 3 seconds.
 - **It is not an archive.** A request is deleted when the plan's retention runs out, and everything in a bin goes when the bin is deleted or expires.
 - **It does not split a workspace by project.** Request Bins serves whole workspaces, so guest seats and keys limited to one project are refused.
@@ -108,6 +114,7 @@ Choose its permission when you create it: **Read** reads bins and what they reco
 ## What's next {#next-steps}
 
 - [Quickstart](/docs/product-bins/quickstart) — create a bin, send it a request, read it back.
+- [Forwarding](/docs/product-bins/forwarding) — send each request on to your own server, and see what it answered.
 - [Request Bins reference](/docs/product-bins/reference) — every route and field, what a bin URL answers, roles, scopes and limits.
 - [Request Bins API](/docs/reference/bins) — every operation, with the request in curl, TypeScript, Python or Go.
 - [Errors](/docs/errors) — the error shape and the codes the API sends.
