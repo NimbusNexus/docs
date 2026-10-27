@@ -2,7 +2,7 @@
 title: Request Bins
 description: Public URLs that record every HTTP request sent to them — point any app, script or service at one and read exactly what it sent, in the console or over the API.
 publishedAt: 2026-10-22
-updatedAt: 2026-10-26
+updatedAt: 2026-10-27
 kind: concept
 ---
 
@@ -25,14 +25,14 @@ NimbusNexus Request Bins gives you **bins**: public URLs that record every HTTP 
 | Authentication | `Authorization: Bearer <key>`, a key created in the account console with **Request Bins** as the product |
 | Identifier every route takes | The bin `id`, for example `bin_3f9a1c7e5b2d8f4a6c0e9b17` — not its URL |
 | Find a bin by its URL | `GET /v1/bins?url=<url>` |
-| Read what arrived | `GET /v1/bins/{id}/requests` (paid plans; Free reads in the console) |
+| Read what arrived | `GET /v1/bins/{id}/requests`, or `GET /v1/requests` for every bin at once (paid plans; Free reads in the console) |
 | Every route, what a bin URL answers, roles and limits | The [Request Bins reference](/docs/product-bins/reference) |
 
 ## How it works {#how}
 
-1. **Create** a bin — in the console with **New bin**, or with `POST /v1/bins`. Its URL records from that moment.
+1. **Create** a bin — in the console with **Create a bin** (**New bin** once you have one), or with `POST /v1/bins`. Its URL records from that moment.
 2. **Send** it requests. Give the URL to whatever you want to watch — a provider's webhook settings, your app's configuration, a script, a CI job — or `curl` it yourself. Anything after the slug is yours to choose: a request to `https://nnbin.net/b/k7xq2mbn9tfa/orders/42` is recorded with the path `/orders/42`.
-3. **Read** what arrived. It appears in the console within seconds, and on paid plans at `GET /v1/bins/{id}/requests`. To find one request among many, search for text in paths, headers and bodies, or keep only some methods: **Search** and the method chips above the list in the console, `q` and `method` in the API ([Captured requests](/docs/product-bins/reference#requests)). To see which paths a sender used, switch the list to **By path**: it counts the requests to each path, and picking one lists them. `GET /v1/bins/{id}/paths` does the same in the API ([Requests by path](/docs/product-bins/reference#paths)).
+3. **Read** what arrived. It appears in the console within seconds, and on paid plans at `GET /v1/bins/{id}/requests`. To find one request among many, search for text in paths, headers and bodies, or keep only some methods: **Search** and the method chips above the list in the console, `q` and `method` in the API ([Captured requests](/docs/product-bins/reference#requests)). To see which paths a sender used, switch the list to **By path**: it counts the requests to each path, and picking one lists them. `GET /v1/bins/{id}/paths` does the same in the API ([Requests by path](/docs/product-bins/reference#paths)). **All bins** in the console, and `GET /v1/requests` in the API, list what every bin recorded in one list, with the same search.
 4. **Delete** the bin when you are done, or let it expire.
 
 The [quickstart](/docs/product-bins/quickstart) does all four.

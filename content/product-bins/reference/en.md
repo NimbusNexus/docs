@@ -2,7 +2,7 @@
 title: Request Bins reference
 description: Every route of the Request Bins API, what a bin URL answers and records, who may do what, and each plan's limits.
 publishedAt: 2026-10-22
-updatedAt: 2026-10-26
+updatedAt: 2026-10-27
 kind: reference
 ---
 
@@ -97,6 +97,7 @@ The base URL is `https://bins.nimbusnexus.net/v1`. Requests and answers are JSON
 | `POST /v1/bins/{id}/forward-test` | Send a [test](#forward-test) to the bin's forward URL and return what it answered | write |
 | `DELETE /v1/bins/{id}` | Delete a bin; `204` | admin |
 | `GET /v1/bins/{id}/requests` | A bin's [captured requests](#requests), newest first | read; with a key, a paid plan |
+| `GET /v1/requests` | Every bin's [captured requests](#all-requests) in one list, newest first | read; with a key, a paid plan |
 | `GET /v1/bins/{id}/paths` | A bin's requests [grouped by path](#paths) | read; with a key, a paid plan |
 | `GET /v1/requests/{id}` | One captured request in full, with its [forwards](#forwards) | read; with a key, a paid plan |
 | `DELETE /v1/bins/{id}/requests` | Empty a bin; `200` with `{"deleted": <count>}` | admin |
@@ -130,7 +131,7 @@ Lists are paged with `limit` (1 to 200, default 50) and `offset` (0 to 10,000). 
 | `slug` | The part of the URL after `/b/`. |
 | `url` | The URL to give senders. |
 | `label` | Your name for it. |
-| `status` | `active` or `disabled`: your switch. A disabled bin answers senders and records nothing. |
+| `status` | `enabled` or `disabled`: your switch. A disabled bin answers senders and records nothing. |
 | `expires_at` | When the bin ends, or `null` if it lives until deleted. |
 | `created_at` | When it was created. |
 | `suspended` | `true` while NimbusNexus has the bin switched off ([Suspension](#suspension)). |
@@ -148,7 +149,11 @@ Lists are paged with `limit` (1 to 200, default 50) and `offset` (0 to 10,000). 
 
 ### Change or delete a bin {#change}
 
-`PATCH /v1/bins/{id}` takes `label`, `status` (`active` or `disabled`), `forward_url` ([Forwarding](#forwarding)), or any of them, and answers with the bin. Disabling stops recording and keeps what the bin holds. A disabled bin still counts toward the plan's bins.
+`PATCH /v1/bins/{id}` takes `label`, `status` (`enabled` or `disabled`), `forward_url` ([Forwarding](#forwarding)), or any of them, and answers with the bin. Disabling stops recording and keeps what the bin holds. A disabled bin still counts toward the plan's bins.
+
+`status` used to be `active` where it is now `enabled`, and no answer says `active` any more. `PATCH` still accepts `"status": "active"` and the bin comes back `enabled`, but the spelling is deprecated and will be refused from a date still to be announced, so send `enabled`.
+
+In the console, the ⋯ menu on a bin's page holds **Rename…**, **Disable** or **Enable**, **Empty bin…** and **Delete bin…**, and forwarding is set on its **Forwarding** card. A disabled bin's page says so, with an **Enable** button.
 
 `DELETE /v1/bins/{id}` deletes a bin for good. Its URL stops recording at once, though senders still get `200`; its slug is never issued again, to you or anyone; and what it recorded is deleted shortly after. Its place among the plan's bins frees at once.
 
@@ -156,7 +161,7 @@ Lists are paged with `limit` (1 to 200, default 50) and `offset` (0 to 10,000). 
 
 ### Captured requests {#requests}
 
-`GET /v1/bins/{id}/requests` lists a bin's requests, newest first:
+`GET /v1/bins/{id}/requests` lists a bin's requests, newest first, and `GET /v1/requests` lists [every bin's](#all-requests) in one list. Both take these parameters:
 
 | Parameter | What |
 | --- | --- |
@@ -165,9 +170,14 @@ Lists are paged with `limit` (1 to 200, default 50) and `offset` (0 to 10,000). 
 | `method` | Only requests sent with this method, in any case. Repeat it for any of several: `?method=PUT&method=DELETE`. |
 | `path` | Only requests sent to exactly this path: what followed the slug, from its `/`, without the query string, as the list shows it. Case matters. [Requests by path](#paths) lists a bin's paths. |
 | `q` | Only requests containing this text, up to 200 characters, ignoring case: in the path and query string as sent (`/orders?id=42`), in a header as `name: value`, or in the stored body. A body that isn't UTF-8 text is searched with each byte above 127 (and NUL) written as `\` and three octal digits, and a backslash doubled. |
+| `in` | Where `q` looks: `all`, the default, or only `path` (the path and query string), `headers` (each one as `name: value`) or `body`. |
+| `header` | Only this header's values, its name in any case, and any of them when it was sent more than once. Without `q`, every request that carries the header. It goes with `in` `all` or `headers`. |
+| `field` | Only this field of a JSON body, named as `data.object.id` or `items[0].sku`: a string is searched as itself, a number as JSON writes it, an object or array as JSON text. Without `q`, every request whose body has the field. A body that isn't JSON, or was cut at 1 MiB, has no fields. It goes with `in` `all` or `body`, and not with `header`. |
 | `limit`, `offset` | Paging, as for bins. Past offset 10,000, narrow the window with `until` instead. |
 
-A search (`q`) pages differently from the rest. It reads the bin's requests newest first and stops when it has `limit` matches or has read 16 MiB of requests (or 5,000 of them), whichever comes first, so a page can hold fewer matches than `limit`, or none, while older requests are still unread. Such a page has `next_offset` `null` and a `next_until`: pass it back as `until`, with the same `q`, `method`, `path` and `since`, to search on from where it stopped. `next_until` is `null` once the search has read the bin's oldest request. With `q`, `offset` skips that many requests before the search starts reading.
+A `header` or a `field` with another `in`, or a `header` and a `field` together, is refused with a `422` `validation_error` whose entry has the type `bins.search_conflict`.
+
+A search (`q`, `header` or `field`) pages differently from the rest. It reads the list's requests newest first and stops when it has `limit` matches or has read 16 MiB of requests (or 5,000 of them), whichever comes first, so a page can hold fewer matches than `limit`, or none, while older requests are still unread. A search's page has `next_offset` `null` and, until the search has read the list's oldest request, a `next_until`: pass it back as `until`, with the same search, `method`, `path` and `since`, to search on from where it stopped. With a search, `offset` skips that many requests before the search starts reading.
 
 ```json
 {
@@ -203,7 +213,13 @@ Each item:
 | `request_id` | The id the bin URL gave this request, which is the `X-Request-ID` its sender got back. |
 | `forwards` | What became of [forwarding](#forwards) it, the newest first; empty when its bin wasn't forwarding when it arrived. |
 
-With an API key, both routes need a paid plan: on Free they answer `402` `not_entitled`, with `details.feature` `read_api`. The console reads them on every plan. A request past its `expires_at`, or in a bin that has been emptied, deleted or has expired, answers `404`.
+With an API key, `GET /v1/bins/{id}/requests`, `GET /v1/requests` and `GET /v1/requests/{id}` need a paid plan: on Free they answer `402` `not_entitled`, with `details.feature` `read_api`. The console reads them on every plan. A request past its `expires_at`, or in a bin that has been emptied, deleted or has expired, answers `404`.
+
+### Every bin's requests {#all-requests}
+
+`GET /v1/requests` lists the requests of all the workspace's bins in one list, newest first. It takes the parameters of a bin's list above and pages the same way, by `next_offset`, or by `next_until` for a search. Its items are a bin's list's items, each with the `bin_id` it came to; to show a bin's label or URL beside each, match `bin_id` with `GET /v1/bins`.
+
+It holds the requests of the bins that still exist. A deleted or expired bin's requests leave it at once, and a disabled or suspended bin's stay, as they stay in that bin's own list. The console's **All bins** page shows this list, with the same search and method filters as a bin's page and without **By path**.
 
 ### Requests by path {#paths}
 
@@ -414,7 +430,7 @@ The API's errors use the shape described in [Errors](/docs/errors), with the cod
 | `404` | `not_found` | No such bin or request in your workspace, or it has been deleted or has expired; `details.reason` is `bin` or `request`. |
 | `405` | `method_not_allowed` | The path exists, but not for this method. |
 | `413` | `payload_too_large` | A request body over 2 MiB. |
-| `422` | `validation_error` | A parameter or field failed validation. A NUL character in the path, the query or a JSON body is the entry type `bins.nul_character`, and a forward URL a bin won't forward to is `bins.forward_target` ([Forwarding](#forwarding)). |
+| `422` | `validation_error` | A parameter or field failed validation. A NUL character in the path, the query or a JSON body is the entry type `bins.nul_character`, a forward URL a bin won't forward to is `bins.forward_target` ([Forwarding](#forwarding)), and a search whose parts contradict each other is `bins.search_conflict` ([Captured requests](#requests)). |
 | `429` | `rate_limited` | More than 10 test sends to one bin in a minute; `details.retry_after` says when to try again. |
 | `500` | `internal_error` | Something broke on our side. |
 | `503` | `unavailable` | Setting a forward URL or sending a test while forwarding is switched off for the whole service (`details.reason` `forwarding_disabled`), or a test that wasn't picked up for sending within 3 seconds, so nothing was sent (`forwarder_unavailable`). |

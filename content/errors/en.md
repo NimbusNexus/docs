@@ -2,7 +2,7 @@
 title: Errors
 description: The error shape, the error codes the Webhooks, Inboxes and Request Bins APIs send, and how to handle each.
 publishedAt: 2026-05-20
-updatedAt: 2026-10-23
+updatedAt: 2026-10-27
 kind: concept
 ---
 
@@ -173,7 +173,13 @@ Webhooks' own rules on custom headers, `retry_schedule` delays and a RabbitMQ so
 
 The custom header rules' `loc` is `["body", "custom_headers"]`, and `params.header` is the name as you sent it; a header's value never comes back. A plan name the API doesn't know, on a route for platform operators, is an `enum` entry with no `params`. Until the update noted at the top of this page, all of these entries had the type `value_error`.
 
-Request Bins sends one entry type of its own: `bins.nul_character`, for a NUL character in the path, the query string or a JSON body, which it can't store. Its `loc` is `["path"]`, `["query", <name>]` or `["body"]`, and it carries no `params`.
+Inboxes sends one entry type of its own: `inboxes.search_conflict`, for a message search on `GET /v1/inboxes/{id}/messages` or `GET /v1/messages` that names a `header` with `in` set to `subject`, `from` or `body`. Its `loc` is `["query", "in"]`, and it carries no `params` ([Searching messages](/docs/product-inboxes#search)).
+
+Request Bins sends three:
+
+- `bins.nul_character`: a NUL character in the path, the query string or a JSON body, which it can't store. Its `loc` is `["path"]`, `["query", <name>]` or `["body"]`, and it carries no `params`.
+- `bins.forward_target`: a forward URL a bin won't forward to. Its `loc` is `["body", "forward_url"]`, and `params.reason` says why ([Forwarding](/docs/product-bins/reference#forwarding)).
+- `bins.search_conflict`: a search on `GET /v1/bins/{id}/requests` or `GET /v1/requests` whose `header` or `field` doesn't go with its `in`, with the `loc` `["query", "in"]`, or that names both a `header` and a `field`, with the `loc` `["query", "field"]`. It carries no `params` ([Captured requests](/docs/product-bins/reference#requests)).
 
 An Inboxes label one character over its limit:
 
@@ -229,7 +235,7 @@ All of these are `402`. Retrying the same request never helps: someone has to ch
 
 On Webhooks, the endpoint limit is `quota_exceeded` on `POST /v1/endpoints`, with `details.reason` `allocation`, `metric` `endpoints`, `limit` (the plan's ceiling) and `current` (the endpoints the workspace has). A RabbitMQ source below Pro is `not_entitled` with `details.feature` `rabbitmq_sources`: on `POST /v1/sources`, and on a `PATCH /v1/sources/{id}` of a RabbitMQ source whose body sets `status` to `enabled` or sets any of `broker_identifier`, `broker_host`, `broker_port`, `broker_vhost`, `broker_user`, `broker_exchange`, `broker_topic` or `broker_queues`, even to the value it already has. Other changes, such as renaming or disabling the source, stay allowed. `max_attempts` above the plan's ceiling isn't a `402`: it is a `422` `validation_error` ([Request validation](#codes-validation)).
 
-On Request Bins, the bin limit is `quota_exceeded` on `POST /v1/bins`. Reading captured requests with an API key on Free is `not_entitled`, with `details.feature` `read_api`, on `GET /v1/bins/{id}/requests` and `GET /v1/requests/{id}`; the console reads them on every plan. While a workspace is frozen or suspended, every write but a delete is refused with `workspace_frozen` or `workspace_suspended`, and reads stay open. Bins keep recording while the workspace is frozen and stop while it is suspended ([Plans and limits](/docs/product-bins/reference#limits)).
+On Request Bins, the bin limit is `quota_exceeded` on `POST /v1/bins`. Reading captured requests with an API key on Free is `not_entitled`, with `details.feature` `read_api`, on `GET /v1/bins/{id}/requests`, `GET /v1/requests` and `GET /v1/requests/{id}`; the console reads them on every plan. While a workspace is frozen or suspended, every write but a delete is refused with `workspace_frozen` or `workspace_suspended`, and reads stay open. Bins keep recording while the workspace is frozen and stop while it is suspended ([Plans and limits](/docs/product-bins/reference#limits)).
 
 ### Resources {#codes-resources}
 

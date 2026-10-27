@@ -2,7 +2,7 @@
 title: Request Bins quickstart
 description: Create a bin, send it a request with curl, and read what it recorded — in the console, then over the API.
 publishedAt: 2026-10-22
-updatedAt: 2026-10-26
+updatedAt: 2026-10-27
 kind: quickstart
 ---
 
@@ -17,7 +17,7 @@ From nothing to a recorded request in a couple of minutes. You will create a bin
 
 ## 1. Create a bin {#create}
 
-In the console, choose **Create a bin** (**New bin** once you have one). The label is optional and senders never see it. On a paid plan you can also pick a lifetime, which can't be changed later. Choose **Create bin**.
+In the console, choose **Create a bin** (**New bin** once you have one). The label is optional and senders never see it. **Lifetime** starts at your plan's default, 24 hours on Free and until deleted on paid plans; you can pick a shorter one, or type your own with **Custom…**, up to your plan's longest. It can't be changed later. Choose **Create bin**.
 
 The bin's page opens. At the top are its **Bin URL**, such as `https://nnbin.net/b/k7xq2mbn9tfa`, and a **Try it** command, each with a copy button.
 
@@ -74,7 +74,7 @@ curl -X POST https://bins.nimbusnexus.net/v1/bins \
   "slug": "w4tz8hcv2qnd",
   "url": "https://nnbin.net/b/w4tz8hcv2qnd",
   "label": "Quickstart",
-  "status": "active",
+  "status": "enabled",
   "expires_at": null,
   "created_at": "2026-10-22T09:12:01Z",
   "request_count": 0
@@ -113,7 +113,8 @@ curl https://bins.nimbusnexus.net/v1/bins/bin_3f9a1c7e5b2d8f4a6c0e9b17/requests 
       "expires_at": "2026-10-29T09:12:04Z"
     }
   ],
-  "next_offset": null
+  "next_offset": null,
+  "next_until": null
 }
 ```
 
@@ -179,7 +180,7 @@ curl -X DELETE https://bins.nimbusnexus.net/v1/bins/bin_3f9a1c7e5b2d8f4a6c0e9b17
   -H "Authorization: Bearer $BINS_API_KEY"
 ```
 
-Deleting is **permanent**: the URL stops recording at once, what the bin recorded is deleted, and its slug is never issued again, to you or anyone. Senders still get `200` from it. To stop recording for a while instead, `PATCH` the bin to `{"status": "disabled"}`, and back to `{"status": "active"}` later. To keep the bin and clear what it holds, empty it with `DELETE /v1/bins/{id}/requests`. On Free, a bin expires 24 hours after it is created, which ends it the same way as deleting.
+Deleting is **permanent**: the URL stops recording at once, what the bin recorded is deleted, and its slug is never issued again, to you or anyone. Senders still get `200` from it. To stop recording for a while instead, `PATCH` the bin to `{"status": "disabled"}`, and back to `{"status": "enabled"}` later. To keep the bin and clear what it holds, empty it with `DELETE /v1/bins/{id}/requests`. In the console, all three are in the ⋯ menu on the bin's page: **Delete bin…**, **Disable** and **Empty bin…**. On Free, a bin expires 24 hours after it is created at the latest, which ends it the same way as deleting.
 
 ## What's next {#next-steps}
 
