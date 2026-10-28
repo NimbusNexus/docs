@@ -81,7 +81,7 @@ Volver a enviar queda bloqueado de la misma forma. Volver a entregar una entrega
 
 ## Receptores que no pueden responder {#cannot-echo}
 
-Algunos receptores aceptan cualquier POST pero nunca devuelven un cuerpo que elijas tú — entre ellos, los incoming webhooks de Slack y los catch hooks de Zapier. No pueden superar la verificación. Si tu plan te lo permite, deja la verificación desactivada para el proyecto que les entrega; si no, pon delante un pequeño intermediario propio que responda al desafío.
+Algunos receptores aceptan cualquier POST pero nunca devuelven un cuerpo que elijas tú — entre ellos, los catch hooks de Zapier. No pueden superar la verificación. Si tu plan te lo permite, deja la verificación desactivada para el proyecto que les entrega; si no, pon delante un pequeño intermediario propio que responda al desafío.
 
 ## Próximos pasos {#next-steps}
 

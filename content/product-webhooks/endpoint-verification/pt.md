@@ -81,7 +81,7 @@ O reenvio é barrado da mesma forma. Reenviar uma entrega para esse endpoint, ou
 
 ## Receptores que não conseguem responder {#cannot-echo}
 
-Alguns receptores aceitam qualquer POST, mas nunca devolvem um corpo escolhido por você — entre eles, os incoming webhooks do Slack e os catch hooks do Zapier. Eles não conseguem passar pela verificação. Quando o seu plano permitir, deixe a verificação desligada no projeto que entrega para eles; caso contrário, coloque na frente deles um pequeno relay seu que responda ao desafio.
+Alguns receptores aceitam qualquer POST, mas nunca devolvem um corpo escolhido por você — entre eles, os catch hooks do Zapier. Eles não conseguem passar pela verificação. Quando o seu plano permitir, deixe a verificação desligada no projeto que entrega para eles; caso contrário, coloque na frente deles um pequeno relay seu que responda ao desafio.
 
 ## Próximos passos {#next-steps}
 
