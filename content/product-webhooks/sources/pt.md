@@ -1,14 +1,14 @@
 ---
 title: "Fontes"
-description: "Receba webhooks do Stripe, do GitHub ou de qualquer remetente que assine com HMAC e entregue-os aos seus endpoints como eventos."
+description: "Receba webhooks do Stripe, do GitHub, do Clerk, do Resend ou de qualquer remetente que assine com HMAC e entregue-os aos seus endpoints como eventos."
 publishedAt: 2026-10-19
-updatedAt: 2026-10-21
+updatedAt: 2026-10-28
 kind: concept
 ---
 
 # Fontes
 
-Uma fonte é uma URL que você passa a um provedor — o Stripe, o GitHub ou qualquer outro que assine os seus webhooks — para que ele possa enviar para nós. Verificamos a assinatura de cada requisição, transformamos a requisição em um evento e o entregamos aos seus endpoints exatamente como um evento que você [publicou por conta própria](/docs/product-webhooks/quickstart#publish): as mesmas inscrições, as mesmas retentativas, a mesma dead-letter queue.
+Uma fonte é uma URL que você passa a um provedor — o Stripe, o GitHub, um remetente do Standard Webhooks como o Clerk ou o Resend, ou qualquer outro que assine os seus webhooks — para que ele possa enviar para nós. Verificamos a assinatura de cada requisição, transformamos a requisição em um evento e o entregamos aos seus endpoints exatamente como um evento que você [publicou por conta própria](/docs/product-webhooks/quickstart#publish): as mesmas inscrições, as mesmas retentativas, a mesma dead-letter queue.
 
 Use uma fonte quando você quiser um só lugar para o tráfego de webhooks nas duas direções, ou quando quiser que vários dos seus serviços recebam os eventos de um provedor sem que cada um verifique a assinatura do Stripe por conta própria.
 
@@ -29,8 +29,9 @@ A URL de ingestão é a única parte do Webhooks que aceita requisições sem ch
 | `stripe` | `Stripe-Signature: t=…,v1=…` | `{t}.{body}` | 5 minutos |
 | `github` | `X-Hub-Signature-256: sha256=…` | `{body}` | nenhuma (o GitHub não envia timestamp) |
 | `generic` | `X-Webhook-Signature: sha256=…` com `X-Webhook-Timestamp` | `{timestamp}.{body}` | 5 minutos |
+| `standardwebhooks` | `webhook-signature: v1,…` com `webhook-id` e `webhook-timestamp`, ou os mesmos três como `svix-*` | `{id}.{timestamp}.{body}` | 5 minutos |
 
-Os três usam HMAC-SHA256. `generic` é o mesmo esquema com que assinamos as nossas próprias entregas, então o endpoint de um workspace do Webhooks pode alimentar a fonte de outro, e qualquer remetente que você controle pode assinar assim com poucas linhas.
+Os quatro usam HMAC-SHA256. `generic` é o mesmo esquema com que assinamos as nossas próprias entregas, então o endpoint de um workspace do Webhooks pode alimentar a fonte de outro, e qualquer remetente que você controle pode assinar assim com poucas linhas. `standardwebhooks` é o esquema do [Standard Webhooks](https://www.standardwebhooks.com/), que todo remetente baseado no Svix usa, entre eles o Clerk e o Resend.
 
 ## Criar uma fonte {#create}
 
@@ -48,7 +49,7 @@ curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/sources \
       }'
 ```
 
-- **Stripe e GitHub**: cole o segredo de assinatura que o provedor mostra. Uma fonte criada sem segredo começa desativada; adicione o segredo depois com `rotate-secret` e ative-a.
+- **Stripe, GitHub e Standard Webhooks**: cole o segredo de assinatura que o provedor mostra (para um remetente do Standard Webhooks, o valor `whsec_…` das configurações de webhook dele). Uma fonte criada sem segredo começa desativada; adicione o segredo depois com `rotate-secret` e ative-a.
 - **Generic**: deixe `secret` de fora e nós geramos um, retornado uma vez nesta resposta.
 
 A resposta traz `ingest_url`. Cole-a nas configurações de webhook do provedor e adicione um endpoint inscrito nos tipos que você espera (`prefix` `stripe.` no exemplo acima).
@@ -58,12 +59,12 @@ A resposta traz `ingest_url`. Cole-a nas configurações de webhook do provedor 
 Cada requisição precisa de um tipo de evento para que os endpoints possam se inscrever nele. Uma fonte o encontra nesta ordem:
 
 1. Onde você mandou procurar: um **header** da requisição ou um **caminho JSON** com pontos no corpo (`data.object.type`).
-2. Caso contrário, no lugar próprio do provedor: o `type` do corpo nas fontes Stripe e generic, e o header `X-GitHub-Event` nas fontes GitHub.
+2. Caso contrário, no lugar próprio do provedor: o `type` do corpo nas fontes Stripe, generic e Standard Webhooks, e o header `X-GitHub-Event` nas fontes GitHub.
 3. Se nenhum dos dois der um valor: o **tipo padrão** da fonte e, na falta dele, `webhook.received`.
 
 O **prefixo** da fonte vai na frente (`stripe.` + `invoice.paid` → `stripe.invoice.paid`), o que mantém separados os tipos de dois provedores em um mesmo projeto. Se a sua lista de tipos de evento mostra `webhook.received`, uma fonte recebeu requisições sem nenhum tipo que ela conseguisse ler: defina um tipo padrão ou um caminho JSON nessa fonte.
 
-O próprio id de evento do provedor (o `evt_…` do Stripe, o id de entrega do GitHub) é a chave de idempotência, então, quando um provedor repete um evento que já aceitamos, ele recebe `202` de novo e nada é entregue duas vezes.
+O próprio id de evento do provedor (o `evt_…` do Stripe, o id de entrega do GitHub, o header `webhook-id` do Standard Webhooks) é a chave de idempotência, então, quando um provedor repete um evento que já aceitamos, ele recebe `202` de novo e nada é entregue duas vezes.
 
 ## O que o provedor vê {#responses}
 

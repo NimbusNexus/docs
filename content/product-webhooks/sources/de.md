@@ -1,14 +1,14 @@
 ---
 title: "Quellen"
-description: "Webhooks von Stripe, GitHub oder jedem Absender, der mit HMAC signiert, empfangen und als Events an Ihre Endpoints zustellen."
+description: "Webhooks von Stripe, GitHub, Clerk, Resend oder jedem Absender, der mit HMAC signiert, empfangen und als Events an Ihre Endpoints zustellen."
 publishedAt: 2026-10-19
-updatedAt: 2026-10-21
+updatedAt: 2026-10-28
 kind: concept
 ---
 
 # Quellen
 
-Eine Quelle ist eine URL, die Sie einem Anbieter geben — Stripe, GitHub oder jedem anderen, der seine Webhooks signiert —, damit er an uns senden kann. Wir prüfen die Signatur jedes Requests, machen daraus ein Event und stellen es an Ihre Endpoints zu, genau wie ein Event, das Sie [selbst veröffentlicht](/docs/product-webhooks/quickstart#publish) haben: dieselben Abos, dieselben Retries, dieselbe Dead-Letter-Queue.
+Eine Quelle ist eine URL, die Sie einem Anbieter geben — Stripe, GitHub, einem Absender nach Standard Webhooks wie Clerk oder Resend oder jedem anderen, der seine Webhooks signiert —, damit er an uns senden kann. Wir prüfen die Signatur jedes Requests, machen daraus ein Event und stellen es an Ihre Endpoints zu, genau wie ein Event, das Sie [selbst veröffentlicht](/docs/product-webhooks/quickstart#publish) haben: dieselben Abos, dieselben Retries, dieselbe Dead-Letter-Queue.
 
 Nutzen Sie eine Quelle, wenn Sie einen zentralen Ort für Webhook-Traffic in beide Richtungen wollen oder wenn mehrere Ihrer Dienste die Events eines Anbieters empfangen sollen, ohne dass jeder einzeln die Signatur von Stripe prüft.
 
@@ -29,8 +29,9 @@ Die Ingest-URL ist der einzige Teil von Webhooks, der Requests ohne API-Key anni
 | `stripe` | `Stripe-Signature: t=…,v1=…` | `{t}.{body}` | 5 Minuten |
 | `github` | `X-Hub-Signature-256: sha256=…` | `{body}` | keines (GitHub sendet keinen Timestamp) |
 | `generic` | `X-Webhook-Signature: sha256=…` mit `X-Webhook-Timestamp` | `{timestamp}.{body}` | 5 Minuten |
+| `standardwebhooks` | `webhook-signature: v1,…` mit `webhook-id` und `webhook-timestamp` oder dieselben drei als `svix-*` | `{id}.{timestamp}.{body}` | 5 Minuten |
 
-Alle drei verwenden HMAC-SHA256. `generic` ist dasselbe Verfahren, mit dem wir unsere eigenen Zustellungen signieren, sodass der Endpoint eines Webhooks-Workspaces die Quelle eines anderen speisen kann und jeder Absender, den Sie kontrollieren, mit wenigen Zeilen auf diese Weise signieren kann.
+Alle vier verwenden HMAC-SHA256. `generic` ist dasselbe Verfahren, mit dem wir unsere eigenen Zustellungen signieren, sodass der Endpoint eines Webhooks-Workspaces die Quelle eines anderen speisen kann und jeder Absender, den Sie kontrollieren, mit wenigen Zeilen auf diese Weise signieren kann. `standardwebhooks` ist das Verfahren von [Standard Webhooks](https://www.standardwebhooks.com/), das jeder Absender auf Basis von Svix verwendet, darunter Clerk und Resend.
 
 ## Quelle anlegen {#create}
 
@@ -48,7 +49,7 @@ curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/sources \
       }'
 ```
 
-- **Stripe und GitHub**: Fügen Sie das Signatur-Secret ein, das Ihnen der Anbieter anzeigt. Eine Quelle, die ohne Secret angelegt wird, ist zunächst deaktiviert; fügen Sie das Secret später mit `rotate-secret` hinzu und aktivieren Sie die Quelle.
+- **Stripe, GitHub und Standard Webhooks**: Fügen Sie das Signatur-Secret ein, das Ihnen der Anbieter anzeigt (bei einem Absender nach Standard Webhooks den Wert `whsec_…` aus seinen Webhook-Einstellungen). Eine Quelle, die ohne Secret angelegt wird, ist zunächst deaktiviert; fügen Sie das Secret später mit `rotate-secret` hinzu und aktivieren Sie die Quelle.
 - **Generic**: Lassen Sie `secret` weg, dann erzeugen wir eines und geben es einmal in dieser Antwort zurück.
 
 Die Antwort enthält `ingest_url`. Tragen Sie die URL in die Webhook-Einstellungen des Anbieters ein und fügen Sie einen Endpoint hinzu, der die erwarteten Typen abonniert (oben `prefix` `stripe.`).
@@ -58,12 +59,12 @@ Die Antwort enthält `ingest_url`. Tragen Sie die URL in die Webhook-Einstellung
 Jeder Request braucht einen Event-Typ, den Endpoints abonnieren können. Eine Quelle ermittelt ihn in dieser Reihenfolge:
 
 1. Dort, wo sie laut Ihrer Vorgabe suchen soll: in einem **Header** des Requests oder in einem **JSON-Pfad** mit Punkten im Body (`data.object.type`).
-2. Andernfalls an der eigenen Stelle des Anbieters: `type` im Body bei Stripe und generic, der Header `X-GitHub-Event` bei GitHub.
+2. Andernfalls an der eigenen Stelle des Anbieters: `type` im Body bei Stripe, generic und Standard Webhooks, der Header `X-GitHub-Event` bei GitHub.
 3. Liefert keines von beiden einen Wert: der **Standardtyp** der Quelle und, falls es keinen gibt, `webhook.received`.
 
 Das **Präfix** der Quelle wird vorangestellt (`stripe.` + `invoice.paid` → `stripe.invoice.paid`), was die Typen zweier Anbieter in einem Projekt auseinanderhält. Wenn Ihre Liste der Event-Typen `webhook.received` zeigt, hat eine Quelle Requests ohne lesbaren Typ empfangen: Legen Sie für diese Quelle einen Standardtyp oder einen JSON-Pfad fest.
 
-Die eigene Event-ID des Anbieters (`evt_…` bei Stripe, die Delivery-ID bei GitHub) ist der Idempotency-Key. Wenn ein Anbieter ein Event wiederholt, das wir bereits angenommen haben, erhält er also erneut `202`, und nichts wird doppelt zugestellt.
+Die eigene Event-ID des Anbieters (`evt_…` bei Stripe, die Delivery-ID bei GitHub, der Header `webhook-id` bei Standard Webhooks) ist der Idempotency-Key. Wenn ein Anbieter ein Event wiederholt, das wir bereits angenommen haben, erhält er also erneut `202`, und nichts wird doppelt zugestellt.
 
 ## Was der Anbieter sieht {#responses}
 
