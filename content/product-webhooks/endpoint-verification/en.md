@@ -81,7 +81,7 @@ Sending again is held back the same way. Redelivering one delivery to that endpo
 
 ## Receivers that cannot answer {#cannot-echo}
 
-Some receivers accept any POST but never echo a body you choose — Slack's incoming webhooks and Zapier's catch hooks among them. They cannot pass verification. Where your plan lets you, leave verification off for the project that delivers to them; otherwise put a small relay of your own in front that answers the challenge.
+Some receivers accept any POST but never echo a body you choose — Zapier's catch hooks among them. They cannot pass verification. Where your plan lets you, leave verification off for the project that delivers to them; otherwise put a small relay of your own in front that answers the challenge.
 
 ## What's next {#next-steps}
 

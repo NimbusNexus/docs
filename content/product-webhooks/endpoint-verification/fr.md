@@ -81,7 +81,7 @@ Les renvois sont retenus de la même façon. Relivrer une livraison vers cet end
 
 ## Les récepteurs qui ne peuvent pas répondre {#cannot-echo}
 
-Certains récepteurs acceptent n’importe quel POST mais ne renvoient jamais un corps de votre choix — parmi eux, les incoming webhooks de Slack et les catch hooks de Zapier. Ils ne peuvent pas réussir la vérification. Si votre plan vous le permet, laissez la vérification désactivée pour le projet qui leur livre ; sinon, placez devant eux un petit relais à vous qui répond au challenge.
+Certains récepteurs acceptent n’importe quel POST mais ne renvoient jamais un corps de votre choix — parmi eux, les catch hooks de Zapier. Ils ne peuvent pas réussir la vérification. Si votre plan vous le permet, laissez la vérification désactivée pour le projet qui leur livre ; sinon, placez devant eux un petit relais à vous qui répond au challenge.
 
 ## Étapes suivantes {#next-steps}
 

@@ -81,7 +81,7 @@ Erneutes Senden wird ebenso zurückgehalten. Eine einzelne Zustellung erneut an 
 
 ## Empfänger, die nicht antworten können {#cannot-echo}
 
-Manche Empfänger nehmen jeden POST an, geben aber nie einen Body Ihrer Wahl zurück — darunter die Incoming Webhooks von Slack und die Catch Hooks von Zapier. Sie können die Verifizierung nicht bestehen. Wo Ihr Tarif es zulässt, lassen Sie die Verifizierung für das Projekt ausgeschaltet, das an sie zustellt; andernfalls schalten Sie ein kleines eigenes Relay davor, das die Challenge beantwortet.
+Manche Empfänger nehmen jeden POST an, geben aber nie einen Body Ihrer Wahl zurück — darunter die Catch Hooks von Zapier. Sie können die Verifizierung nicht bestehen. Wo Ihr Tarif es zulässt, lassen Sie die Verifizierung für das Projekt ausgeschaltet, das an sie zustellt; andernfalls schalten Sie ein kleines eigenes Relay davor, das die Challenge beantwortet.
 
 ## Nächste Schritte {#next-steps}
 
