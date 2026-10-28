@@ -51,8 +51,8 @@ Dois medidores contam esse processo, e a diferença importa quando você dimensi
 | Seção | Páginas | Para quê |
 |---|---|---|
 | **Build** | Sources, Endpoints, Event types | Configurar de onde os eventos vêm e para onde vão. |
-| **Observe** | Events, Deliveries, Captured requests, Operational webhooks | Ver o que chegou, o que saiu e o que falhou, e ser avisado quando algo quebra. |
-| **Manage** | Audit log, Settings | Quem mudou o quê; o seu plano e o uso do Webhooks, a verificação e as ferramentas de desenvolvedor. |
+| **Observe** | Events, Deliveries, Captured requests | Ver o que chegou, o que saiu e o que falhou. |
+| **Manage** | Operational webhooks, Audit log, Settings | Onde você é avisado quando algo quebra; quem mudou o quê; o seu plano e o uso do Webhooks, a verificação e as ferramentas de desenvolvedor. |
 
 A página Overview tem botões para adicionar uma fonte ou um endpoint e para enviar um evento de teste, e guia um workspace novo até a primeira entrega.
 

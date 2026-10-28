@@ -51,8 +51,8 @@ Darüber laufen zwei Zähler, und der Unterschied ist wichtig, wenn Sie einen Ta
 | Bereich | Seiten | Wofür |
 |---|---|---|
 | **Build** | Sources, Endpoints, Event types | Einrichten, woher Events kommen und wohin sie gehen. |
-| **Observe** | Events, Deliveries, Captured requests, Operational webhooks | Sehen, was angekommen ist, was hinausging und was fehlschlug, und benachrichtigt werden, wenn etwas kaputtgeht. |
-| **Manage** | Audit log, Settings | Wer was geändert hat; Ihr Tarif und Verbrauch für Webhooks, Verifizierung und Entwicklerwerkzeuge. |
+| **Observe** | Events, Deliveries, Captured requests | Sehen, was angekommen ist, was hinausging und was fehlschlug. |
+| **Manage** | Operational webhooks, Audit log, Settings | Wo Sie benachrichtigt werden, wenn etwas kaputtgeht; wer was geändert hat; Ihr Tarif und Verbrauch für Webhooks, Verifizierung und Entwicklerwerkzeuge. |
 
 Die Seite Overview hat Schaltflächen, um eine Quelle oder einen Endpoint hinzuzufügen und ein Test-Event zu senden, und führt einen neuen Workspace durch seine erste Zustellung.
 

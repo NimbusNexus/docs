@@ -51,8 +51,8 @@ Sobre eso funcionan dos contadores, y la diferencia importa cuando eliges un pla
 | Sección | Páginas | Para qué |
 |---|---|---|
 | **Build** | Sources, Endpoints, Event types | Configurar de dónde vienen los eventos y adónde van. |
-| **Observe** | Events, Deliveries, Captured requests, Operational webhooks | Ver lo que llegó, lo que salió y lo que falló, y recibir un aviso cuando algo se rompe. |
-| **Manage** | Audit log, Settings | Quién cambió qué; tu plan y tu consumo de Webhooks, la verificación y las herramientas para desarrolladores. |
+| **Observe** | Events, Deliveries, Captured requests | Ver lo que llegó, lo que salió y lo que falló. |
+| **Manage** | Operational webhooks, Audit log, Settings | Dónde recibes un aviso cuando algo se rompe; quién cambió qué; tu plan y tu consumo de Webhooks, la verificación y las herramientas para desarrolladores. |
 
 La página Overview tiene botones para añadir una fuente o un endpoint y para enviar un evento de prueba, y guía a un workspace nuevo hasta su primera entrega.
 

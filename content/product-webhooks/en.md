@@ -51,8 +51,8 @@ Two meters run over that, and the difference matters when you size a plan. One p
 | Section | Pages | For |
 |---|---|---|
 | **Build** | Sources, Endpoints, Event types | Setting up where events come from and where they go. |
-| **Observe** | Events, Deliveries, Captured requests, Operational webhooks | Seeing what arrived, what went out and what failed, and being told when something breaks. |
-| **Manage** | Audit log, Settings | Who changed what; your Webhooks plan and usage, verification, and developer tools. |
+| **Observe** | Events, Deliveries, Captured requests | Seeing what arrived, what went out and what failed. |
+| **Manage** | Operational webhooks, Audit log, Settings | Where you're told when something breaks; who changed what; your Webhooks plan and usage, verification, and developer tools. |
 
 The Overview has buttons to add a source or an endpoint and to send a test event, and walks a new workspace through its first delivery.
 
