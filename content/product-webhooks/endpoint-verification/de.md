@@ -2,7 +2,7 @@
 title: "Endpoint-Verifizierung"
 description: "Nachweisen, dass ein Endpoint Ihre Events haben will, bevor er welche empfängt — mit einer einmaligen signierten Challenge, die er zurücksenden muss."
 publishedAt: 2026-10-19
-updatedAt: 2026-10-21
+updatedAt: 2026-10-28
 kind: concept
 ---
 
@@ -82,6 +82,8 @@ Erneutes Senden wird ebenso zurückgehalten. Eine einzelne Zustellung erneut an 
 ## Empfänger, die nicht antworten können {#cannot-echo}
 
 Manche Empfänger nehmen jeden POST an, geben aber nie einen Body Ihrer Wahl zurück — darunter die Catch Hooks von Zapier. Sie können die Verifizierung nicht bestehen. Wo Ihr Tarif es zulässt, lassen Sie die Verifizierung für das Projekt ausgeschaltet, das an sie zustellt; andernfalls schalten Sie ein kleines eigenes Relay davor, das die Challenge beantwortet.
+
+Die Incoming Webhooks von Slack sind ein anderer Fall. Sie nehmen nur eine Slack-Nachricht mit einem Feld `text` oder `blocks` an und lehnen deshalb jedes Event ab, das wir zustellen, auch bei ausgeschalteter Verifizierung. Um Events nach Slack zu bringen, richten Sie den Endpoint auf etwas, das jedes Event in eine Nachricht umwandelt, etwa einen eigenen Empfänger oder einen Catch Hook von Zapier.
 
 ## Nächste Schritte {#next-steps}
 

@@ -2,7 +2,7 @@
 title: Endpoint verification
 description: Prove an endpoint wants your events before it receives any — a one-time signed challenge it must echo back.
 publishedAt: 2026-10-19
-updatedAt: 2026-10-21
+updatedAt: 2026-10-28
 kind: concept
 ---
 
@@ -82,6 +82,8 @@ Sending again is held back the same way. Redelivering one delivery to that endpo
 ## Receivers that cannot answer {#cannot-echo}
 
 Some receivers accept any POST but never echo a body you choose — Zapier's catch hooks among them. They cannot pass verification. Where your plan lets you, leave verification off for the project that delivers to them; otherwise put a small relay of your own in front that answers the challenge.
+
+Slack's incoming webhooks are a different case. They accept only a Slack message, with a `text` or `blocks` field, so they reject every event we deliver, even with verification off. To get events into Slack, point the endpoint at something that turns each event into a message, such as a receiver of your own or a Zapier catch hook.
 
 ## What's next {#next-steps}
 

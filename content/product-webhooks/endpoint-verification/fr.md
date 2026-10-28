@@ -2,7 +2,7 @@
 title: "Vérification des endpoints"
 description: "Prouvez qu’un endpoint veut vos événements avant qu’il en reçoive — un challenge signé à usage unique, qu’il doit renvoyer."
 publishedAt: 2026-10-19
-updatedAt: 2026-10-21
+updatedAt: 2026-10-28
 kind: concept
 ---
 
@@ -82,6 +82,8 @@ Les renvois sont retenus de la même façon. Relivrer une livraison vers cet end
 ## Les récepteurs qui ne peuvent pas répondre {#cannot-echo}
 
 Certains récepteurs acceptent n’importe quel POST mais ne renvoient jamais un corps de votre choix — parmi eux, les catch hooks de Zapier. Ils ne peuvent pas réussir la vérification. Si votre plan vous le permet, laissez la vérification désactivée pour le projet qui leur livre ; sinon, placez devant eux un petit relais à vous qui répond au challenge.
+
+Les incoming webhooks de Slack sont un cas à part. Ils n’acceptent qu’un message Slack, avec un champ `text` ou `blocks`, et refusent donc tous les événements que nous livrons, même avec la vérification désactivée. Pour recevoir vos événements dans Slack, dirigez l’endpoint vers quelque chose qui transforme chaque événement en message, par exemple un récepteur à vous ou un catch hook de Zapier.
 
 ## Étapes suivantes {#next-steps}
 
