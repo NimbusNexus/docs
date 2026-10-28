@@ -77,7 +77,7 @@ La vérification est exigée pour un endpoint dès que l’un de ces éléments 
 
 Quand la vérification est exigée, un endpoint non vérifié est écarté lors de la diffusion d’un événement : la réponse de publication le compte dans `skipped_unverified`, la console marque l’endpoint *gated*, et aucune livraison n’est créée pour lui — rien n’attend donc d’être envoyé une fois qu’il est vérifié. Publiez ou [rejouez](/docs/product-webhooks/deliveries#replay) de nouveau une fois la vérification réussie.
 
-Les renvois sont retenus de la même façon. Relivrer une livraison vers cet endpoint, ou y rejouer un événement, est refusé avec `409 endpoint_not_verified` ; une relivraison en masse ou un rejeu sur une plage l’écarte et le compte dans `skipped_unverified`. Une livraison déjà en file ou en cours de réessai au moment où l’endpoint se met à exiger la vérification — parce que l’exigence a été activée, ou que l’URL de l’endpoint a changé — part dans la dead-letter queue sans être envoyée, avec un `last_error` qui commence par « not verified: ». Vérifiez l’endpoint, puis relivrez-la.
+Les renvois sont retenus de la même façon. Relivrer une livraison vers cet endpoint, ou y rejouer un événement, est refusé avec `409 endpoint_not_verified` ; une relivraison en masse ou sur une plage de temps l’écarte et le compte dans `skipped_unverified`. Une livraison déjà en file ou en cours de réessai au moment où l’endpoint se met à exiger la vérification — parce que l’exigence a été activée, ou que l’URL de l’endpoint a changé — part dans la dead-letter queue sans être envoyée, avec un `last_error` qui commence par « not verified: ». Vérifiez l’endpoint, puis relivrez-la.
 
 ## Les récepteurs qui ne peuvent pas répondre {#cannot-echo}
 

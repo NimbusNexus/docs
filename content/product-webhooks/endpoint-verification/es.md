@@ -77,7 +77,7 @@ La verificación es obligatoria para un endpoint cuando está activado cualquier
 
 Cuando la verificación es obligatoria, un endpoint sin verificar se deja fuera al repartir un evento: la respuesta de la publicación lo cuenta en `skipped_unverified`, la consola marca el endpoint como *gated* y no se crea ninguna entrega para él — así que no queda nada esperando a enviarse cuando se verifique. Vuelve a publicar o a [reenviar](/docs/product-webhooks/deliveries#replay) cuando la supere.
 
-Volver a enviar queda bloqueado de la misma forma. Volver a entregar una entrega a ese endpoint, o reenviarle un evento, se rechaza con `409 endpoint_not_verified`; volver a entregar en bloque o reenviar por intervalo lo deja fuera y lo cuenta en `skipped_unverified`. Una entrega que ya estaba en cola o reintentándose cuando el endpoint pasa a necesitar verificación — porque se activó el requisito o cambió la URL del endpoint — va a la cola dead-letter sin enviarse, con un `last_error` que empieza por "not verified:". Verifica el endpoint y después vuelve a entregarla.
+Volver a enviar queda bloqueado de la misma forma. Volver a entregar una entrega a ese endpoint, o reenviarle un evento, se rechaza con `409 endpoint_not_verified`; volver a entregar en bloque o por intervalo de tiempo lo deja fuera y lo cuenta en `skipped_unverified`. Una entrega que ya estaba en cola o reintentándose cuando el endpoint pasa a necesitar verificación — porque se activó el requisito o cambió la URL del endpoint — va a la cola dead-letter sin enviarse, con un `last_error` que empieza por "not verified:". Verifica el endpoint y después vuelve a entregarla.
 
 ## Receptores que no pueden responder {#cannot-echo}
 
