@@ -2,7 +2,7 @@
 title: "Request Bins"
 description: "URLs públicas que registran cada petición HTTP que reciben — apunta cualquier aplicación, script o servicio a una y lee exactamente lo que envió, en la consola o por la API."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-26
+updatedAt: 2026-10-27
 kind: concept
 ---
 
@@ -25,14 +25,14 @@ NimbusNexus Request Bins te da **bins**: URLs públicas que registran cada petic
 | Autenticación | `Authorization: Bearer <key>`, con una clave creada en la consola de la cuenta con **Request Bins** como producto |
 | Identificador que usan todas las rutas | El `id` del bin, por ejemplo `bin_3f9a1c7e5b2d8f4a6c0e9b17` — no su URL |
 | Buscar un bin por su URL | `GET /v1/bins?url=<url>` |
-| Leer lo que llegó | `GET /v1/bins/{id}/requests` (planes de pago; en Free se lee en la consola) |
+| Leer lo que llegó | `GET /v1/bins/{id}/requests`, o `GET /v1/requests` para todos los bins a la vez (planes de pago; en Free se lee en la consola) |
 | Todas las rutas, qué responde la URL de un bin, roles y límites | La [referencia de Request Bins](/docs/product-bins/reference) |
 
 ## Cómo funciona {#how}
 
-1. **Crea** un bin — en la consola con **New bin**, o con `POST /v1/bins`. Su URL registra peticiones desde ese momento.
+1. **Crea** un bin — en la consola con **Create a bin** (**New bin** cuando ya tengas uno), o con `POST /v1/bins`. Su URL registra peticiones desde ese momento.
 2. **Envíale** peticiones. Da la URL a lo que quieras observar — la configuración de webhooks de un proveedor, la configuración de tu aplicación, un script, un job de CI — o llámala tú mismo con `curl`. Lo que va después del slug lo eliges tú: una petición a `https://nnbin.net/b/k7xq2mbn9tfa/orders/42` se registra con la ruta `/orders/42`.
-3. **Lee** lo que llegó. Aparece en la consola en cuestión de segundos y, en los planes de pago, en `GET /v1/bins/{id}/requests`. Para encontrar una petición entre muchas, busca texto en rutas, cabeceras y cuerpos, o quédate solo con algunos métodos: **Search** y los chips de método encima de la lista en la consola, `q` y `method` en la API ([Peticiones capturadas](/docs/product-bins/reference#requests)). Para ver qué rutas usó un emisor, cambia la lista a **By path**: cuenta las peticiones a cada ruta, y al elegir una se listan sus peticiones. `GET /v1/bins/{id}/paths` hace lo mismo en la API ([Peticiones por ruta](/docs/product-bins/reference#paths)).
+3. **Lee** lo que llegó. Aparece en la consola en cuestión de segundos y, en los planes de pago, en `GET /v1/bins/{id}/requests`. Para encontrar una petición entre muchas, busca texto en rutas, cabeceras y cuerpos, o quédate solo con algunos métodos: **Search** y los chips de método encima de la lista en la consola, `q` y `method` en la API ([Peticiones capturadas](/docs/product-bins/reference#requests)). Para ver qué rutas usó un emisor, cambia la lista a **By path**: cuenta las peticiones a cada ruta, y al elegir una se listan sus peticiones. `GET /v1/bins/{id}/paths` hace lo mismo en la API ([Peticiones por ruta](/docs/product-bins/reference#paths)). **All bins** en la consola, y `GET /v1/requests` en la API, reúnen en una sola lista lo que registraron todos los bins, con la misma búsqueda.
 4. **Borra** el bin cuando termines, o deja que caduque.
 
 El [inicio rápido](/docs/product-bins/quickstart) hace los cuatro pasos.

@@ -2,7 +2,7 @@
 title: "Schnellstart für Request Bins"
 description: "Einen Bin anlegen, ihm mit curl einen Request senden und lesen, was er aufgezeichnet hat — erst in der Konsole, dann über die API."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-26
+updatedAt: 2026-10-27
 kind: quickstart
 ---
 
@@ -17,7 +17,7 @@ In wenigen Minuten von null zum aufgezeichneten Request. Sie legen einen Bin an,
 
 ## 1. Bin anlegen {#create}
 
-Wählen Sie in der Konsole **Create a bin** (**New bin**, sobald Sie einen haben). Die Bezeichnung ist optional, und Absender sehen sie nie. In einem bezahlten Tarif können Sie außerdem eine Lebensdauer wählen, die sich später nicht ändern lässt. Wählen Sie **Create bin**.
+Wählen Sie in der Konsole **Create a bin** (**New bin**, sobald Sie einen haben). Die Bezeichnung ist optional, und Absender sehen sie nie. **Lifetime** steht zunächst auf dem Standard Ihres Tarifs, 24 Stunden in Free und bis zum Löschen in bezahlten Tarifen; Sie können eine kürzere Lebensdauer wählen oder mit **Custom…** eine eigene eingeben, bis zum Maximum Ihres Tarifs. Die Lebensdauer lässt sich später nicht ändern. Wählen Sie **Create bin**.
 
 Die Seite des Bins öffnet sich. Oben stehen seine **Bin URL**, etwa `https://nnbin.net/b/k7xq2mbn9tfa`, und ein Befehl unter **Try it**, jeweils mit einer Schaltfläche zum Kopieren.
 
@@ -74,7 +74,7 @@ curl -X POST https://bins.nimbusnexus.net/v1/bins \
   "slug": "w4tz8hcv2qnd",
   "url": "https://nnbin.net/b/w4tz8hcv2qnd",
   "label": "Quickstart",
-  "status": "active",
+  "status": "enabled",
   "expires_at": null,
   "created_at": "2026-10-22T09:12:01Z",
   "request_count": 0
@@ -113,7 +113,8 @@ curl https://bins.nimbusnexus.net/v1/bins/bin_3f9a1c7e5b2d8f4a6c0e9b17/requests 
       "expires_at": "2026-10-29T09:12:04Z"
     }
   ],
-  "next_offset": null
+  "next_offset": null,
+  "next_until": null
 }
 ```
 
@@ -179,7 +180,7 @@ curl -X DELETE https://bins.nimbusnexus.net/v1/bins/bin_3f9a1c7e5b2d8f4a6c0e9b17
   -H "Authorization: Bearer $BINS_API_KEY"
 ```
 
-Löschen ist **endgültig**: Die URL hört sofort auf aufzuzeichnen, was der Bin aufgezeichnet hat, wird gelöscht, und sein Slug wird nie wieder vergeben, weder an Sie noch an jemand anderen. Absender erhalten von der URL weiterhin `200`. Um stattdessen eine Zeit lang nicht aufzuzeichnen, setzen Sie den Bin per `PATCH` auf `{"status": "disabled"}` und später wieder auf `{"status": "active"}`. Um den Bin zu behalten und seinen Inhalt zu entfernen, leeren Sie ihn mit `DELETE /v1/bins/{id}/requests`. In Free läuft ein Bin 24 Stunden nach dem Anlegen ab, was ihn genauso beendet wie Löschen.
+Löschen ist **endgültig**: Die URL hört sofort auf aufzuzeichnen, was der Bin aufgezeichnet hat, wird gelöscht, und sein Slug wird nie wieder vergeben, weder an Sie noch an jemand anderen. Absender erhalten von der URL weiterhin `200`. Um stattdessen eine Zeit lang nicht aufzuzeichnen, setzen Sie den Bin per `PATCH` auf `{"status": "disabled"}` und später wieder auf `{"status": "enabled"}`. Um den Bin zu behalten und seinen Inhalt zu entfernen, leeren Sie ihn mit `DELETE /v1/bins/{id}/requests`. In der Konsole finden Sie alle drei im Menü ⋯ auf der Seite des Bins: **Delete bin…**, **Disable** und **Empty bin…**. In Free läuft ein Bin spätestens 24 Stunden nach dem Anlegen ab, was ihn genauso beendet wie Löschen.
 
 ## Nächste Schritte {#next-steps}
 

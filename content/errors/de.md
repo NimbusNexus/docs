@@ -2,7 +2,7 @@
 title: "Fehler"
 description: "Das Fehlerformat, die Fehlercodes, die die APIs von Webhooks, Inboxes und Request Bins senden, und wie Sie mit jedem umgehen."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-23
+updatedAt: 2026-10-27
 kind: concept
 ---
 
@@ -173,7 +173,13 @@ Die eigenen Regeln von Webhooks zu Custom-Headern, Verzögerungen in `retry_sche
 
 Der `loc` der Regeln für Custom-Header ist `["body", "custom_headers"]`, und `params.header` ist der Name so, wie Sie ihn gesendet haben; der Wert eines Headers kommt nie zurück. Ein Tarifname, den die API nicht kennt, ist auf einer Route für Plattformbetreiber ein Eintrag `enum` ohne `params`. Bis zur oben auf dieser Seite vermerkten Aktualisierung hatten alle diese Einträge den Typ `value_error`.
 
-Request Bins sendet einen eigenen Eintragstyp: `bins.nul_character` für ein NUL-Zeichen im Pfad, im Query-String oder in einem JSON-Body, das es nicht speichern kann. Der `loc` des Eintrags ist `["path"]`, `["query", <name>]` oder `["body"]`, und er trägt keine `params`.
+Inboxes sendet einen eigenen Eintragstyp: `inboxes.search_conflict` für eine Suche nach Nachrichten bei `GET /v1/inboxes/{id}/messages` oder `GET /v1/messages`, die einen `header` nennt und `in` auf `subject`, `from` oder `body` setzt. Der `loc` des Eintrags ist `["query", "in"]`, und er trägt keine `params` ([Nachrichten durchsuchen](/docs/product-inboxes#search)).
+
+Request Bins sendet drei:
+
+- `bins.nul_character`: ein NUL-Zeichen im Pfad, im Query-String oder in einem JSON-Body, das es nicht speichern kann. Der `loc` des Eintrags ist `["path"]`, `["query", <name>]` oder `["body"]`, und er trägt keine `params`.
+- `bins.forward_target`: eine Weiterleitungs-URL, an die ein Bin nicht weiterleitet. Der `loc` des Eintrags ist `["body", "forward_url"]`, und `params.reason` nennt den Grund ([Weiterleitung](/docs/product-bins/reference#forwarding)).
+- `bins.search_conflict`: eine Suche bei `GET /v1/bins/{id}/requests` oder `GET /v1/requests`, deren `header` oder `field` nicht zu ihrem `in` passt, mit dem `loc` `["query", "in"]`, oder die sowohl einen `header` als auch ein `field` nennt, mit dem `loc` `["query", "field"]`. Der Eintrag trägt keine `params` ([Erfasste Requests](/docs/product-bins/reference#requests)).
 
 Eine Bezeichnung bei Inboxes, die ein Zeichen über ihrem Limit liegt:
 
@@ -229,7 +235,7 @@ Alle diese Codes sind `402`. Denselben Request zu wiederholen, hilft nie: Jemand
 
 Bei Webhooks ist das Endpoint-Limit `quota_exceeded` bei `POST /v1/endpoints`, mit `details.reason` `allocation`, `metric` `endpoints`, `limit` (der Obergrenze des Tarifs) und `current` (den Endpoints, die der Workspace hat). Eine RabbitMQ-Quelle unterhalb von Pro ist `not_entitled` mit `details.feature` `rabbitmq_sources`: bei `POST /v1/sources` und bei einem `PATCH /v1/sources/{id}` einer RabbitMQ-Quelle, dessen Body `status` auf `enabled` setzt oder eines der Felder `broker_identifier`, `broker_host`, `broker_port`, `broker_vhost`, `broker_user`, `broker_exchange`, `broker_topic` oder `broker_queues` setzt, auch auf den Wert, den es bereits hat. Andere Änderungen, etwa das Umbenennen oder Deaktivieren der Quelle, bleiben erlaubt. `max_attempts` über der Obergrenze des Tarifs ist kein `402`, sondern ein `422` `validation_error` ([Request-Validierung](#codes-validation)).
 
-Bei Request Bins ist das Bin-Limit `quota_exceeded` bei `POST /v1/bins`. Das Lesen erfasster Requests mit einem API-Key in Free ist `not_entitled`, mit `details.feature` `read_api`, bei `GET /v1/bins/{id}/requests` und `GET /v1/requests/{id}`; die Konsole liest sie in jedem Tarif. Solange ein Workspace eingefroren oder gesperrt ist, wird jeder Schreibzugriff außer einem Löschen mit `workspace_frozen` oder `workspace_suspended` abgelehnt, und Lesezugriffe bleiben möglich. Bins zeichnen weiter auf, solange der Workspace eingefroren ist, und hören auf, solange er gesperrt ist ([Tarife und Limits](/docs/product-bins/reference#limits)).
+Bei Request Bins ist das Bin-Limit `quota_exceeded` bei `POST /v1/bins`. Das Lesen erfasster Requests mit einem API-Key in Free ist `not_entitled`, mit `details.feature` `read_api`, bei `GET /v1/bins/{id}/requests`, `GET /v1/requests` und `GET /v1/requests/{id}`; die Konsole liest sie in jedem Tarif. Solange ein Workspace eingefroren oder gesperrt ist, wird jeder Schreibzugriff außer einem Löschen mit `workspace_frozen` oder `workspace_suspended` abgelehnt, und Lesezugriffe bleiben möglich. Bins zeichnen weiter auf, solange der Workspace eingefroren ist, und hören auf, solange er gesperrt ist ([Tarife und Limits](/docs/product-bins/reference#limits)).
 
 ### Ressourcen {#codes-resources}
 

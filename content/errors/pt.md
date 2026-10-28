@@ -2,7 +2,7 @@
 title: "Erros"
 description: "O formato do erro, os códigos de erro que as APIs de Webhooks, Inboxes e Request Bins enviam e como tratar cada um."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-23
+updatedAt: 2026-10-27
 kind: concept
 ---
 
@@ -173,7 +173,13 @@ As regras próprias do Webhooks para headers personalizados, atrasos de `retry_s
 
 O `loc` das regras de headers personalizados é `["body", "custom_headers"]`, e `params.header` é o nome como você o enviou; o valor de um header nunca é devolvido. Um nome de plano que a API não conhece, em uma rota para operadores da plataforma, é uma entrada `enum` sem `params`. Até a atualização indicada no topo desta página, todas essas entradas tinham o tipo `value_error`.
 
-O Request Bins envia um tipo de entrada próprio: `bins.nul_character`, para um caractere NUL no caminho, na query string ou em um corpo JSON, que ele não consegue armazenar. Seu `loc` é `["path"]`, `["query", <name>]` ou `["body"]`, e ele não traz `params`.
+O Inboxes envia um tipo de entrada próprio: `inboxes.search_conflict`, para uma busca de mensagens em `GET /v1/inboxes/{id}/messages` ou `GET /v1/messages` que indica um `header` com `in` definido como `subject`, `from` ou `body`. Seu `loc` é `["query", "in"]`, e ele não traz `params` ([Busca de mensagens](/docs/product-inboxes#search)).
+
+O Request Bins envia três:
+
+- `bins.nul_character`: um caractere NUL no caminho, na query string ou em um corpo JSON, que ele não consegue armazenar. Seu `loc` é `["path"]`, `["query", <name>]` ou `["body"]`, e ele não traz `params`.
+- `bins.forward_target`: uma URL de encaminhamento para a qual um bin não encaminha. Seu `loc` é `["body", "forward_url"]`, e `params.reason` diz por quê ([Encaminhamento](/docs/product-bins/reference#forwarding)).
+- `bins.search_conflict`: uma busca em `GET /v1/bins/{id}/requests` ou `GET /v1/requests` cujo `header` ou `field` não combina com o seu `in`, com o `loc` `["query", "in"]`, ou que indica tanto um `header` quanto um `field`, com o `loc` `["query", "field"]`. Ele não traz `params` ([Requisições capturadas](/docs/product-bins/reference#requests)).
 
 Um rótulo do Inboxes com um caractere acima do limite:
 
@@ -229,7 +235,7 @@ Todos estes são `402`. Repetir a mesma requisição nunca adianta: alguém prec
 
 No Webhooks, o limite de endpoints é `quota_exceeded` em `POST /v1/endpoints`, com `details.reason` `allocation`, `metric` `endpoints`, `limit` (o teto do plano) e `current` (os endpoints que o workspace tem). Uma fonte RabbitMQ abaixo do Pro é `not_entitled` com `details.feature` `rabbitmq_sources`: em `POST /v1/sources` e em um `PATCH /v1/sources/{id}` de uma fonte RabbitMQ cujo corpo define `status` como `enabled` ou define qualquer um de `broker_identifier`, `broker_host`, `broker_port`, `broker_vhost`, `broker_user`, `broker_exchange`, `broker_topic` ou `broker_queues`, mesmo que seja para o valor que ele já tem. Outras alterações, como renomear ou desativar a fonte, continuam permitidas. `max_attempts` acima do teto do plano não é um `402`: é um `422` `validation_error` ([Validação da requisição](#codes-validation)).
 
-No Request Bins, o limite de bins é `quota_exceeded` em `POST /v1/bins`. Ler requisições capturadas com uma chave de API no Free é `not_entitled`, com `details.feature` `read_api`, em `GET /v1/bins/{id}/requests` e `GET /v1/requests/{id}`; o console as lê em todos os planos. Enquanto um workspace está congelado ou suspenso, toda gravação, exceto uma exclusão, é recusada com `workspace_frozen` ou `workspace_suspended`, e as leituras continuam liberadas. Os bins continuam registrando enquanto o workspace está congelado e param enquanto ele está suspenso ([Planos e limites](/docs/product-bins/reference#limits)).
+No Request Bins, o limite de bins é `quota_exceeded` em `POST /v1/bins`. Ler requisições capturadas com uma chave de API no Free é `not_entitled`, com `details.feature` `read_api`, em `GET /v1/bins/{id}/requests`, `GET /v1/requests` e `GET /v1/requests/{id}`; o console as lê em todos os planos. Enquanto um workspace está congelado ou suspenso, toda gravação, exceto uma exclusão, é recusada com `workspace_frozen` ou `workspace_suspended`, e as leituras continuam liberadas. Os bins continuam registrando enquanto o workspace está congelado e param enquanto ele está suspenso ([Planos e limites](/docs/product-bins/reference#limits)).
 
 ### Recursos {#codes-resources}
 

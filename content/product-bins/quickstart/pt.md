@@ -2,7 +2,7 @@
 title: "Início rápido de Request Bins"
 description: "Crie um bin, envie uma requisição para ele com curl e leia o que ele registrou — no console e depois pela API."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-26
+updatedAt: 2026-10-27
 kind: quickstart
 ---
 
@@ -17,7 +17,7 @@ Do zero a uma requisição registrada em poucos minutos. Você vai criar um bin,
 
 ## 1. Criar um bin {#create}
 
-No console, escolha **Create a bin** (**New bin**, quando você já tiver um). O rótulo é opcional e os remetentes nunca o veem. Em um plano pago, você também pode escolher um tempo de vida, que não pode ser alterado depois. Escolha **Create bin**.
+No console, escolha **Create a bin** (**New bin**, quando você já tiver um). O rótulo é opcional e os remetentes nunca o veem. **Lifetime** começa com o padrão do seu plano, 24 horas no Free e até ser excluído nos planos pagos; você pode escolher um tempo de vida mais curto, ou digitar o seu próprio com **Custom…**, até o mais longo que o seu plano permite. Ele não pode ser alterado depois. Escolha **Create bin**.
 
 A página do bin se abre. No topo ficam a **Bin URL** dele, como `https://nnbin.net/b/k7xq2mbn9tfa`, e um comando **Try it**, cada um com um botão de copiar.
 
@@ -74,7 +74,7 @@ curl -X POST https://bins.nimbusnexus.net/v1/bins \
   "slug": "w4tz8hcv2qnd",
   "url": "https://nnbin.net/b/w4tz8hcv2qnd",
   "label": "Quickstart",
-  "status": "active",
+  "status": "enabled",
   "expires_at": null,
   "created_at": "2026-10-22T09:12:01Z",
   "request_count": 0
@@ -113,7 +113,8 @@ curl https://bins.nimbusnexus.net/v1/bins/bin_3f9a1c7e5b2d8f4a6c0e9b17/requests 
       "expires_at": "2026-10-29T09:12:04Z"
     }
   ],
-  "next_offset": null
+  "next_offset": null,
+  "next_until": null
 }
 ```
 
@@ -179,7 +180,7 @@ curl -X DELETE https://bins.nimbusnexus.net/v1/bins/bin_3f9a1c7e5b2d8f4a6c0e9b17
   -H "Authorization: Bearer $BINS_API_KEY"
 ```
 
-A exclusão é **permanente**: a URL para de registrar na hora, o que o bin registrou é excluído e o slug dele nunca mais é emitido, nem para você nem para ninguém. Os remetentes continuam recebendo `200` dela. Para, em vez disso, parar de registrar por um tempo, faça um `PATCH` no bin com `{"status": "disabled"}` e, mais tarde, outro com `{"status": "active"}`. Para manter o bin e limpar o que ele guarda, esvazie-o com `DELETE /v1/bins/{id}/requests`. No Free, um bin expira 24 horas depois de criado, o que o encerra da mesma forma que a exclusão.
+A exclusão é **permanente**: a URL para de registrar na hora, o que o bin registrou é excluído e o slug dele nunca mais é emitido, nem para você nem para ninguém. Os remetentes continuam recebendo `200` dela. Para, em vez disso, parar de registrar por um tempo, faça um `PATCH` no bin com `{"status": "disabled"}` e, mais tarde, outro com `{"status": "enabled"}`. Para manter o bin e limpar o que ele guarda, esvazie-o com `DELETE /v1/bins/{id}/requests`. No console, as três opções ficam no menu ⋯ da página do bin: **Delete bin…**, **Disable** e **Empty bin…**. No Free, um bin expira no máximo 24 horas depois de criado, o que o encerra da mesma forma que a exclusão.
 
 ## Próximos passos {#next-steps}
 

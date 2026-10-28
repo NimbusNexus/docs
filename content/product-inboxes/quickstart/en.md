@@ -2,22 +2,22 @@
 title: Inboxes quickstart
 description: Create a disposable email address, send it a message, and read the message back — in the dashboard or with curl.
 publishedAt: 2026-08-18
-updatedAt: 2026-10-22
+updatedAt: 2026-10-27
 kind: quickstart
 ---
 
 # Inboxes quickstart
 
-From nothing to something you can assert on. You will create an email address, send real mail to it and read back its one-time code.
+From nothing to something you can assert on. You will create an inbox, send real mail to its address and read back its one-time code.
 
 ## Before you start {#before}
 
-- **In the dashboard, on any plan.** Open Inboxes and choose **New address**. The card for the new address shows exactly what to send to: the address, and its phrase if it has one. What arrives appears below it within seconds. That is the whole flow on the free plan.
+- **In the dashboard, on any plan.** Open Inboxes, choose **Create an inbox**, then **Create inbox**: the label is optional, and the lifetime starts at your plan's default. The new inbox's page shows exactly what to send to, each with a copy button: the address, and its phrase if it has one. What arrives appears in the list below within seconds. That is the whole flow on the free plan.
 - **Over the API, on a paid plan.** Reading programmatically needs Starter or above — on free the message routes answer `not_entitled`. You also need an API key minted in the account console with **Inboxes** as the product; see [Getting access](/docs/product-inboxes#access).
 
 Every path below is relative to `{{INBOXES_BASE_URL}}`, and every request carries `Authorization: Bearer <your key>`.
 
-## 1. Create an address {#allocate}
+## 1. Create an inbox {#allocate}
 
 ```bash
 curl -X POST {{INBOXES_BASE_URL}}/v1/inboxes \
@@ -76,13 +76,16 @@ curl "{{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945/messages?extr
       "extracted": { "otp": "100017" }
     }
   ],
-  "next_offset": null
+  "next_offset": null,
+  "next_until": null
 }
 ```
 
 `extracted.otp` is the point. A test asserting on a signup flow usually wants exactly one thing — the code — and `?extract=otp` puts it on the list response, so the common case needs no second request. Without `extract`, `extracted` is `null`; `extract=links` returns the message's links instead, and `extract=all` returns both.
 
-For the full message, including both body parts and the SPF/DKIM/DMARC verdicts:
+To find one message among many, search the list: `q=verification` keeps the messages that contain the text, and `in=subject` (or `from`, `headers` or `body`) narrows where it looks. A search pages by `next_until` rather than `next_offset`; [Searching messages](/docs/product-inboxes#search) has every parameter.
+
+For the full message, including both body parts, the SPF/DKIM/DMARC verdicts and the headers:
 
 ```bash
 curl {{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945/messages/msg_bd160c0bcf8db20fba4e535d \
@@ -111,7 +114,7 @@ curl -X DELETE {{INBOXES_BASE_URL}}/v1/inboxes/inb_7f820a77f64ea18174499945 \
   -H "Authorization: Bearer $INBOXES_API_KEY"
 ```
 
-Deleting is **permanent**: the inbox and what it holds are deleted, and the address is retired so it can never be issued again, to you or anyone. That is deliberate — a recycled disposable address would deliver a stranger's mail into your inbox. To pause one instead, `PATCH` it to `{"status": "disabled"}` and enable it again later.
+Deleting is **permanent**: the inbox and what it holds are deleted, and the address is retired so it can never be issued again, to you or anyone. That is deliberate — a recycled disposable address would deliver a stranger's mail into your inbox. To pause one instead, `PATCH` it to `{"status": "disabled"}` and enable it again later. In the dashboard, both are in the ⋯ menu on the inbox's page: **Delete inbox…** and **Disable**.
 
 ## What's next {#next-steps}
 

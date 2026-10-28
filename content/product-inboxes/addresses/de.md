@@ -2,7 +2,7 @@
 title: "Adressen und die Phrase"
 description: "Warum eine Wegwerf-Adresse Mail ohne ihre Phrase im Betreff ablehnt und wie sich Ablauf, Aufbewahrung und Löschung unterscheiden."
 publishedAt: 2026-08-18
-updatedAt: 2026-10-19
+updatedAt: 2026-10-27
 kind: concept
 ---
 
@@ -46,13 +46,15 @@ Sie werden leicht verwechselt und verhalten sich unterschiedlich.
 
 | | Was passiert | Umkehrbar |
 | --- | --- | --- |
-| **Ablauf** | Die Adresse erreicht `expires_at`, wird stillgelegt, und ihre gespeicherte Mail wird gelöscht. | Nein |
-| **Löschen** | Sie beenden sie vorzeitig mit `DELETE /v1/inboxes/{id}`. Sofort stillgelegt, wie beim Ablauf. | Nein |
-| **Deaktivieren** | Die Adresse nimmt keine Mail mehr an und behält, was sie bereits hat. | Ja — aktivieren Sie sie wieder |
+| **Ablauf** | Die Inbox erreicht `expires_at`, ihre Adresse wird stillgelegt, und ihre gespeicherte Mail wird gelöscht. | Nein |
+| **Löschen** | Sie beenden sie vorzeitig: mit **Delete inbox…** im Dashboard oder mit `DELETE /v1/inboxes/{id}`. Sofort stillgelegt, wie beim Ablauf. | Nein |
+| **Deaktivieren** | Die Adresse nimmt keine Mail mehr an, und die Inbox behält, was sie bereits hat: mit **Disable** im Dashboard oder per `PATCH` mit `{"status": "disabled"}`. | Ja — aktivieren Sie sie wieder |
+
+Im Dashboard stehen diese Aktionen im Menü ⋯ auf der Seite der Inbox, zusammen mit **Rename…** und **Empty inbox…**, womit Sie die Mail der Inbox löschen und die Inbox samt ihrer Adresse behalten. Mitglieder können eine Inbox umbenennen, deaktivieren und aktivieren; leeren und löschen dürfen sie nur die Owner und Admins des Workspaces. Die Seite einer deaktivierten Inbox weist darauf hin, mit einer Schaltfläche **Enable**. Die Lebensdauer einer Inbox wird beim Anlegen gewählt und lässt sich danach nicht ändern; sobald die Inbox abgelaufen ist oder gelöscht wurde, steht auf ihrer Seite „This inbox no longer exists“.
 
 Eine stillgelegte Adresse wird **nie neu vergeben**, weder an Sie noch an jemand anderen: Jede Adresse, die je existiert hat, wird verzeichnet, und eine neue wird vor der Vergabe mit diesem Verzeichnis abgeglichen. Das ist eine Sicherheitseigenschaft, kein Implementierungsdetail — würde eine Wegwerf-Adresse wiederverwendet, landete irgendwann die Passwort-Zurücksetzung eines Fremden im Testlauf eines anderen. Der Vorrat geht nicht aus: Eine Adresse besteht aus 12 Zeichen aus einem Alphabet mit 32 Zeichen, das sind etwa 1,15 × 10¹⁸ Kombinationen.
 
-Greifen Sie zu **Deaktivieren**, wenn eine Testsuite eine Adresse mit Mail überflutet und Sie das für eine Stunde stoppen wollen. Greifen Sie zu **Löschen**, wenn Sie fertig sind und den Platz zurückhaben wollen — die Tarife begrenzen, wie viele Adressen Sie gleichzeitig haben dürfen. Ältere Versionen dieser Dokumentation und das Audit-Log der API nennen das Löschen *release*.
+Greifen Sie zu **Deaktivieren**, wenn eine Testsuite eine Adresse mit Mail überflutet und Sie das für eine Stunde stoppen wollen. Greifen Sie zu **Leeren**, wenn Sie die Adresse behalten und ohne Mail neu anfangen wollen. Greifen Sie zu **Löschen**, wenn Sie fertig sind und den Platz zurückhaben wollen — die Tarife begrenzen, wie viele Inboxen Sie gleichzeitig haben dürfen. Ältere Versionen dieser Dokumentation und das Audit-Log der API nennen das Löschen *release*.
 
 ## Ablauf ist nicht Aufbewahrung {#expiry-vs-retention}
 

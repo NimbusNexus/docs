@@ -2,7 +2,7 @@
 title: "Request Bins"
 description: "Des URL publiques qui enregistrent chaque requête HTTP reçue — pointez-y une application, un script ou un service et lisez exactement ce qu’il a envoyé, dans la console ou via l’API."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-26
+updatedAt: 2026-10-27
 kind: concept
 ---
 
@@ -25,14 +25,14 @@ NimbusNexus Request Bins vous fournit des **bins** : des URL publiques qui enreg
 | Authentification | `Authorization: Bearer <key>`, avec une clé créée dans la console de compte avec **Request Bins** comme produit |
 | Identifiant attendu par chaque route | L’`id` du bin, par exemple `bin_3f9a1c7e5b2d8f4a6c0e9b17` — pas son URL |
 | Trouver un bin par son URL | `GET /v1/bins?url=<url>` |
-| Lire ce qui est arrivé | `GET /v1/bins/{id}/requests` (plans payants ; sur Free, la lecture se fait dans la console) |
+| Lire ce qui est arrivé | `GET /v1/bins/{id}/requests`, ou `GET /v1/requests` pour tous les bins à la fois (plans payants ; sur Free, la lecture se fait dans la console) |
 | Chaque route, ce que répond une URL de bin, rôles et limites | La [référence Request Bins](/docs/product-bins/reference) |
 
 ## Comment ça marche {#how}
 
-1. **Créez** un bin — dans la console avec **New bin**, ou avec `POST /v1/bins`. Son URL enregistre dès cet instant.
+1. **Créez** un bin — dans la console avec **Create a bin** (**New bin** une fois que vous en avez un), ou avec `POST /v1/bins`. Son URL enregistre dès cet instant.
 2. **Envoyez**-lui des requêtes. Donnez l’URL à ce que vous voulez observer — les paramètres de webhooks d’un fournisseur, la configuration de votre application, un script, un job de CI — ou appelez-la vous-même avec `curl`. Ce qui suit le slug est à votre choix : une requête vers `https://nnbin.net/b/k7xq2mbn9tfa/orders/42` est enregistrée avec le chemin `/orders/42`.
-3. **Lisez** ce qui est arrivé. Cela apparaît dans la console en quelques secondes et, sur les plans payants, à `GET /v1/bins/{id}/requests`. Pour trouver une requête parmi beaucoup d’autres, cherchez du texte dans les chemins, les headers et les corps, ou ne gardez que certaines méthodes : **Search** et les pastilles de méthode au-dessus de la liste dans la console, `q` et `method` dans l’API ([Requêtes capturées](/docs/product-bins/reference#requests)). Pour voir quels chemins un expéditeur a utilisés, basculez la liste sur **By path** : elle compte les requêtes vers chaque chemin, et choisir un chemin liste ses requêtes. `GET /v1/bins/{id}/paths` fait de même dans l’API ([Requêtes par chemin](/docs/product-bins/reference#paths)).
+3. **Lisez** ce qui est arrivé. Cela apparaît dans la console en quelques secondes et, sur les plans payants, à `GET /v1/bins/{id}/requests`. Pour trouver une requête parmi beaucoup d’autres, cherchez du texte dans les chemins, les headers et les corps, ou ne gardez que certaines méthodes : **Search** et les pastilles de méthode au-dessus de la liste dans la console, `q` et `method` dans l’API ([Requêtes capturées](/docs/product-bins/reference#requests)). Pour voir quels chemins un expéditeur a utilisés, basculez la liste sur **By path** : elle compte les requêtes vers chaque chemin, et choisir un chemin liste ses requêtes. `GET /v1/bins/{id}/paths` fait de même dans l’API ([Requêtes par chemin](/docs/product-bins/reference#paths)). **All bins** dans la console, et `GET /v1/requests` dans l’API, listent ce que tous les bins ont enregistré en une seule liste, avec la même recherche.
 4. **Supprimez** le bin quand vous avez terminé, ou laissez-le expirer.
 
 Le [démarrage rapide](/docs/product-bins/quickstart) parcourt les quatre étapes.

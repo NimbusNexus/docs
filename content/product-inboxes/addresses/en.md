@@ -2,7 +2,7 @@
 title: Addresses and the phrase
 description: Why a disposable address refuses mail whose subject lacks its phrase, and how expiry, retention and deletion differ.
 publishedAt: 2026-08-18
-updatedAt: 2026-10-19
+updatedAt: 2026-10-27
 kind: concept
 ---
 
@@ -46,13 +46,15 @@ They are easy to confuse and behave differently.
 
 | | What happens | Reversible |
 | --- | --- | --- |
-| **Expiry** | The address reaches `expires_at`, is retired, and its stored mail is deleted. | No |
-| **Delete** | You end it early with `DELETE /v1/inboxes/{id}`. Retired immediately, same as expiry. | No |
-| **Disable** | The address stops accepting mail and keeps what it already has. | Yes — enable it again |
+| **Expiry** | The inbox reaches `expires_at`, its address is retired, and its stored mail is deleted. | No |
+| **Delete** | You end it early: **Delete inbox…** in the dashboard, or `DELETE /v1/inboxes/{id}`. Retired immediately, same as expiry. | No |
+| **Disable** | The address stops accepting mail and the inbox keeps what it already has: **Disable** in the dashboard, or `PATCH` with `{"status": "disabled"}`. | Yes — enable it again |
+
+In the dashboard these are in the ⋯ menu on the inbox's page, with **Rename…** and **Empty inbox…**, which deletes the inbox's mail and keeps the inbox and its address. Members can rename, disable and enable an inbox; emptying and deleting it are for the workspace's owners and admins. A disabled inbox's page says so, with an **Enable** button. An inbox's lifetime is chosen when it is created and can't be changed afterwards; once it has expired or been deleted, its page says "This inbox no longer exists".
 
 A retired address is **never reissued**, to you or to anyone: every address that ever existed is recorded, and a new one is checked against that record before it is issued. That is a security property rather than an implementation detail — recycling a disposable address would eventually deliver a stranger's password reset into somebody else's test run. The supply does not run out: an address is 12 characters from a 32-character alphabet, about 1.15 × 10¹⁸ combinations.
 
-Reach for **disable** when a test suite is spamming an address and you want it to stop for an hour. Reach for **delete** when you are finished and want the slot back — plans cap how many addresses you may hold at once. Older versions of these docs, and the API's audit log, call deleting *release*.
+Reach for **disable** when a test suite is spamming an address and you want it to stop for an hour. Reach for **empty** when you want to keep the address and start again from no mail. Reach for **delete** when you are finished and want the slot back — plans cap how many inboxes you may hold at once. Older versions of these docs, and the API's audit log, call deleting *release*.
 
 ## Expiry is not retention {#expiry-vs-retention}
 
