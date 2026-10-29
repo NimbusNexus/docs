@@ -2,13 +2,13 @@
 title: Sources
 description: Receive webhooks from Stripe, GitHub, Clerk, Resend or any sender that signs with HMAC, and deliver them to your endpoints as events.
 publishedAt: 2026-10-19
-updatedAt: 2026-10-28
+updatedAt: 2026-10-29
 kind: concept
 ---
 
 # Sources
 
-A source is a URL you give a provider — Stripe, GitHub, a Standard Webhooks sender such as Clerk or Resend, or anything else that signs its webhooks — so it can send to us. We check each request's signature, turn it into an event, and deliver it to your endpoints exactly like an event you [published yourself](/docs/product-webhooks/quickstart#publish): same subscriptions, same retries, same dead-letter queue.
+A source is a URL you give a provider — Stripe, GitHub, Clerk, Resend, or any other sender that signs its webhooks — so it can send to us. We check each request's signature, turn it into an event, and deliver it to your endpoints exactly like an event you [published yourself](/docs/product-webhooks/quickstart#publish): same subscriptions, same retries, same dead-letter queue.
 
 Use a source when you want one place for webhook traffic in both directions, or when you want several of your services to receive one provider's events without each one verifying Stripe's signature on its own.
 
@@ -28,10 +28,10 @@ The ingest URL is the only part of Webhooks that takes requests without an API k
 |---|---|---|---|
 | `stripe` | `Stripe-Signature: t=…,v1=…` | `{t}.{body}` | 5 minutes |
 | `github` | `X-Hub-Signature-256: sha256=…` | `{body}` | none (GitHub sends no timestamp) |
-| `generic` | `X-Webhook-Signature: sha256=…` with `X-Webhook-Timestamp` | `{timestamp}.{body}` | 5 minutes |
-| `standardwebhooks` | `webhook-signature: v1,…` with `webhook-id` and `webhook-timestamp`, or the same three as `svix-*` | `{id}.{timestamp}.{body}` | 5 minutes |
+| `standard` | `webhook-signature: v1,…` with `webhook-id` and `webhook-timestamp`, or the same three as `svix-*` | `{id}.{timestamp}.{body}` | 5 minutes |
+| `standard` | or `X-Webhook-Signature: sha256=…` with `X-Webhook-Timestamp` | `{timestamp}.{body}` | 5 minutes |
 
-All four are HMAC-SHA256. `generic` is the same scheme we sign our own deliveries with, so one Webhooks workspace's endpoint can feed another's source, and any sender you control can sign this way in a few lines. `standardwebhooks` is the [Standard Webhooks](https://www.standardwebhooks.com/) scheme, which every sender built on Svix uses, Clerk and Resend among them.
+All three are HMAC-SHA256. A `standard` source takes two formats and tells them apart by the headers: a request with `X-Webhook-Signature` is checked as our own format, any other as the [Standard](https://www.standardwebhooks.com/) scheme. The Standard scheme is the one every sender built on Svix uses, Clerk and Resend among them. Our own format is the one we sign our deliveries with, so one Webhooks workspace's endpoint can feed another's source, and any sender you control can sign this way in a few lines.
 
 ## Create a source {#create}
 
@@ -49,8 +49,8 @@ curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/sources \
       }'
 ```
 
-- **Stripe, GitHub and Standard Webhooks**: paste the signing secret the provider shows you (for a Standard Webhooks sender, the `whsec_…` value from its webhook settings). A source created without one starts disabled; add the secret later with `rotate-secret` and enable it.
-- **Generic**: leave `secret` out and we generate one, returned once in this response.
+- **Stripe and GitHub**: paste the signing secret the provider shows you. A source created without one starts disabled; add the secret later with `rotate-secret` and enable it.
+- **Standard**: paste the `whsec_…` secret your sender shows in its webhook settings (Clerk, Resend), or leave `secret` out and we generate one, returned once in this response. A generated secret signs either format.
 
 The response carries `ingest_url`. Paste it into the provider's webhook settings, and add an endpoint that subscribes to the types you expect (`prefix` `stripe.` above).
 
@@ -59,12 +59,12 @@ The response carries `ingest_url`. Paste it into the provider's webhook settings
 Each request needs an event type for endpoints to subscribe to. A source finds it, in this order:
 
 1. Where you told it to look: a request **header**, or a dotted **JSON path** in the body (`data.object.type`).
-2. Otherwise the provider's own place: the body's `type` for Stripe, generic and Standard Webhooks, the `X-GitHub-Event` header for GitHub.
+2. Otherwise the provider's own place: the body's `type` for Stripe and Standard, the `X-GitHub-Event` header for GitHub.
 3. If neither gives a value: the source's **default type**, and failing that, `webhook.received`.
 
 The source's **prefix** goes in front (`stripe.` + `invoice.paid` → `stripe.invoice.paid`), which keeps two providers' types apart in one project. If your event types list shows `webhook.received`, a source received requests with no type it could read: set a default type or a JSON path on that source.
 
-The provider's own event id (Stripe's `evt_…`, GitHub's delivery id, the `webhook-id` header of a Standard Webhooks request) is the idempotency key, so when a provider retries an event we already accepted, it gets `202` again and nothing is delivered twice.
+The provider's own event id (Stripe's `evt_…`, GitHub's delivery id, the `webhook-id` header of a Standard-format request, the body's `id` in our own format) is the idempotency key, so when a provider retries an event we already accepted, it gets `202` again and nothing is delivered twice.
 
 ## What the provider sees {#responses}
 
@@ -93,7 +93,7 @@ curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/sources/src_…/rotate-secret \
   -d '{"secret": "whsec_new…"}'
 ```
 
-The previous secret keeps verifying for 24 hours, so requests signed either way are accepted while the provider switches over. For a generic source, send an empty body and we generate the new secret.
+The previous secret keeps verifying for 24 hours, so requests signed either way are accepted while the provider switches over. For a standard source, send the sender's new secret, or an empty body and we generate one.
 
 ## What's next {#next-steps}
 
