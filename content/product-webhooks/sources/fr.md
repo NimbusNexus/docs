@@ -2,13 +2,13 @@
 title: "Sources"
 description: "Recevez les webhooks de Stripe, de GitHub, de Clerk, de Resend ou de tout expéditeur qui signe en HMAC, et livrez-les à vos endpoints sous forme d’événements."
 publishedAt: 2026-10-19
-updatedAt: 2026-10-28
+updatedAt: 2026-10-29
 kind: concept
 ---
 
 # Sources
 
-Une source est une URL que vous donnez à un fournisseur — Stripe, GitHub, un expéditeur Standard Webhooks comme Clerk ou Resend, ou tout autre service qui signe ses webhooks — pour qu’il puisse nous les envoyer. Nous vérifions la signature de chaque requête, la transformons en événement et la livrons à vos endpoints exactement comme un événement que vous avez [publié vous-même](/docs/product-webhooks/quickstart#publish) : mêmes abonnements, mêmes réessais, même dead-letter queue.
+Une source est une URL que vous donnez à un fournisseur — Stripe, GitHub, Clerk, Resend ou tout autre expéditeur qui signe ses webhooks — pour qu’il puisse nous les envoyer. Nous vérifions la signature de chaque requête, la transformons en événement et la livrons à vos endpoints exactement comme un événement que vous avez [publié vous-même](/docs/product-webhooks/quickstart#publish) : mêmes abonnements, mêmes réessais, même dead-letter queue.
 
 Utilisez une source quand vous voulez un seul endroit pour le trafic de webhooks dans les deux sens, ou quand vous voulez que plusieurs de vos services reçoivent les événements d’un même fournisseur sans que chacun vérifie lui-même la signature de Stripe.
 
@@ -28,10 +28,10 @@ L’URL d’ingestion est la seule partie de Webhooks qui accepte des requêtes 
 |---|---|---|---|
 | `stripe` | `Stripe-Signature: t=…,v1=…` | `{t}.{body}` | 5 minutes |
 | `github` | `X-Hub-Signature-256: sha256=…` | `{body}` | aucune (GitHub n’envoie pas de timestamp) |
-| `generic` | `X-Webhook-Signature: sha256=…` avec `X-Webhook-Timestamp` | `{timestamp}.{body}` | 5 minutes |
-| `standardwebhooks` | `webhook-signature: v1,…` avec `webhook-id` et `webhook-timestamp`, ou les trois mêmes en `svix-*` | `{id}.{timestamp}.{body}` | 5 minutes |
+| `standard` | `webhook-signature: v1,…` avec `webhook-id` et `webhook-timestamp`, ou les trois mêmes en `svix-*` | `{id}.{timestamp}.{body}` | 5 minutes |
+| `standard` | ou `X-Webhook-Signature: sha256=…` avec `X-Webhook-Timestamp` | `{timestamp}.{body}` | 5 minutes |
 
-Les quatre sont en HMAC-SHA256. `generic` est le même schéma que celui avec lequel nous signons nos propres livraisons : l’endpoint d’un espace de travail Webhooks peut donc alimenter la source d’un autre, et tout expéditeur que vous contrôlez peut signer ainsi en quelques lignes. `standardwebhooks` est le schéma de [Standard Webhooks](https://www.standardwebhooks.com/), celui qu’utilise tout expéditeur bâti sur Svix, dont Clerk et Resend.
+Les trois sont en HMAC-SHA256. Une source `standard` accepte deux formats et les distingue par les headers : une requête avec `X-Webhook-Signature` est vérifiée selon notre propre format, toute autre selon le schéma [Standard](https://www.standardwebhooks.com/). Le schéma Standard est celui qu’utilise tout expéditeur bâti sur Svix, dont Clerk et Resend. Notre propre format est le même schéma que celui avec lequel nous signons nos livraisons : l’endpoint d’un espace de travail Webhooks peut donc alimenter la source d’un autre, et tout expéditeur que vous contrôlez peut signer ainsi en quelques lignes.
 
 ## Créer une source {#create}
 
@@ -49,8 +49,8 @@ curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/sources \
       }'
 ```
 
-- **Stripe, GitHub et Standard Webhooks** : collez le secret de signature que le fournisseur vous montre (pour un expéditeur Standard Webhooks, la valeur `whsec_…` de ses paramètres de webhooks). Une source créée sans secret démarre désactivée ; ajoutez le secret plus tard avec `rotate-secret` et activez-la.
-- **Generic** : omettez `secret` et nous en générons un, renvoyé une seule fois dans cette réponse.
+- **Stripe et GitHub** : collez le secret de signature que le fournisseur vous montre. Une source créée sans secret démarre désactivée ; ajoutez le secret plus tard avec `rotate-secret` et activez-la.
+- **Standard** : collez le secret `whsec_…` que votre expéditeur affiche dans ses paramètres de webhooks (Clerk, Resend), ou omettez `secret` et nous en générons un, renvoyé une seule fois dans cette réponse. Un secret généré signe dans l’un comme dans l’autre format.
 
 La réponse porte `ingest_url`. Collez-la dans les paramètres de webhooks du fournisseur, et ajoutez un endpoint abonné aux types que vous attendez (`prefix` `stripe.` ci-dessus).
 
@@ -59,12 +59,12 @@ La réponse porte `ingest_url`. Collez-la dans les paramètres de webhooks du fo
 Chaque requête a besoin d’un type d’événement auquel les endpoints peuvent s’abonner. Une source le trouve dans cet ordre :
 
 1. Là où vous lui avez dit de chercher : un **header** de la requête, ou un **chemin JSON** pointé dans le corps (`data.object.type`).
-2. Sinon, l’emplacement propre au fournisseur : le `type` du corps pour Stripe, les sources génériques et Standard Webhooks, le header `X-GitHub-Event` pour GitHub.
+2. Sinon, l’emplacement propre au fournisseur : le `type` du corps pour Stripe et Standard, le header `X-GitHub-Event` pour GitHub.
 3. Si aucun des deux ne donne de valeur : le **type par défaut** de la source, et à défaut, `webhook.received`.
 
 Le **préfixe** de la source se place devant (`stripe.` + `invoice.paid` → `stripe.invoice.paid`), ce qui sépare les types de deux fournisseurs dans un même projet. Si votre liste de types d’événements affiche `webhook.received`, une source a reçu des requêtes sans type lisible : définissez un type par défaut ou un chemin JSON sur cette source.
 
-L’identifiant d’événement propre au fournisseur (le `evt_…` de Stripe, l’identifiant de livraison de GitHub, le header `webhook-id` de Standard Webhooks) sert de clé d’idempotence : quand un fournisseur réessaie un événement que nous avons déjà accepté, il reçoit de nouveau `202` et rien n’est livré deux fois.
+L’identifiant d’événement propre au fournisseur (le `evt_…` de Stripe, l’identifiant de livraison de GitHub, le header `webhook-id` d’une requête au format Standard, l’`id` du corps dans notre propre format) sert de clé d’idempotence : quand un fournisseur réessaie un événement que nous avons déjà accepté, il reçoit de nouveau `202` et rien n’est livré deux fois.
 
 ## Ce que voit le fournisseur {#responses}
 
@@ -93,7 +93,7 @@ curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/sources/src_…/rotate-secret \
   -d '{"secret": "whsec_new…"}'
 ```
 
-L’ancien secret continue de vérifier les signatures pendant 24 heures : les requêtes signées avec l’un ou l’autre sont donc acceptées pendant que le fournisseur bascule. Pour une source générique, envoyez un corps vide et nous générons le nouveau secret.
+L’ancien secret continue de vérifier les signatures pendant 24 heures : les requêtes signées avec l’un ou l’autre sont donc acceptées pendant que le fournisseur bascule. Pour une source standard, envoyez le nouveau secret de l’expéditeur, ou un corps vide et nous en générons un.
 
 ## Étapes suivantes {#next-steps}
 
