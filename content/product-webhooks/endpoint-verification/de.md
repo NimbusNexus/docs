@@ -25,28 +25,28 @@ Der Endpoint besteht, wenn er mit **2xx antwortet und den Wert von `challenge` i
 Prüfen Sie die Signatur wie bei jeder Zustellung und geben Sie dann die Challenge zurück:
 
 ```python
-event = json.loads(raw_body)                       # after the signature check
-if event["type"] == "webhook.verify":
-    return Response(event["data"]["challenge"], status=200)
+from nn_webhooks import challenge_response
+
+if (challenge := challenge_response(raw_body)) is not None:  # after the signature check
+    return Response(challenge, status=200)
 ```
 
 ```ts
-const event = JSON.parse(rawBody); // after the signature check
-if (event.type === "webhook.verify") return res.status(200).send(event.data.challenge);
+import { challengeResponse } from "@nimbusnexus/webhooks-sdk";
+
+const challenge = challengeResponse(rawBody); // after the signature check
+if (challenge !== null) return res.status(200).send(challenge);
 ```
 
 ```go
-var event struct {
-    Type string `json:"type"`
-    Data struct{ Challenge string `json:"challenge"` } `json:"data"`
-}
-_ = json.Unmarshal(rawBody, &event) // after the signature check
-if event.Type == "webhook.verify" {
+if challenge, ok := webhooks.ChallengeResponse(rawBody); ok { // after the signature check
     w.WriteHeader(http.StatusOK)
-    w.Write([]byte(event.Data.Challenge))
+    w.Write([]byte(challenge))
     return
 }
 ```
+
+Das sind die Helfer der SDKs, die das in einem Aufruf erledigen (ab 0.8.0). Bei jedem anderen Event geben sie nichts zurück, sodass der Rest Ihres Handlers wie bisher läuft. Ohne SDK parsen Sie den Body und antworten mit `data.challenge`, wenn `type` den Wert `webhook.verify` hat.
 
 ## Verifizierung ausführen {#run}
 
