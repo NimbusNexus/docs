@@ -25,28 +25,28 @@ El endpoint la supera cuando responde **2xx con el valor de `challenge` en cualq
 Comprueba la firma como haces con cada entrega y después devuelve el desafío:
 
 ```python
-event = json.loads(raw_body)                       # after the signature check
-if event["type"] == "webhook.verify":
-    return Response(event["data"]["challenge"], status=200)
+from nn_webhooks import challenge_response
+
+if (challenge := challenge_response(raw_body)) is not None:  # after the signature check
+    return Response(challenge, status=200)
 ```
 
 ```ts
-const event = JSON.parse(rawBody); // after the signature check
-if (event.type === "webhook.verify") return res.status(200).send(event.data.challenge);
+import { challengeResponse } from "@nimbusnexus/webhooks-sdk";
+
+const challenge = challengeResponse(rawBody); // after the signature check
+if (challenge !== null) return res.status(200).send(challenge);
 ```
 
 ```go
-var event struct {
-    Type string `json:"type"`
-    Data struct{ Challenge string `json:"challenge"` } `json:"data"`
-}
-_ = json.Unmarshal(rawBody, &event) // after the signature check
-if event.Type == "webhook.verify" {
+if challenge, ok := webhooks.ChallengeResponse(rawBody); ok { // after the signature check
     w.WriteHeader(http.StatusOK)
-    w.Write([]byte(event.Data.Challenge))
+    w.Write([]byte(challenge))
     return
 }
 ```
+
+Son los ayudantes de los SDK que lo resuelven en una sola llamada (desde la 0.8.0). Con cualquier otro evento no devuelven nada, así que el resto de tu handler funciona como antes. Sin SDK, analiza el cuerpo y responde con `data.challenge` cuando `type` sea `webhook.verify`.
 
 ## Cómo lanzarla {#run}
 

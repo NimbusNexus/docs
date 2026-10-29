@@ -25,28 +25,28 @@ kind: concept
 Перевірте підпис, як для кожної доставки, а потім поверніть challenge:
 
 ```python
-event = json.loads(raw_body)                       # after the signature check
-if event["type"] == "webhook.verify":
-    return Response(event["data"]["challenge"], status=200)
+from nn_webhooks import challenge_response
+
+if (challenge := challenge_response(raw_body)) is not None:  # after the signature check
+    return Response(challenge, status=200)
 ```
 
 ```ts
-const event = JSON.parse(rawBody); // after the signature check
-if (event.type === "webhook.verify") return res.status(200).send(event.data.challenge);
+import { challengeResponse } from "@nimbusnexus/webhooks-sdk";
+
+const challenge = challengeResponse(rawBody); // after the signature check
+if (challenge !== null) return res.status(200).send(challenge);
 ```
 
 ```go
-var event struct {
-    Type string `json:"type"`
-    Data struct{ Challenge string `json:"challenge"` } `json:"data"`
-}
-_ = json.Unmarshal(rawBody, &event) // after the signature check
-if event.Type == "webhook.verify" {
+if challenge, ok := webhooks.ChallengeResponse(rawBody); ok { // after the signature check
     w.WriteHeader(http.StatusOK)
-    w.Write([]byte(event.Data.Challenge))
+    w.Write([]byte(challenge))
     return
 }
 ```
+
+Це помічники SDK, що роблять це одним викликом (з версії 0.8.0). Для будь-якої іншої події вони нічого не повертають, тож решта вашого обробника працює як раніше. Без SDK розберіть тіло й відповідайте значенням `data.challenge`, коли `type` дорівнює `webhook.verify`.
 
 ## Запуск {#run}
 
