@@ -2,7 +2,7 @@
 title: Deliveries and retries
 description: What happens to each event after it fans out — delivery states, the retry schedule, the dead-letter queue, and how to send things again.
 publishedAt: 2026-10-19
-updatedAt: 2026-10-21
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -16,9 +16,9 @@ Publishing an event creates one **delivery** for each endpoint that subscribes t
 |---|---|
 | `queued` | Waiting for its first attempt. |
 | `sending` | An attempt is in flight. |
-| `sent` | The endpoint answered 2xx. Done. |
-| `failed` | The last attempt failed and another is scheduled (`next_attempt_at`). |
-| `dead` | Out of attempts, or held back unsent because its endpoint must pass [verification](/docs/product-webhooks/endpoint-verification#gated) first. Kept in the dead-letter queue until you send it again. |
+| `sent` | The endpoint answered 2xx. Done. A delivery its endpoint's [transformation](/docs/product-webhooks/transformations#dropped) chose not to send is `sent` too, with `"dropped": true`. |
+| `failed` | The last attempt failed and another is scheduled (`next_attempt_at`). Also a delivery waiting on its endpoint's [paused transformation](/docs/product-webhooks/transformations#versions). |
+| `dead` | Out of attempts, held back unsent because its endpoint must pass [verification](/docs/product-webhooks/endpoint-verification#gated) first, or failed by its endpoint's [transformation](/docs/product-webhooks/transformations#failures). Kept in the dead-letter queue until you send it again. |
 
 Anything other than a 2xx counts as a failure: a 4xx or 5xx status, a timeout, a connection or TLS error. Each attempt waits up to 10 seconds for an answer, or the endpoint's own `delivery_timeout_ms` (100 ms to 60 s).
 
@@ -55,6 +55,8 @@ curl -s {{WEBHOOKS_BASE_URL}}/v1/deliveries/dlv_…/attempts \
 
 Where the deployment records them, an attempt also carries the first part of the endpoint's response body and the headers we sent (with credentials masked).
 
+When the endpoint has a [transformation](/docs/product-webhooks/transformations#deliveries), the delivery also shows the run that shaped it — the version, the body it sent, its logs or its error — and `GET /v1/deliveries/{id}/transform` returns it.
+
 ## Sending again {#replay}
 
 | What | How |
@@ -68,7 +70,7 @@ All four create new attempts of the stored event; they do not publish a new even
 
 ## Operational webhooks {#operational}
 
-To hear about delivery trouble without watching the console, subscribe an endpoint of your own to our operational events: `endpoint.disabled`, `endpoint.degraded`, `endpoint.recovered` and `message.attempt.exhausted` (a delivery went `dead`). Add one under **Operational webhooks** in the console, or with `POST /v1/operational-endpoints`. They are signed like any other delivery.
+To hear about delivery trouble without watching the console, subscribe an endpoint of your own to our operational events: `endpoint.disabled`, `endpoint.degraded`, `endpoint.recovered`, `message.attempt.exhausted` (a delivery went `dead`) and `transformation.disabled` (a [transformation](/docs/product-webhooks/transformations#failures) was turned off after failing). Add one under **Operational webhooks** in the console, or with `POST /v1/operational-endpoints`. They are signed like any other delivery.
 
 ## How long deliveries are kept {#retention}
 

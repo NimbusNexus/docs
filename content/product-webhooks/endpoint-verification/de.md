@@ -2,7 +2,7 @@
 title: "Endpoint-Verifizierung"
 description: "Nachweisen, dass ein Endpoint Ihre Events haben will, bevor er welche empfängt — mit einer einmaligen signierten Challenge, die er zurücksenden muss."
 publishedAt: 2026-10-19
-updatedAt: 2026-10-28
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -83,10 +83,11 @@ Erneutes Senden wird ebenso zurückgehalten. Eine einzelne Zustellung erneut an 
 
 Manche Empfänger nehmen jeden POST an, geben aber nie einen Body Ihrer Wahl zurück — darunter die Catch Hooks von Zapier. Sie können die Verifizierung nicht bestehen. Wo Ihr Tarif es zulässt, lassen Sie die Verifizierung für das Projekt ausgeschaltet, das an sie zustellt; andernfalls schalten Sie ein kleines eigenes Relay davor, das die Challenge beantwortet.
 
-Die Incoming Webhooks von Slack sind ein anderer Fall. Sie nehmen nur eine Slack-Nachricht mit einem Feld `text` oder `blocks` an und lehnen deshalb jedes Event ab, das wir zustellen, auch bei ausgeschalteter Verifizierung. Um Events nach Slack zu bringen, richten Sie den Endpoint auf etwas, das jedes Event in eine Nachricht umwandelt, etwa einen eigenen Empfänger oder einen Catch Hook von Zapier.
+Die Incoming Webhooks von Slack sind ein anderer Fall, ebenso die von Microsoft Teams und Discord. Sie nehmen nur ihr eigenes Nachrichtenformat an, etwa eine Slack-Nachricht mit einem Feld `text` oder `blocks`, und lehnen deshalb den Event-Envelope ab, den wir zustellen, auch bei ausgeschalteter Verifizierung. Geben Sie dem Endpoint eine [Transformation](/docs/product-webhooks/transformations), dann nehmen sie die Zustellungen an: Die Presets **Slack message**, **Microsoft Teams card** und **Discord message** wandeln in jedem bezahlten Tarif jedes Event in eine Nachricht um. Die Challenge können sie trotzdem nicht beantworten; lassen Sie die Verifizierung für das Projekt, das an sie zustellt, also ausgeschaltet. [Slack, Teams und Discord](/docs/product-webhooks/chat-apps) führt Schritt für Schritt durch die Einrichtung.
 
 ## Nächste Schritte {#next-steps}
 
 - [Signaturprüfung](/docs/product-webhooks/signatures) — die Prüfung, die Sie vor dem Beantworten der Challenge ausführen.
 - [Zustellungen und Retries](/docs/product-webhooks/deliveries) — was geschieht, sobald der Endpoint Events empfängt.
+- [Transformationen](/docs/product-webhooks/transformations) — einem Empfänger das Format senden, das er braucht.
 - [Schnellstart](/docs/product-webhooks/quickstart) — von null zur verifizierten Zustellung.

@@ -2,7 +2,7 @@
 title: "Vérification des endpoints"
 description: "Prouvez qu’un endpoint veut vos événements avant qu’il en reçoive — un challenge signé à usage unique, qu’il doit renvoyer."
 publishedAt: 2026-10-19
-updatedAt: 2026-10-28
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -83,10 +83,11 @@ Les renvois sont retenus de la même façon. Relivrer une livraison vers cet end
 
 Certains récepteurs acceptent n’importe quel POST mais ne renvoient jamais un corps de votre choix — parmi eux, les catch hooks de Zapier. Ils ne peuvent pas réussir la vérification. Si votre plan vous le permet, laissez la vérification désactivée pour le projet qui leur livre ; sinon, placez devant eux un petit relais à vous qui répond au challenge.
 
-Les incoming webhooks de Slack sont un cas à part. Ils n’acceptent qu’un message Slack, avec un champ `text` ou `blocks`, et refusent donc tous les événements que nous livrons, même avec la vérification désactivée. Pour recevoir vos événements dans Slack, dirigez l’endpoint vers quelque chose qui transforme chaque événement en message, par exemple un récepteur à vous ou un catch hook de Zapier.
+Les incoming webhooks de Slack sont un cas à part, tout comme ceux de Microsoft Teams et de Discord. Ils n’acceptent que leur propre format de message, comme un message Slack avec un champ `text` ou `blocks`, et refusent donc l’enveloppe d’événement que nous livrons, même avec la vérification désactivée. Attachez une [transformation](/docs/product-webhooks/transformations) à l’endpoint et ils acceptent ses livraisons : les presets **Slack message**, **Microsoft Teams card** et **Discord message** font de chaque événement un message, sur tous les plans payants. Ils ne peuvent toujours pas répondre au challenge : laissez donc la vérification désactivée pour leur projet. [Slack, Teams et Discord](/docs/product-webhooks/chat-apps) détaille la marche à suivre.
 
 ## Étapes suivantes {#next-steps}
 
 - [Vérification de signature](/docs/product-webhooks/signatures) — la vérification à effectuer avant de répondre au challenge.
 - [Livraisons et réessais](/docs/product-webhooks/deliveries) — ce qui se passe une fois que l’endpoint reçoit des événements.
+- [Transformations](/docs/product-webhooks/transformations) — envoyer à un récepteur le format dont il a besoin.
 - [Démarrage rapide](/docs/product-webhooks/quickstart) — de zéro à une livraison vérifiée.

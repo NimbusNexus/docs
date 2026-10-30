@@ -2,7 +2,7 @@
 title: "Zustellungen und Retries"
 description: "Was mit jedem Event nach der Verteilung geschieht — Zustellstatus, der Retry-Zeitplan, die Dead-Letter-Queue und wie Sie erneut senden."
 publishedAt: 2026-10-19
-updatedAt: 2026-10-21
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -16,9 +16,9 @@ Wenn Sie ein Event veröffentlichen, entsteht eine **Zustellung** für jeden End
 |---|---|
 | `queued` | Wartet auf den ersten Versuch. |
 | `sending` | Ein Versuch läuft. |
-| `sent` | Der Endpoint hat mit 2xx geantwortet. Erledigt. |
-| `failed` | Der letzte Versuch ist fehlgeschlagen, und ein weiterer ist geplant (`next_attempt_at`). |
-| `dead` | Keine Versuche mehr übrig, oder ungesendet zurückgehalten, weil ihr Endpoint zuerst die [Verifizierung](/docs/product-webhooks/endpoint-verification#gated) bestehen muss. Bleibt in der Dead-Letter-Queue, bis Sie sie erneut senden. |
+| `sent` | Der Endpoint hat mit 2xx geantwortet. Erledigt. Eine Zustellung, die von der [Transformation](/docs/product-webhooks/transformations#dropped) ihres Endpoints verworfen wurde, hat ebenfalls den Status `sent`, mit `"dropped": true`. |
+| `failed` | Der letzte Versuch ist fehlgeschlagen, und ein weiterer ist geplant (`next_attempt_at`). Ebenso eine Zustellung, die auf die [pausierte Transformation](/docs/product-webhooks/transformations#versions) ihres Endpoints wartet. |
+| `dead` | Keine Versuche mehr übrig, ungesendet zurückgehalten, weil ihr Endpoint zuerst die [Verifizierung](/docs/product-webhooks/endpoint-verification#gated) bestehen muss, oder an der [Transformation](/docs/product-webhooks/transformations#failures) ihres Endpoints gescheitert. Bleibt in der Dead-Letter-Queue, bis Sie sie erneut senden. |
 
 Alles außer 2xx zählt als Fehlschlag: ein Status 4xx oder 5xx, ein Timeout, ein Verbindungs- oder TLS-Fehler. Jeder Versuch wartet bis zu 10 Sekunden auf eine Antwort oder so lange, wie `delivery_timeout_ms` des Endpoints festlegt (100 ms bis 60 s).
 
@@ -55,6 +55,8 @@ curl -s {{WEBHOOKS_BASE_URL}}/v1/deliveries/dlv_…/attempts \
 
 Wo das Deployment sie aufzeichnet, enthält ein Versuch außerdem den Anfang des Response-Bodys des Endpoints und die Header, die wir gesendet haben (mit maskierten Credentials).
 
+Wenn der Endpoint eine [Transformation](/docs/product-webhooks/transformations#deliveries) hat, zeigt die Zustellung außerdem die Ausführung, die sie geformt hat — die Version, den gesendeten Body, die Logs oder den Fehler —, und `GET /v1/deliveries/{id}/transform` liefert sie.
+
 ## Erneut senden {#replay}
 
 | Was | Wie |
@@ -68,7 +70,7 @@ Alle vier erzeugen neue Versuche des gespeicherten Events; sie veröffentlichen 
 
 ## Betriebs-Webhooks {#operational}
 
-Um von Zustellproblemen zu erfahren, ohne die Konsole zu beobachten, lassen Sie einen eigenen Endpoint unsere Betriebs-Events abonnieren: `endpoint.disabled`, `endpoint.degraded`, `endpoint.recovered` und `message.attempt.exhausted` (eine Zustellung ging in den Status `dead`). Fügen Sie einen in der Konsole unter **Operational webhooks** hinzu oder mit `POST /v1/operational-endpoints`. Sie werden wie jede andere Zustellung signiert.
+Um von Zustellproblemen zu erfahren, ohne die Konsole zu beobachten, lassen Sie einen eigenen Endpoint unsere Betriebs-Events abonnieren: `endpoint.disabled`, `endpoint.degraded`, `endpoint.recovered`, `message.attempt.exhausted` (eine Zustellung ging in den Status `dead`) und `transformation.disabled` (eine [Transformation](/docs/product-webhooks/transformations#failures) wurde nach Fehlschlägen ausgeschaltet). Fügen Sie einen in der Konsole unter **Operational webhooks** hinzu oder mit `POST /v1/operational-endpoints`. Sie werden wie jede andere Zustellung signiert.
 
 ## Wie lange Zustellungen aufbewahrt werden {#retention}
 
