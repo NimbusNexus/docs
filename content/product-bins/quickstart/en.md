@@ -2,7 +2,7 @@
 title: Request Bins quickstart
 description: Create a bin, send it a request with curl, and read what it recorded — in the console, then over the API.
 publishedAt: 2026-10-22
-updatedAt: 2026-10-27
+updatedAt: 2026-10-30
 kind: quickstart
 ---
 
@@ -146,7 +146,7 @@ curl https://bins.nimbusnexus.net/v1/requests/req_8d2e6b1f4a9c3e7d5b0f2a61 \
 }
 ```
 
-This one is trimmed too: the full answer carries every field of the list item, and the real header list also holds the headers added by the proxies in front of `nnbin.net`, such as `x-forwarded-for`. The body is base64 because a body need not be text. To print it:
+This one is trimmed too: the full answer carries every field of the list item. The body is base64 because a body need not be text. To print it:
 
 ```bash
 curl -s https://bins.nimbusnexus.net/v1/requests/req_8d2e6b1f4a9c3e7d5b0f2a61 \

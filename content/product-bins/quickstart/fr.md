@@ -2,7 +2,7 @@
 title: "Démarrage rapide Request Bins"
 description: "Créez un bin, envoyez-lui une requête avec curl et lisez ce qu’il a enregistré — dans la console, puis via l’API."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-27
+updatedAt: 2026-10-30
 kind: quickstart
 ---
 
@@ -146,7 +146,7 @@ curl https://bins.nimbusnexus.net/v1/requests/req_8d2e6b1f4a9c3e7d5b0f2a61 \
 }
 ```
 
-Celle-ci est aussi abrégée : la réponse complète porte chaque champ de l’élément de liste, et la vraie liste de headers contient aussi les headers ajoutés par les proxys placés devant `nnbin.net`, comme `x-forwarded-for`. Le corps est en base64 car un corps n’est pas forcément du texte. Pour l’afficher :
+Celle-ci est aussi abrégée : la réponse complète porte chaque champ de l’élément de liste. Le corps est en base64 car un corps n’est pas forcément du texte. Pour l’afficher :
 
 ```bash
 curl -s https://bins.nimbusnexus.net/v1/requests/req_8d2e6b1f4a9c3e7d5b0f2a61 \

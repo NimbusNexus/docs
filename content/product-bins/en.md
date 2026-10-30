@@ -2,7 +2,7 @@
 title: Request Bins
 description: Public URLs that record every HTTP request sent to them — point any app, script or service at one and read exactly what it sent, in the console or over the API.
 publishedAt: 2026-10-22
-updatedAt: 2026-10-27
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -32,7 +32,7 @@ NimbusNexus Request Bins gives you **bins**: public URLs that record every HTTP 
 
 1. **Create** a bin — in the console with **Create a bin** (**New bin** once you have one), or with `POST /v1/bins`. Its URL records from that moment.
 2. **Send** it requests. Give the URL to whatever you want to watch — a provider's webhook settings, your app's configuration, a script, a CI job — or `curl` it yourself. Anything after the slug is yours to choose: a request to `https://nnbin.net/b/k7xq2mbn9tfa/orders/42` is recorded with the path `/orders/42`.
-3. **Read** what arrived. It appears in the console within seconds, and on paid plans at `GET /v1/bins/{id}/requests`. To find one request among many, search for text in paths, headers and bodies, or keep only some methods: **Search** and the method chips above the list in the console, `q` and `method` in the API ([Captured requests](/docs/product-bins/reference#requests)). To see which paths a sender used, switch the list to **By path**: it counts the requests to each path, and picking one lists them. `GET /v1/bins/{id}/paths` does the same in the API ([Requests by path](/docs/product-bins/reference#paths)). **All bins** in the console, and `GET /v1/requests` in the API, list what every bin recorded in one list, with the same search.
+3. **Read** what arrived. It appears in the console within seconds, and on paid plans at `GET /v1/bins/{id}/requests`. To find one request among many, search for text in paths, headers and bodies, or in only one of them, one header or one field of a JSON body, or keep only some methods: **Search**, **Search in** and the method chips above the list in the console, `q`, `in`, `header`, `field` and `method` in the API ([Captured requests](/docs/product-bins/reference#requests)). To see which paths a sender used, switch the list to **By path**: it counts the requests to each path, and picking one lists them. `GET /v1/bins/{id}/paths` does the same in the API ([Requests by path](/docs/product-bins/reference#paths)). **All bins** in the console, and `GET /v1/requests` in the API, list what every bin recorded in one list, with the same search.
 4. **Delete** the bin when you are done, or let it expire.
 
 The [quickstart](/docs/product-bins/quickstart) does all four.
@@ -71,6 +71,7 @@ On Starter, Pro and Custom, a bin can also send each request it records on to yo
 | Price | $0 | $9 a month, or $86.40 a year | $29 a month, or $278.40 a year | by contract |
 | Bins at once | 1 | 5 | 25 | 250 |
 | Requests recorded per month | 1,000 | 25,000 | 250,000 | 5,000,000 |
+| More requests, bought with [credit](#credit) | 10,000 for $4 | 10,000 for $4 | 10,000 for $4 | by contract |
 | Kept for (retention) | 1 day | 7 days | 30 days | 90 days |
 | Bin lifetime | 24 hours | until deleted, or up to 7 days if you set one | until deleted, or up to 30 days | until deleted, or up to a year |
 | Read over the API | no (console only) | yes | yes | yes |
@@ -80,9 +81,15 @@ On Starter, Pro and Custom, a bin can also send each request it records on to yo
 
 Free is enough to see exactly what any app, script or service sends: one bin, 1,000 requests a month, read in the console.
 
-The month is a calendar month in UTC, and every request a bin records counts. Past the month's requests, bins keep answering `200` and record nothing until the next month begins; requests refused that way don't count. One bin may use only part of the month — all of it on Free, half on Starter, 40% on Pro and a quarter on Custom — so one busy or leaked URL can't use up the requests of the workspace's other bins.
+The month is a calendar month in UTC, and every request a bin records counts. As the month's requests run out, credit in your workspace buys more, unless you switch that off ([More requests with credit](#credit)). Without it, past the month's requests, bins keep answering `200` and record nothing until the next month begins; requests refused that way don't count. One bin may use only part of the month, bought requests included — all of it on Free, half on Starter, 40% on Pro and a quarter on Custom — so one busy or leaked URL can't use up the requests of the workspace's other bins.
 
 The last two rows are abuse limits, described under [Suspended bins](#suspended).
+
+### More requests with credit {#credit}
+
+Credit is a balance your workspace keeps for NimbusNexus products to spend when their month runs out. You add it in the [account console]({{ACCOUNT_BASE_URL}}/billing#credit), under **Billing**, where the **Credit** card also switches each product's spending on or off. It is on for Request Bins until you switch it off.
+
+When 90% of the month's requests are used and fewer than 10,000 are left, Request Bins buys 10,000 more with credit for $4, on Free, Starter and Pro, for as long as the balance lasts. On Custom, more requests come by contract. Bought requests count for the rest of the month, each bin's share included, and lapse when it ends: a partly used block isn't refunded. The [reference](/docs/product-bins/reference#credit) has the details.
 
 ## Suspended bins {#suspended}
 

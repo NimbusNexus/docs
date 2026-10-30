@@ -2,7 +2,7 @@
 title: "Referenz für Request Bins"
 description: "Jede Route der Request-Bins-API, was eine Bin-URL antwortet und aufzeichnet, wer was darf und die Limits jedes Tarifs."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-27
+updatedAt: 2026-10-30
 kind: reference
 ---
 
@@ -361,15 +361,19 @@ Der Aufruf wartet bis zu 13 Sekunden auf die Antwort; bei einem langsameren Serv
 ```json
 {
   "period": "2026-10-01",
-  "requests": 1834,
-  "monthly_requests": 25000,
+  "requests": 26834,
+  "monthly_requests": 35000,
+  "purchased_requests": 10000,
+  "credit": null,
   "bins": 2,
   "max_bins": 5,
-  "bin_request_ceiling": 12500
+  "bin_request_ceiling": 17500
 }
 ```
 
-`period` ist der Monat, angegeben als sein erster Tag. `requests` zählt, was die Bins des Workspaces in diesem Monat aufgezeichnet haben, gemessen an `monthly_requests`. `bins` zählt die vorhandenen Bins, gemessen an `max_bins`. `bin_request_ceiling` ist das Maximum, das ein einzelner Bin in diesem Monat aufzeichnen darf.
+`period` ist der Monat, angegeben als sein erster Tag. `requests` zählt, was die Bins des Workspaces in diesem Monat aufgezeichnet haben, gemessen an `monthly_requests`: den monatlichen Requests des Tarifs plus `purchased_requests`, den in diesem Monat mit [Guthaben](#credit) gekauften Requests. Hier hat ein Workspace im Tarif Starter zusätzlich zu seinen 25.000 einen Block gekauft. `bins` zählt die vorhandenen Bins, gemessen an `max_bins`. `bin_request_ceiling` ist das Maximum, das ein einzelner Bin in diesem Monat aufzeichnen darf, gekaufte Requests eingeschlossen.
+
+`credit` ist `null`, solange der Monat noch Requests übrig hat. Sind sie aufgebraucht, zeigt das Feld, was mit dem Guthaben geschieht: `pending`, während weitere gekauft werden, sodass Bins innerhalb weniger Minuten wieder aufzeichnen; `empty`, wenn das Guthaben für einen Block nicht reicht; und `off`, wenn die Nutzung des Guthabens für Request Bins ausgeschaltet ist oder im Tarif keine gekauft werden, wie in Custom. Behandeln Sie das Feld als offenen String und sehen Sie einen Standardfall für Werte vor, die Sie nicht kennen.
 
 ## Wer was darf {#authority}
 
@@ -408,11 +412,21 @@ Ein Workspace hat Request Bins, sobald ein Owner oder Admin die Konsole geöffne
 `GET /v1/plan` gibt Lebensdauern in Minuten an, wobei `0` „bis zum Löschen“ (`bin_ttl_minutes`) oder „kein Limit des Tarifs“ (`bin_ttl_max_minutes`) bedeutet, `read_api` und `forwarding` als `1` oder `0`, `forward_max_body_bytes` in Bytes und die Zahlen zur Weiterleitung in Free als `0`. Die Preise stehen im [Überblick](/docs/product-bins#limits).
 
 - **Der Monat** ist ein Kalendermonat in UTC: `period` in `GET /v1/usage`. Jeder Request, den ein Bin aufzeichnet, zählt. Ein abgewiesener oder durch das Rate-Limit gebremster Request zählt nicht.
-- **Nach Überschreiten der Requests des Monats** oder des Anteils eines Bins daran (`bin_request_ceiling`) antworten Bins mit `200` und zeichnen bis zum nächsten Monat nichts auf, und `refused_count` zeigt das an. Kein API-Aufruf wird deswegen abgewiesen.
+- **Nach Überschreiten der Requests des Monats** oder des Anteils eines Bins daran (`bin_request_ceiling`) antworten Bins mit `200` und zeichnen nichts auf, bis mit [Guthaben](#credit) weitere gekauft werden oder der nächste Monat beginnt, und `refused_count` zeigt das an. Kein API-Aufruf wird deswegen abgewiesen.
 - **Aufbewahrung und Lebensdauer sind getrennte Uhren.** Ein Request wird gelöscht, wenn die Aufbewahrung des Tarifs abläuft oder sein Bin endet, je nachdem, was zuerst eintritt.
-- **Hinweise:** Wenn der Workspace 80 % und dann 100 % der Requests des Monats erreicht, wird er per E-Mail benachrichtigt, die an den Owner des Workspaces geht, sofern Sie keine andere Adresse wählen, und über einen Webhook mit dem Event-Typ `bind.quota.threshold_reached`, falls Sie einen einrichten. Beides finden Sie unter **Notifications** in Ihrer Kontokonsole.
+- **Hinweise:** Wenn der Workspace 80 % und dann 100 % der Requests des Monats erreicht, gekaufte Requests eingeschlossen, wird er per E-Mail benachrichtigt, die an den Owner des Workspaces geht, sofern Sie keine andere Adresse wählen, und über einen Webhook mit dem Event-Typ `bind.quota.threshold_reached`, falls Sie einen einrichten. Beides finden Sie unter **Notifications** in Ihrer Kontokonsole. Die E-Mail sagt, was das Guthaben tun wird.
 - **Solange eine Zahlung überfällig ist,** werden das Anlegen und Ändern von Bins mit `402` `workspace_frozen` abgewiesen, und Bins zeichnen weiter auf. Endet die Nachfrist, wird der Workspace gesperrt: Dieselben Abweisungen kommen als `402` `workspace_suspended`, und Bins antworten mit `200` und zeichnen nichts auf. Löschen und Lesen funktionieren weiterhin, und nichts wird gelöscht.
 - **In einem kleineren Tarif** werden Bins über dessen `max_bins` zurückgehalten, die neuesten zuerst, als [`plan_downgrade`](#suspension), und kommen zurück, die ältesten zuerst, sobald der Tarif sie erlaubt.
+
+### Weitere Requests mit Guthaben {#credit}
+
+Guthaben ist ein Betrag, den Ihr Workspace bereithält und den NimbusNexus-Produkte ausgeben, wenn ihr Monat aufgebraucht ist. Sie laden es in der [Kontokonsole]({{ACCOUNT_BASE_URL}}/billing#credit) unter **Billing** auf, wo Sie auf der Karte **Credit** außerdem für jedes Produkt die Nutzung des Guthabens ein- oder ausschalten. Für Request Bins ist sie eingeschaltet, bis Sie sie ausschalten.
+
+- **Der Block:** 10.000 Requests für $4, in Free, Starter und Pro. In Custom gibt es weitere Requests nach Vertrag, daher werden dort keine mit Guthaben gekauft.
+- **Wann:** Etwa alle 5 Minuten kauft Request Bins einen Block für jeden Workspace, dessen Monat zu 90 % verbraucht ist und der weniger als 10.000 Requests übrig hat, solange das Guthaben reicht.
+- **Was ein Block hinzufügt:** 10.000 Requests zum Monat, und der Anteil jedes Bins wächst um seinen Teil davon, auf Starter etwa um 5.000, sodass `monthly_requests`, `purchased_requests` und `bin_request_ceiling` in [`GET /v1/usage`](#plan) mitwachsen.
+- **Nur für den Monat:** Gekaufte Requests verfallen, wenn der Monat endet. Ein teilweise genutzter Block wird nicht erstattet, und nichts wird in den nächsten Monat übertragen.
+- **Wenn nichts gekauft werden kann:** Ist die Nutzung des Guthabens ausgeschaltet oder reicht das Guthaben für keinen Block, antworten Bins nach Überschreiten der Requests des Monats mit `200` und zeichnen bis zum nächsten Monat nichts auf, und `credit` in `GET /v1/usage` sagt, welcher Fall vorliegt. Auch ein Absender, der schnell genug sendet, um die letzten Requests vor dem nächsten Kauf aufzubrauchen, findet den Monat für einige Minuten aufgebraucht vor, und was er dann sendet, wird nicht aufgezeichnet.
 
 ## Fehler {#errors}
 

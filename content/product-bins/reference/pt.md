@@ -2,7 +2,7 @@
 title: "Referência de Request Bins"
 description: "Todas as rotas da API de Request Bins, o que a URL de um bin responde e registra, quem pode fazer o quê e os limites de cada plano."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-27
+updatedAt: 2026-10-30
 kind: reference
 ---
 
@@ -361,15 +361,19 @@ A chamada espera até 13 segundos pela resposta, e um servidor mais lento que is
 ```json
 {
   "period": "2026-10-01",
-  "requests": 1834,
-  "monthly_requests": 25000,
+  "requests": 26834,
+  "monthly_requests": 35000,
+  "purchased_requests": 10000,
+  "credit": null,
   "bins": 2,
   "max_bins": 5,
-  "bin_request_ceiling": 12500
+  "bin_request_ceiling": 17500
 }
 ```
 
-`period` é o mês, representado pelo primeiro dia. `requests` conta o que os bins do workspace registraram neste mês, em relação a `monthly_requests`. `bins` conta os bins existentes, em relação a `max_bins`. `bin_request_ceiling` é o máximo que um único bin pode registrar neste mês.
+`period` é o mês, representado pelo primeiro dia. `requests` conta o que os bins do workspace registraram neste mês, em relação a `monthly_requests`: as requisições mensais do plano mais `purchased_requests`, as requisições compradas com [crédito](#credit) neste mês. Aqui, um workspace no Starter comprou um bloco além das suas 25.000. `bins` conta os bins existentes, em relação a `max_bins`. `bin_request_ceiling` é o máximo que um único bin pode registrar neste mês, incluindo as requisições compradas.
+
+`credit` é `null` enquanto restam requisições no mês. Depois que elas se esgotam, ele diz o que o crédito está fazendo: `pending` enquanto mais requisições estão sendo compradas, e por isso os bins voltam a registrar em poucos minutos; `empty` quando o saldo é baixo demais para um bloco; e `off` quando o crédito está desligado para o Request Bins, ou quando o plano não compra requisições, como no Custom. Trate-o como uma string aberta e mantenha um caso padrão para um valor que você não conhece.
 
 ## Quem pode fazer o quê {#authority}
 
@@ -408,11 +412,21 @@ Um workspace tem o Request Bins depois que um proprietário ou admin abre o cons
 `GET /v1/plan` informa os tempos de vida em minutos, com `0` significando até ser excluído (`bin_ttl_minutes`) ou sem limite do plano (`bin_ttl_max_minutes`), `read_api` e `forwarding` como `1` ou `0`, `forward_max_body_bytes` em bytes e os números do encaminhamento como `0` no Free. Os preços estão na [visão geral](/docs/product-bins#limits).
 
 - **O mês** é um mês do calendário em UTC: `period` em `GET /v1/usage`. Toda requisição que um bin registra conta. Uma requisição recusada ou barrada pelo limite de requisições não conta.
-- **Depois de esgotadas as requisições do mês**, ou a parcela de um bin (`bin_request_ceiling`), os bins respondem `200` e não registram nada até o mês seguinte, e `refused_count` mostra isso. Nenhuma chamada de API é recusada por causa disso.
+- **Depois de esgotadas as requisições do mês**, ou a parcela de um bin (`bin_request_ceiling`), os bins respondem `200` e não registram nada até que o [crédito](#credit) compre mais ou o mês seguinte comece, e `refused_count` mostra isso. Nenhuma chamada de API é recusada por causa disso.
 - **Retenção e tempo de vida são relógios separados.** Uma requisição é excluída quando a retenção do plano se esgota ou quando o bin dela termina, o que acontecer primeiro.
-- **Avisos:** quando o workspace chega a 80% e depois a 100% das requisições do mês, ele é avisado por e-mail, que vai para o proprietário do workspace, a menos que você escolha outro endereço, e por um webhook com o tipo de evento `bind.quota.threshold_reached`, se você configurar um. Os dois ficam em **Notifications** no seu console da conta.
+- **Avisos:** quando o workspace chega a 80% e depois a 100% das requisições do mês, incluindo as compradas, ele é avisado por e-mail, que vai para o proprietário do workspace, a menos que você escolha outro endereço, e por um webhook com o tipo de evento `bind.quota.threshold_reached`, se você configurar um. Os dois ficam em **Notifications** no seu console da conta. O e-mail diz o que o crédito vai fazer.
 - **Enquanto um pagamento estiver atrasado,** criar e alterar bins é recusado com `402` `workspace_frozen`, e os bins continuam registrando. Se o período de carência terminar, o workspace é suspenso: as mesmas recusas passam a vir como `402` `workspace_suspended`, e os bins respondem `200` e não registram nada. Excluir e ler continuam funcionando, e nada é excluído.
 - **Em um plano menor,** os bins acima do `max_bins` dele ficam em espera, dos mais novos para os mais antigos, como [`plan_downgrade`](#suspension), e voltam, dos mais antigos para os mais novos, quando o plano permitir.
+
+### Mais requisições com crédito {#credit}
+
+O crédito é um saldo que o seu workspace mantém para os produtos NimbusNexus gastarem quando o limite mensal deles se esgota. Você o adiciona no [console da conta]({{ACCOUNT_BASE_URL}}/billing#credit), em **Billing**, onde o card **Credit** também liga ou desliga o gasto de cada produto. No Request Bins, esse gasto fica ligado até você desligá-lo.
+
+- **O bloco:** 10.000 requisições por $4, no Free, no Starter e no Pro. No Custom, as requisições adicionais vêm por contrato, então o crédito não compra nenhuma.
+- **Quando:** a cada 5 minutos, aproximadamente, o Request Bins compra um bloco para cada workspace que já usou 90% das requisições do mês e tem menos de 10.000 restantes, enquanto o saldo durar.
+- **O que ele acrescenta:** 10.000 requisições ao mês, e a parcela de cada bin cresce na proporção que lhe cabe delas, como 5.000 no Starter, então `monthly_requests`, `purchased_requests` e `bin_request_ceiling` em [`GET /v1/usage`](#plan) aumentam com ele.
+- **Só para o mês:** as requisições compradas expiram quando o mês termina. Um bloco usado só em parte não é reembolsado, e nada passa para o mês seguinte.
+- **Quando não é possível comprar:** com o crédito desligado, ou com um saldo baixo demais para um bloco, os bins respondem `200` e não registram nada depois de esgotadas as requisições do mês, até o mês seguinte, e `credit` em `GET /v1/usage` diz qual dos dois. Um remetente rápido o bastante para esgotar as últimas requisições antes da próxima compra também encontra as requisições do mês esgotadas, por alguns minutos, e o que ele envia nesse intervalo não é registrado.
 
 ## Erros {#errors}
 

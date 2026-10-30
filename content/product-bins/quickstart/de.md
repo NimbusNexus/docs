@@ -2,7 +2,7 @@
 title: "Schnellstart für Request Bins"
 description: "Einen Bin anlegen, ihm mit curl einen Request senden und lesen, was er aufgezeichnet hat — erst in der Konsole, dann über die API."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-27
+updatedAt: 2026-10-30
 kind: quickstart
 ---
 
@@ -146,7 +146,7 @@ curl https://bins.nimbusnexus.net/v1/requests/req_8d2e6b1f4a9c3e7d5b0f2a61 \
 }
 ```
 
-Auch diese Antwort ist gekürzt: Die vollständige Antwort enthält jedes Feld des Listeneintrags, und die echte Header-Liste enthält auch die Header, die die Proxys vor `nnbin.net` hinzufügen, etwa `x-forwarded-for`. Der Body ist base64-kodiert, weil ein Body kein Text sein muss. So geben Sie ihn aus:
+Auch diese Antwort ist gekürzt: Die vollständige Antwort enthält jedes Feld des Listeneintrags. Der Body ist base64-kodiert, weil ein Body kein Text sein muss. So geben Sie ihn aus:
 
 ```bash
 curl -s https://bins.nimbusnexus.net/v1/requests/req_8d2e6b1f4a9c3e7d5b0f2a61 \
