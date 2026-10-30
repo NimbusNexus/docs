@@ -2,7 +2,7 @@
 title: "Request Bins"
 description: "Öffentliche URLs, die jeden an sie gesendeten HTTP-Request aufzeichnen — eine App, ein Skript oder einen Dienst darauf richten und in der Konsole oder über die API genau lesen, was gesendet wurde."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-27
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -32,7 +32,7 @@ Request Bins stellt Ihnen **Bins** bereit: öffentliche URLs, die jeden an sie g
 
 1. **Legen Sie einen Bin an** — in der Konsole mit **Create a bin** (**New bin**, sobald Sie einen haben) oder mit `POST /v1/bins`. Ab diesem Moment zeichnet seine URL auf.
 2. **Senden Sie ihm Requests.** Geben Sie die URL an das weiter, was Sie beobachten wollen — die Webhook-Einstellungen eines Anbieters, die Konfiguration Ihrer App, ein Skript, einen CI-Job — oder rufen Sie sie selbst mit `curl` auf. Was nach dem Slug folgt, bestimmen Sie selbst: Ein Request an `https://nnbin.net/b/k7xq2mbn9tfa/orders/42` wird mit dem Pfad `/orders/42` aufgezeichnet.
-3. **Lesen Sie, was angekommen ist.** Es erscheint innerhalb von Sekunden in der Konsole und in bezahlten Tarifen unter `GET /v1/bins/{id}/requests`. Um einen Request unter vielen zu finden, suchen Sie nach Text in Pfaden, Headern und Bodys oder beschränken Sie die Liste auf bestimmte Methoden: in der Konsole mit **Search** und den Methoden-Chips über der Liste, in der API mit `q` und `method` ([Erfasste Requests](/docs/product-bins/reference#requests)). Um zu sehen, welche Pfade ein Absender verwendet hat, schalten Sie die Liste auf **By path** um: Die Liste zählt die Requests pro Pfad, und wenn Sie einen Pfad auswählen, listet sie dessen Requests auf. `GET /v1/bins/{id}/paths` tut dasselbe in der API ([Requests nach Pfad](/docs/product-bins/reference#paths)). **All bins** in der Konsole und `GET /v1/requests` in der API listen in einer Liste auf, was alle Bins aufgezeichnet haben, mit derselben Suche.
+3. **Lesen Sie, was angekommen ist.** Es erscheint innerhalb von Sekunden in der Konsole und in bezahlten Tarifen unter `GET /v1/bins/{id}/requests`. Um einen Request unter vielen zu finden, suchen Sie nach Text in Pfaden, Headern und Bodys oder nur in einem davon, in einem einzelnen Header oder in einem einzelnen Feld eines JSON-Bodys, oder beschränken Sie die Liste auf bestimmte Methoden: in der Konsole mit **Search**, **Search in** und den Methoden-Chips über der Liste, in der API mit `q`, `in`, `header`, `field` und `method` ([Erfasste Requests](/docs/product-bins/reference#requests)). Um zu sehen, welche Pfade ein Absender verwendet hat, schalten Sie die Liste auf **By path** um: Die Liste zählt die Requests pro Pfad, und wenn Sie einen Pfad auswählen, listet sie dessen Requests auf. `GET /v1/bins/{id}/paths` tut dasselbe in der API ([Requests nach Pfad](/docs/product-bins/reference#paths)). **All bins** in der Konsole und `GET /v1/requests` in der API listen in einer Liste auf, was alle Bins aufgezeichnet haben, mit derselben Suche.
 4. **Löschen Sie den Bin**, wenn Sie fertig sind, oder lassen Sie ihn ablaufen.
 
 Der [Schnellstart](/docs/product-bins/quickstart) führt alle vier Schritte aus.
@@ -71,6 +71,7 @@ In Starter, Pro und Custom kann ein Bin außerdem jeden Request, den er aufzeich
 | Preis | $0 | $9 pro Monat oder $86,40 pro Jahr | $29 pro Monat oder $278,40 pro Jahr | nach Vertrag |
 | Bins gleichzeitig | 1 | 5 | 25 | 250 |
 | Aufgezeichnete Requests pro Monat | 1.000 | 25.000 | 250.000 | 5.000.000 |
+| Weitere Requests, mit [Guthaben](#credit) gekauft | 10.000 für $4 | 10.000 für $4 | 10.000 für $4 | nach Vertrag |
 | Gespeichert für (Aufbewahrung) | 1 Tag | 7 Tage | 30 Tage | 90 Tage |
 | Lebensdauer eines Bins | 24 Stunden | bis zum Löschen oder bis zu 7 Tage, wenn Sie eine festlegen | bis zum Löschen oder bis zu 30 Tage | bis zum Löschen oder bis zu einem Jahr |
 | Lesen über die API | nein (nur Konsole) | ja | ja | ja |
@@ -80,9 +81,15 @@ In Starter, Pro und Custom kann ein Bin außerdem jeden Request, den er aufzeich
 
 Free reicht, um genau zu sehen, was eine App, ein Skript oder ein Dienst sendet: ein Bin, 1.000 Requests pro Monat, gelesen in der Konsole.
 
-Der Monat ist ein Kalendermonat in UTC, und jeder Request, den ein Bin aufzeichnet, zählt. Sind die Requests des Monats aufgebraucht, antworten Bins weiter mit `200` und zeichnen nichts auf, bis der nächste Monat beginnt; so abgewiesene Requests zählen nicht. Ein einzelner Bin darf nur einen Teil der Requests des Monats verbrauchen — in Free alle, in Starter die Hälfte, in Pro 40 % und in Custom ein Viertel —, damit eine viel genutzte oder geleakte URL nicht die Requests der anderen Bins im Workspace aufbrauchen kann.
+Der Monat ist ein Kalendermonat in UTC, und jeder Request, den ein Bin aufzeichnet, zählt. Gehen die Requests des Monats zur Neige, werden mit dem Guthaben Ihres Workspaces weitere gekauft, sofern Sie das nicht ausschalten ([Weitere Requests mit Guthaben](#credit)). Ohne Guthaben antworten Bins, sobald die Requests des Monats aufgebraucht sind, weiter mit `200` und zeichnen nichts auf, bis der nächste Monat beginnt; so abgewiesene Requests zählen nicht. Ein einzelner Bin darf nur einen Teil der Requests des Monats verbrauchen, gekaufte Requests eingeschlossen — in Free alle, in Starter die Hälfte, in Pro 40 % und in Custom ein Viertel —, damit eine viel genutzte oder geleakte URL nicht die Requests der anderen Bins im Workspace aufbrauchen kann.
 
 Die letzten beiden Zeilen sind Limits gegen Missbrauch, beschrieben unter [Gesperrte Bins](#suspended).
+
+### Weitere Requests mit Guthaben {#credit}
+
+Guthaben ist ein Betrag, den Ihr Workspace bereithält und den NimbusNexus-Produkte ausgeben, wenn ihr Monat aufgebraucht ist. Sie laden es in der [Kontokonsole]({{ACCOUNT_BASE_URL}}/billing#credit) unter **Billing** auf, wo Sie auf der Karte **Credit** außerdem für jedes Produkt die Nutzung des Guthabens ein- oder ausschalten. Für Request Bins ist sie eingeschaltet, bis Sie sie ausschalten.
+
+Sind 90 % der Requests des Monats verbraucht und weniger als 10.000 übrig, kauft Request Bins in Free, Starter und Pro mit Guthaben 10.000 weitere für $4, solange das Guthaben reicht. In Custom gibt es weitere Requests nach Vertrag. Gekaufte Requests gelten für den Rest des Monats, den Anteil jedes Bins eingeschlossen, und verfallen, wenn der Monat endet: Ein teilweise genutzter Block wird nicht erstattet. Details finden Sie in der [Referenz](/docs/product-bins/reference#credit).
 
 ## Gesperrte Bins {#suspended}
 
