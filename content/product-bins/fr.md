@@ -2,7 +2,7 @@
 title: "Request Bins"
 description: "Des URL publiques qui enregistrent chaque requête HTTP reçue — pointez-y une application, un script ou un service et lisez exactement ce qu’il a envoyé, dans la console ou via l’API."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-27
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -32,7 +32,7 @@ NimbusNexus Request Bins vous fournit des **bins** : des URL publiques qui enreg
 
 1. **Créez** un bin — dans la console avec **Create a bin** (**New bin** une fois que vous en avez un), ou avec `POST /v1/bins`. Son URL enregistre dès cet instant.
 2. **Envoyez**-lui des requêtes. Donnez l’URL à ce que vous voulez observer — les paramètres de webhooks d’un fournisseur, la configuration de votre application, un script, un job de CI — ou appelez-la vous-même avec `curl`. Ce qui suit le slug est à votre choix : une requête vers `https://nnbin.net/b/k7xq2mbn9tfa/orders/42` est enregistrée avec le chemin `/orders/42`.
-3. **Lisez** ce qui est arrivé. Cela apparaît dans la console en quelques secondes et, sur les plans payants, à `GET /v1/bins/{id}/requests`. Pour trouver une requête parmi beaucoup d’autres, cherchez du texte dans les chemins, les headers et les corps, ou ne gardez que certaines méthodes : **Search** et les pastilles de méthode au-dessus de la liste dans la console, `q` et `method` dans l’API ([Requêtes capturées](/docs/product-bins/reference#requests)). Pour voir quels chemins un expéditeur a utilisés, basculez la liste sur **By path** : elle compte les requêtes vers chaque chemin, et choisir un chemin liste ses requêtes. `GET /v1/bins/{id}/paths` fait de même dans l’API ([Requêtes par chemin](/docs/product-bins/reference#paths)). **All bins** dans la console, et `GET /v1/requests` dans l’API, listent ce que tous les bins ont enregistré en une seule liste, avec la même recherche.
+3. **Lisez** ce qui est arrivé. Cela apparaît dans la console en quelques secondes et, sur les plans payants, à `GET /v1/bins/{id}/requests`. Pour trouver une requête parmi beaucoup d’autres, cherchez du texte dans les chemins, les headers et les corps, ou seulement dans l’un d’eux, dans un seul header ou dans un seul champ d’un corps JSON, ou ne gardez que certaines méthodes : **Search**, **Search in** et les pastilles de méthode au-dessus de la liste dans la console, `q`, `in`, `header`, `field` et `method` dans l’API ([Requêtes capturées](/docs/product-bins/reference#requests)). Pour voir quels chemins un expéditeur a utilisés, basculez la liste sur **By path** : elle compte les requêtes vers chaque chemin, et choisir un chemin liste ses requêtes. `GET /v1/bins/{id}/paths` fait de même dans l’API ([Requêtes par chemin](/docs/product-bins/reference#paths)). **All bins** dans la console, et `GET /v1/requests` dans l’API, listent ce que tous les bins ont enregistré en une seule liste, avec la même recherche.
 4. **Supprimez** le bin quand vous avez terminé, ou laissez-le expirer.
 
 Le [démarrage rapide](/docs/product-bins/quickstart) parcourt les quatre étapes.
@@ -71,6 +71,7 @@ Sur Starter, Pro et Custom, un bin peut aussi transférer chaque requête qu’i
 | Prix | $0 | $9 par mois, ou $86.40 par an | $29 par mois, ou $278.40 par an | sur contrat |
 | Bins simultanés | 1 | 5 | 25 | 250 |
 | Requêtes enregistrées par mois | 1,000 | 25,000 | 250,000 | 5,000,000 |
+| Requêtes supplémentaires, achetées avec le [crédit](#credit) | 10,000 pour $4 | 10,000 pour $4 | 10,000 pour $4 | sur contrat |
 | Conservation (rétention) | 1 jour | 7 jours | 30 jours | 90 jours |
 | Durée de vie d’un bin | 24 heures | jusqu’à sa suppression, ou jusqu’à 7 jours si vous en fixez une | jusqu’à sa suppression, ou jusqu’à 30 jours | jusqu’à sa suppression, ou jusqu’à un an |
 | Lecture via l’API | non (console uniquement) | oui | oui | oui |
@@ -80,9 +81,15 @@ Sur Starter, Pro et Custom, un bin peut aussi transférer chaque requête qu’i
 
 Free suffit pour voir exactement ce qu’envoie une application, un script ou un service : un bin, 1,000 requêtes par mois, lues dans la console.
 
-Le mois est un mois civil en UTC, et chaque requête enregistrée par un bin compte. Une fois les requêtes du mois épuisées, les bins continuent de répondre `200` et n’enregistrent rien jusqu’au début du mois suivant ; les requêtes refusées ainsi ne comptent pas. Un bin ne peut utiliser qu’une partie des requêtes du mois — la totalité sur Free, la moitié sur Starter, 40 % sur Pro et un quart sur Custom — afin qu’une URL très sollicitée ou divulguée ne puisse pas épuiser les requêtes des autres bins de l’espace de travail.
+Le mois est un mois civil en UTC, et chaque requête enregistrée par un bin compte. Quand les requêtes du mois touchent à leur fin, le crédit de votre espace de travail en achète d’autres, sauf si vous le désactivez ([Requêtes supplémentaires avec le crédit](#credit)). Sans crédit, une fois les requêtes du mois épuisées, les bins continuent de répondre `200` et n’enregistrent rien jusqu’au début du mois suivant ; les requêtes refusées ainsi ne comptent pas. Un bin ne peut utiliser qu’une partie des requêtes du mois, requêtes achetées comprises — la totalité sur Free, la moitié sur Starter, 40 % sur Pro et un quart sur Custom — afin qu’une URL très sollicitée ou divulguée ne puisse pas épuiser les requêtes des autres bins de l’espace de travail.
 
 Les deux dernières lignes sont des limites anti-abus, décrites dans [Bins suspendus](#suspended).
+
+### Requêtes supplémentaires avec le crédit {#credit}
+
+Le crédit est un solde que votre espace de travail conserve pour que les produits NimbusNexus le dépensent quand leur volume mensuel est épuisé. Vous en ajoutez dans la [console de compte]({{ACCOUNT_BASE_URL}}/billing#credit), sous **Billing**, où la carte **Credit** permet aussi d’activer ou de désactiver les dépenses de chaque produit. Pour Request Bins, elles sont activées jusqu’à ce que vous les désactiviez.
+
+Quand 90 % des requêtes du mois sont utilisées et qu’il en reste moins de 10,000, Request Bins en achète 10,000 de plus avec le crédit, pour $4, sur Free, Starter et Pro, tant que le solde le permet. Sur Custom, les requêtes supplémentaires s’obtiennent sur contrat. Les requêtes achetées comptent pour le reste du mois, part de chaque bin comprise, et expirent quand il se termine : un bloc partiellement utilisé n’est pas remboursé. La [référence](/docs/product-bins/reference#credit) donne les détails.
 
 ## Bins suspendus {#suspended}
 

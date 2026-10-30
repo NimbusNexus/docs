@@ -2,7 +2,7 @@
 title: "Référence Request Bins"
 description: "Chaque route de l’API Request Bins, ce qu’une URL de bin répond et enregistre, qui peut faire quoi et les limites de chaque plan."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-27
+updatedAt: 2026-10-30
 kind: reference
 ---
 
@@ -361,15 +361,19 @@ L’appel attend la réponse jusqu’à 13 secondes, et un serveur plus lent don
 ```json
 {
   "period": "2026-10-01",
-  "requests": 1834,
-  "monthly_requests": 25000,
+  "requests": 26834,
+  "monthly_requests": 35000,
+  "purchased_requests": 10000,
+  "credit": null,
   "bins": 2,
   "max_bins": 5,
-  "bin_request_ceiling": 12500
+  "bin_request_ceiling": 17500
 }
 ```
 
-`period` est le mois, sous la forme de son premier jour. `requests` compte ce que les bins de l’espace de travail ont enregistré ce mois-ci, à comparer à `monthly_requests`. `bins` compte les bins détenus, à comparer à `max_bins`. `bin_request_ceiling` est le maximum qu’un seul bin peut enregistrer ce mois-ci.
+`period` est le mois, sous la forme de son premier jour. `requests` compte ce que les bins de l’espace de travail ont enregistré ce mois-ci, à comparer à `monthly_requests` : les requêtes mensuelles du plan, plus `purchased_requests`, les requêtes achetées avec le [crédit](#credit) ce mois-ci. Ici, un espace de travail Starter a acheté un bloc en plus de ses 25,000. `bins` compte les bins détenus, à comparer à `max_bins`. `bin_request_ceiling` est le maximum qu’un seul bin peut enregistrer ce mois-ci, requêtes achetées comprises.
+
+`credit` vaut `null` tant qu’il reste des requêtes dans le mois. Une fois celles-ci épuisées, il indique ce que fait le crédit : `pending` pendant que d’autres sont en cours d’achat, si bien que les bins enregistrent de nouveau d’ici quelques minutes ; `empty` quand le solde est trop bas pour un bloc ; et `off` quand le crédit est désactivé pour Request Bins, ou que le plan n’en achète aucune, comme sur Custom. Traitez-le comme une chaîne ouverte, et prévoyez un cas par défaut pour une valeur que vous ne connaissez pas.
 
 ## Qui peut faire quoi {#authority}
 
@@ -408,11 +412,21 @@ Un espace de travail dispose de Request Bins dès qu’un propriétaire ou un ad
 `GET /v1/plan` exprime les durées de vie en minutes, `0` signifiant jusqu’à suppression (`bin_ttl_minutes`) ou aucune limite de plan (`bin_ttl_max_minutes`), `read_api` et `forwarding` sous la forme `1` ou `0`, `forward_max_body_bytes` en octets et les valeurs du transfert à `0` sur Free. Les prix figurent dans la [vue d’ensemble](/docs/product-bins#limits).
 
 - **Le mois** est un mois civil en UTC : `period` dans `GET /v1/usage`. Chaque requête enregistrée par un bin compte. Une requête refusée ou limitée en débit ne compte pas.
-- **Au-delà des requêtes du mois**, ou de la part d’un bin (`bin_request_ceiling`), les bins répondent `200` et n’enregistrent rien jusqu’au mois suivant, et `refused_count` le montre. Aucun appel d’API n’est refusé pour autant.
+- **Au-delà des requêtes du mois**, ou de la part d’un bin (`bin_request_ceiling`), les bins répondent `200` et n’enregistrent rien jusqu’à ce que le [crédit](#credit) en achète davantage ou que le mois suivant commence, et `refused_count` le montre. Aucun appel d’API n’est refusé pour autant.
 - **La rétention et la durée de vie sont deux horloges distinctes.** Une requête est supprimée quand la rétention du plan arrive à son terme ou quand son bin prend fin, selon ce qui arrive en premier.
-- **Avis :** quand l’espace de travail atteint 80 % puis 100 % des requêtes du mois, il en est averti par e-mail, envoyé au propriétaire de l’espace de travail sauf si vous choisissez une autre adresse, et par un webhook avec le type d’événement `bind.quota.threshold_reached` si vous en configurez un. Les deux se trouvent sous **Notifications** dans votre console de compte.
+- **Avis :** quand l’espace de travail atteint 80 % puis 100 % des requêtes du mois, requêtes achetées comprises, il en est averti par e-mail, envoyé au propriétaire de l’espace de travail sauf si vous choisissez une autre adresse, et par un webhook avec le type d’événement `bind.quota.threshold_reached` si vous en configurez un. Les deux se trouvent sous **Notifications** dans votre console de compte. L’e-mail indique ce que fera le crédit.
 - **Tant qu’un paiement est en retard,** la création et la modification de bins sont refusées avec `402` `workspace_frozen`, et les bins continuent d’enregistrer. Si le délai de grâce prend fin, l’espace de travail est suspendu : les mêmes refus arrivent sous la forme `402` `workspace_suspended`, et les bins répondent `200` et n’enregistrent rien. La suppression et la lecture fonctionnent toujours, et rien n’est supprimé.
 - **Sur un plan plus petit,** les bins au-delà de son `max_bins` sont mis en attente, les plus récents d’abord, avec [`plan_downgrade`](#suspension), et reviennent, les plus anciens d’abord, dès que le plan les autorise.
+
+### Requêtes supplémentaires avec le crédit {#credit}
+
+Le crédit est un solde que votre espace de travail conserve pour que les produits NimbusNexus le dépensent quand leur volume mensuel est épuisé. Vous en ajoutez dans la [console de compte]({{ACCOUNT_BASE_URL}}/billing#credit), sous **Billing**, où la carte **Credit** permet aussi d’activer ou de désactiver les dépenses de chaque produit. Pour Request Bins, elles sont activées jusqu’à ce que vous les désactiviez.
+
+- **Le bloc :** 10,000 requêtes pour $4, sur Free, Starter et Pro. Sur Custom, les requêtes supplémentaires s’obtiennent sur contrat : le crédit n’en achète donc aucune.
+- **Quand :** environ toutes les 5 minutes, Request Bins achète un bloc pour chaque espace de travail qui a utilisé 90 % des requêtes du mois et à qui il en reste moins de 10,000, tant que le solde le permet.
+- **Ce qu’il ajoute :** 10,000 requêtes au mois, et la part de chaque bin augmente de sa proportion de celles-ci, par exemple de 5,000 sur Starter, si bien que `monthly_requests`, `purchased_requests` et `bin_request_ceiling` dans [`GET /v1/usage`](#plan) augmentent en conséquence.
+- **Pour le mois seulement :** les requêtes achetées expirent à la fin du mois. Un bloc partiellement utilisé n’est pas remboursé, et rien n’est reporté.
+- **Quand l’achat est impossible :** si le crédit est désactivé, ou si le solde est trop bas pour un bloc, les bins répondent `200` et n’enregistrent rien au-delà des requêtes du mois jusqu’au mois suivant, et `credit` dans `GET /v1/usage` indique lequel des deux. Un expéditeur assez rapide pour utiliser les dernières requêtes avant le prochain achat trouve, lui aussi, le mois épuisé pendant quelques minutes, et ce qu’il envoie alors n’est pas enregistré.
 
 ## Erreurs {#errors}
 
