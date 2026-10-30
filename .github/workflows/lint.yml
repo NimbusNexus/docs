@@ -169,6 +169,14 @@ jobs:
           #   still checkable by hand against registry.npmjs.org, which
           #   does answer 200.
           #
+          # --exclude '^https?://support\.discord\.com'
+          #   Discord's help centre is behind the same kind of bot
+          #   protection: 403 to every automated request, a normal page to
+          #   a reader. The Slack, Teams and Discord guide links its "Intro
+          #   to Webhooks" article, checked by hand on 2026-10-30. Excluded
+          #   for the same reason as npmjs.com: it is the page a reader
+          #   needs, and nothing else from Discord explains the same steps.
+          #
           # Everything else (github.com, pypi.org, creativecommons.org,
           # etc.) is checked — that's where this step earns its keep,
           # catching bit-rot on third-party links.
@@ -177,6 +185,7 @@ jobs:
             --base https://nimbusnexus.net
             --exclude '^https?://(www\.)?nimbusnexus\.net'
             --exclude '^https?://(www\.)?npmjs\.com'
+            --exclude '^https?://support\.discord\.com'
             --exclude '\{\{[A-Z_]+\}\}'
             'content/**/*.md'
           fail: true
