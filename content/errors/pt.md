@@ -2,7 +2,7 @@
 title: "Erros"
 description: "O formato do erro, os códigos de erro que as APIs de Webhooks, Inboxes e Request Bins enviam e como tratar cada um."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-27
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -80,7 +80,7 @@ Trate todas as chaves de `details` como opcionais: leia as que você precisa e i
 | `quota_exceeded` | Ambas | `allocation`: o teto de um plano para uma contagem (Inboxes: endereços; Webhooks: endpoints). `period`: o teto mensal (Inboxes: mensagens; Webhooks: entregas). | `metric` (`inboxes` ou `messages` no Inboxes; `endpoints` ou `deliveries` no Webhooks) e o `limit` correspondente; `current` em `allocation`, e em um `period` do Webhooks (as entregas usadas antes da publicação recusada) quando foi possível ler a contagem; `period` em `period`: o mês no Inboxes (`YYYY-MM`), o primeiro dia do ciclo de faturamento no Webhooks (`YYYY-MM-DD`). Uma publicação é recusada quando suas entregas levariam a contagem além de `limit`, então no Webhooks `current` pode ficar abaixo de `limit`. |
 | `quota_exceeded` | Request Bins | `allocation`: o teto do plano para bins, em `POST /v1/bins`. Nunca `period`: depois de esgotadas as requisições do mês, os bins respondem aos remetentes e não registram nada, e nenhuma chamada de API é recusada. | `metric` (`bins`), o `limit` correspondente e `current` |
 | `not_entitled` | Ambas | — | `feature`: `read_api` ou `optional_phrase_gate` no Inboxes; `rabbitmq_sources` ou `optional_endpoint_verification` no Webhooks. O Webhooks envia `optional_endpoint_verification` quando alguém desativa a verificação de endpoint em um plano que a exige; nenhum plano exige hoje. |
-| `not_entitled` | Request Bins | — | `feature`: `read_api`, ler requisições capturadas com uma chave de API no plano Free |
+| `not_entitled` | Request Bins | — | `feature`: `read_api`, ler requisições capturadas com uma chave de API no plano Free; `forwarding`, definir uma URL de encaminhamento ou enviar um teste no plano Free |
 | `payload_too_large` | Ambas | — | `limit` em bytes, em todo `413`. O Inboxes também envia `size` quando a API mediu o corpo. |
 | `payload_too_large` | Request Bins | — | `limit` em bytes, em todo `413` |
 | `unknown_event_type` | Webhooks | — | `event_type`: o nome que não está registrado |
@@ -91,7 +91,9 @@ Trate todas as chaves de `details` como opcionais: leia as que você precisa e i
 | `provider_secret_required` | Webhooks | — | `provider`: `stripe`, `github` ou `rabbitmq` |
 | `broker_not_allowed` | Webhooks | Nenhum para o seu broker, qualquer que seja a regra que o recusou (`not_system_broker` só é enviado ao próprio workspace da plataforma) | `host`: o broker, como `host:port` |
 | `rate_limited` | Ambas | `inbox_rate` (Inboxes): o limite por minuto de uma caixa de entrada. O Webhooks não envia motivo. | `retry_after` em segundos, o mesmo número do header `Retry-After` (nas duas APIs). No `inbox_rate` do Inboxes, também `rate_per_min`. |
+| `rate_limited` | Request Bins | — | `retry_after`: os segundos que faltam até o próximo envio de teste do bin ser permitido |
 | `unavailable` | Inboxes | `ingest_disabled`: a aceitação de mensagens está desligada | — |
+| `unavailable` | Request Bins | `forwarding_disabled`: o encaminhamento está desligado para todo o serviço. `forwarder_unavailable`: um teste não foi pego para envio em até 3 segundos, então nada foi enviado. | — |
 
 Em `invalid_payload`, cada entrada de `details.errors` diz o que falhou e onde. `path` é um JSON Pointer para o valor que falhou: `""` é o próprio payload e, para um membro ausente ou inesperado, ele aponta para o objeto que deveria contê-lo ou que não deveria. `keyword` é a palavra-chave do JSON Schema que falhou (`required`, `type`, `enum`, `const`, `minimum`, `maximum`, `minLength`, `maxLength`, `minItems`, `maxItems`, `pattern`, `format` ou `additionalProperties`), ou `other` para qualquer outra palavra-chave. `params` contém `property` (o membro ausente ou inesperado, uma entrada para cada um), `count` (um limite de tamanho ou de quantidade de itens), `limit` (o limite de um `minimum` ou `maximum`) ou `type` (o único tipo que o valor deveria ter), e fica vazio quando nada disso se aplica, como em `enum` ou `pattern`, ou em um `type` que permite vários. As entradas nunca trazem a regex, os valores permitidos nem o valor que falhou; `message` continua descrevendo uma das falhas em inglês.
 
@@ -226,7 +228,7 @@ Todos estes são `402`. Repetir a mesma requisição nunca adianta: alguém prec
 | `code` | API | Descrição |
 |---|---|---|
 | `quota_exceeded` | Ambas | Acima de um limite do plano: uma alocação (Inboxes: endereços; Webhooks: endpoints) ou um teto mensal (Inboxes: mensagens; Webhooks: entregas), em que você espera o próximo período ou faz upgrade. Nas duas APIs, `details.reason` diz qual é o caso, e `details` traz `metric`, o `limit` correspondente e, para uma alocação, a contagem `current`. |
-| `quota_exceeded` | Request Bins | Acima do limite de bins do plano, ao criar um bin. `details.reason` é `allocation`, e `details` traz `metric` (`bins`), o `limit` correspondente e a contagem `current`. O limite mensal de requisições nunca recusa uma chamada de API: depois de ultrapassá-lo, os bins respondem aos remetentes e não registram nada até o mês seguinte. |
+| `quota_exceeded` | Request Bins | Acima do limite de bins do plano, ao criar um bin. `details.reason` é `allocation`, e `details` traz `metric` (`bins`), o `limit` correspondente e a contagem `current`. O limite mensal de requisições nunca recusa uma chamada de API: depois de ultrapassá-lo, os bins respondem aos remetentes e não registram nada até que o [crédito](/docs/product-bins/reference#credit) compre mais ou o mês seguinte comece. |
 | `not_entitled` | Todas | A funcionalidade não está no seu plano, como a API de leitura no plano gratuito do Inboxes, a leitura de requisições capturadas com uma chave de API no plano Free do Request Bins ou uma fonte RabbitMQ abaixo do Pro no Webhooks. `details.feature` a nomeia. |
 | `workspace_frozen` | Todas | Há uma cobrança em aberto, então as alterações são recusadas. Quite-a no console da sua conta; o upgrade do plano também é recusado até você fazer isso. |
 | `workspace_suspended` | Todas | O período de carência após uma cobrança em aberto terminou e o serviço parou para este workspace. |
@@ -235,7 +237,7 @@ Todos estes são `402`. Repetir a mesma requisição nunca adianta: alguém prec
 
 No Webhooks, o limite de endpoints é `quota_exceeded` em `POST /v1/endpoints`, com `details.reason` `allocation`, `metric` `endpoints`, `limit` (o teto do plano) e `current` (os endpoints que o workspace tem). Uma fonte RabbitMQ abaixo do Pro é `not_entitled` com `details.feature` `rabbitmq_sources`: em `POST /v1/sources` e em um `PATCH /v1/sources/{id}` de uma fonte RabbitMQ cujo corpo define `status` como `enabled` ou define qualquer um de `broker_identifier`, `broker_host`, `broker_port`, `broker_vhost`, `broker_user`, `broker_exchange`, `broker_topic` ou `broker_queues`, mesmo que seja para o valor que ele já tem. Outras alterações, como renomear ou desativar a fonte, continuam permitidas. `max_attempts` acima do teto do plano não é um `402`: é um `422` `validation_error` ([Validação da requisição](#codes-validation)).
 
-No Request Bins, o limite de bins é `quota_exceeded` em `POST /v1/bins`. Ler requisições capturadas com uma chave de API no Free é `not_entitled`, com `details.feature` `read_api`, em `GET /v1/bins/{id}/requests`, `GET /v1/requests` e `GET /v1/requests/{id}`; o console as lê em todos os planos. Enquanto um workspace está congelado ou suspenso, toda gravação, exceto uma exclusão, é recusada com `workspace_frozen` ou `workspace_suspended`, e as leituras continuam liberadas. Os bins continuam registrando enquanto o workspace está congelado e param enquanto ele está suspenso ([Planos e limites](/docs/product-bins/reference#limits)).
+No Request Bins, o limite de bins é `quota_exceeded` em `POST /v1/bins`. Ler requisições capturadas com uma chave de API no Free é `not_entitled`, com `details.feature` `read_api`, em `GET /v1/bins/{id}/requests`, `GET /v1/requests`, `GET /v1/bins/{id}/paths` e `GET /v1/requests/{id}`; o console as lê em todos os planos. Definir uma URL de encaminhamento ou enviar um teste no Free também é `not_entitled`, com `details.feature` `forwarding`. Enquanto um workspace está congelado ou suspenso, toda gravação, exceto uma exclusão, é recusada com `workspace_frozen` ou `workspace_suspended`, e as leituras continuam liberadas. Os bins continuam registrando enquanto o workspace está congelado e param enquanto ele está suspenso ([Planos e limites](/docs/product-bins/reference#limits)).
 
 ### Recursos {#codes-resources}
 
@@ -270,8 +272,9 @@ Um reenvio em lote cujo `from` é posterior ao `to` não é um conflito: é um `
 | `code` | Status | API | Descrição |
 |---|---|---|---|
 | `rate_limited` | 429 | Ambas | Requisições demais. Se `Retry-After` estiver definido, espere esse número de segundos e tente de novo; caso contrário, aplique backoff. `details.retry_after` traz o mesmo número nas duas APIs, e no Inboxes um limite por caixa de entrada também define `details.reason` como `inbox_rate`, com `details.rate_per_min`. |
+| `rate_limited` | 429 | Request Bins | Mais de 10 envios de teste para a URL de encaminhamento de um bin em um minuto. `details.retry_after` diz quantos segundos faltam até o próximo ser permitido. |
 
-A API de Request Bins não envia `rate_limited`. As URLs dos bins limitam a velocidade com que os remetentes podem enviar e respondem a um remetente acima do limite com um `429` e `Retry-After`, não neste formato JSON ([O que a URL de um bin responde](/docs/product-bins/reference#edge-answers)).
+A API de Request Bins envia `rate_limited` só para envios de teste ([Testar uma URL de encaminhamento](/docs/product-bins/reference#forward-test)). As URLs dos bins limitam a velocidade com que os remetentes podem enviar e respondem a um remetente acima do limite com um `429` e `Retry-After`, não neste formato JSON ([O que a URL de um bin responde](/docs/product-bins/reference#edge-answers)).
 
 ### Servidor {#codes-server}
 
@@ -279,6 +282,7 @@ A API de Request Bins não envia `rate_limited`. As URLs dos bins limitam a velo
 |---|---|---|---|
 | `internal_error` | 500 | Todas | Algo quebrou do nosso lado. É seguro repetir requisições idempotentes. |
 | `unavailable` | 503 | Inboxes | Temporariamente sem condições de atender a requisição: a aceitação de mensagens está desligada, e `details.reason` é `ingest_disabled`. Tente de novo com backoff. |
+| `unavailable` | 503 | Request Bins | O encaminhamento não consegue atender a requisição: definir uma URL de encaminhamento ou enviar um teste enquanto o encaminhamento está desligado para todo o serviço (`details.reason` `forwarding_disabled`), ou um teste que não foi pego para envio em até 3 segundos, então nada foi enviado (`forwarder_unavailable`). Tente de novo mais tarde. |
 
 Um `502` ou `504` vindo do edge que fica na frente das APIs pode chegar sem nenhum corpo JSON. Trate um `5xx` que você não consegue interpretar como passível de nova tentativa.
 
@@ -348,7 +352,7 @@ Versões anteriores desta página listavam os códigos e campos da esquerda. As 
 | `rate_limit_exceeded` | `rate_limited` (429) |
 | `quota_exceeded` como 429 | `quota_exceeded` como 402 |
 | `internal_error` em todas as APIs | `internal_error` nas duas APIs desde 15 de outubro de 2026; antes, o Webhooks enviava `internal` |
-| `service_unavailable` (503), `gateway_timeout` (504) | `unavailable` (503) no Inboxes, quando a aceitação de mensagens está desligada; um `502`/`504` do gateway pode não ter corpo JSON |
+| `service_unavailable` (503), `gateway_timeout` (504) | `unavailable` (503) no Inboxes, quando a aceitação de mensagens está desligada, e no Request Bins, quando o encaminhamento não consegue atender uma requisição; um `502`/`504` do gateway pode não ter corpo JSON |
 
 ## Padrão de tratamento {#pattern}
 
