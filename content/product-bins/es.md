@@ -2,7 +2,7 @@
 title: "Request Bins"
 description: "URLs públicas que registran cada petición HTTP que reciben — apunta cualquier aplicación, script o servicio a una y lee exactamente lo que envió, en la consola o por la API."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-27
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -32,7 +32,7 @@ NimbusNexus Request Bins te da **bins**: URLs públicas que registran cada petic
 
 1. **Crea** un bin — en la consola con **Create a bin** (**New bin** cuando ya tengas uno), o con `POST /v1/bins`. Su URL registra peticiones desde ese momento.
 2. **Envíale** peticiones. Da la URL a lo que quieras observar — la configuración de webhooks de un proveedor, la configuración de tu aplicación, un script, un job de CI — o llámala tú mismo con `curl`. Lo que va después del slug lo eliges tú: una petición a `https://nnbin.net/b/k7xq2mbn9tfa/orders/42` se registra con la ruta `/orders/42`.
-3. **Lee** lo que llegó. Aparece en la consola en cuestión de segundos y, en los planes de pago, en `GET /v1/bins/{id}/requests`. Para encontrar una petición entre muchas, busca texto en rutas, cabeceras y cuerpos, o quédate solo con algunos métodos: **Search** y los chips de método encima de la lista en la consola, `q` y `method` en la API ([Peticiones capturadas](/docs/product-bins/reference#requests)). Para ver qué rutas usó un emisor, cambia la lista a **By path**: cuenta las peticiones a cada ruta, y al elegir una se listan sus peticiones. `GET /v1/bins/{id}/paths` hace lo mismo en la API ([Peticiones por ruta](/docs/product-bins/reference#paths)). **All bins** en la consola, y `GET /v1/requests` en la API, reúnen en una sola lista lo que registraron todos los bins, con la misma búsqueda.
+3. **Lee** lo que llegó. Aparece en la consola en cuestión de segundos y, en los planes de pago, en `GET /v1/bins/{id}/requests`. Para encontrar una petición entre muchas, busca texto en rutas, cabeceras y cuerpos, o en uno solo de ellos, en una cabecera concreta o en un campo concreto de un cuerpo JSON, o quédate solo con algunos métodos: **Search**, **Search in** y los chips de método encima de la lista en la consola, `q`, `in`, `header`, `field` y `method` en la API ([Peticiones capturadas](/docs/product-bins/reference#requests)). Para ver qué rutas usó un emisor, cambia la lista a **By path**: cuenta las peticiones a cada ruta, y al elegir una se listan sus peticiones. `GET /v1/bins/{id}/paths` hace lo mismo en la API ([Peticiones por ruta](/docs/product-bins/reference#paths)). **All bins** en la consola, y `GET /v1/requests` en la API, reúnen en una sola lista lo que registraron todos los bins, con la misma búsqueda.
 4. **Borra** el bin cuando termines, o deja que caduque.
 
 El [inicio rápido](/docs/product-bins/quickstart) hace los cuatro pasos.
@@ -71,6 +71,7 @@ En Starter, Pro y Custom, un bin también puede reenviar a tu propio servidor ca
 | Precio | $0 | $9 al mes, o $86.40 al año | $29 al mes, o $278.40 al año | por contrato |
 | Bins a la vez | 1 | 5 | 25 | 250 |
 | Peticiones registradas al mes | 1.000 | 25.000 | 250.000 | 5.000.000 |
+| Más peticiones, compradas con [crédito](#credit) | 10.000 por $4 | 10.000 por $4 | 10.000 por $4 | por contrato |
 | Se guardan durante (retención) | 1 día | 7 días | 30 días | 90 días |
 | Vida útil del bin | 24 horas | hasta que lo borres, o hasta 7 días si fijas una | hasta que lo borres, o hasta 30 días | hasta que lo borres, o hasta un año |
 | Lectura por la API | no (solo consola) | sí | sí | sí |
@@ -80,9 +81,15 @@ En Starter, Pro y Custom, un bin también puede reenviar a tu propio servidor ca
 
 Free basta para ver exactamente qué envía cualquier aplicación, script o servicio: un bin, 1.000 peticiones al mes, leídas en la consola.
 
-El mes es un mes natural en UTC, y cuenta cada petición que registra un bin. Superadas las peticiones del mes, los bins siguen respondiendo `200` y no registran nada hasta que empieza el mes siguiente; las peticiones rechazadas así no cuentan. Un bin solo puede usar una parte de las peticiones del mes — todas en Free, la mitad en Starter, el 40 % en Pro y una cuarta parte en Custom — para que una URL muy activa o filtrada no pueda agotar las peticiones de los demás bins del workspace.
+El mes es un mes natural en UTC, y cuenta cada petición que registra un bin. A medida que se agotan las peticiones del mes, el crédito de tu workspace compra más, salvo que lo desactives ([Más peticiones con crédito](#credit)). Sin él, superadas las peticiones del mes, los bins siguen respondiendo `200` y no registran nada hasta que empieza el mes siguiente; las peticiones rechazadas así no cuentan. Un bin solo puede usar una parte de las peticiones del mes, incluidas las compradas — todas en Free, la mitad en Starter, el 40 % en Pro y una cuarta parte en Custom — para que una URL muy activa o filtrada no pueda agotar las peticiones de los demás bins del workspace.
 
 Las dos últimas filas son límites contra el abuso, descritos en [Bins suspendidos](#suspended).
+
+### Más peticiones con crédito {#credit}
+
+El crédito es un saldo que tu workspace guarda para que los productos de NimbusNexus lo gasten cuando se les agota el mes. Lo añades en la [consola de la cuenta]({{ACCOUNT_BASE_URL}}/billing#credit), en **Billing**, donde la tarjeta **Credit** también activa o desactiva el gasto de cada producto. Para Request Bins está activado hasta que lo desactives.
+
+Cuando se ha usado el 90 % de las peticiones del mes y quedan menos de 10.000, Request Bins compra con crédito 10.000 más por $4, en Free, Starter y Pro, mientras dure el saldo. En Custom, las peticiones adicionales se acuerdan por contrato. Las peticiones compradas valen para el resto del mes, también para la parte de cada bin, y caducan cuando termina el mes: un bloque usado en parte no se reembolsa. La [referencia](/docs/product-bins/reference#credit) tiene los detalles.
 
 ## Bins suspendidos {#suspended}
 

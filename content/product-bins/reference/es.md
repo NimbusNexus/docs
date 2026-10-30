@@ -2,7 +2,7 @@
 title: "Referencia de Request Bins"
 description: "Todas las rutas de la API de Request Bins, qué responde y qué registra la URL de un bin, quién puede hacer qué y los límites de cada plan."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-27
+updatedAt: 2026-10-30
 kind: reference
 ---
 
@@ -361,15 +361,19 @@ La llamada espera la respuesta hasta 13 segundos, y un servidor más lento da `o
 ```json
 {
   "period": "2026-10-01",
-  "requests": 1834,
-  "monthly_requests": 25000,
+  "requests": 26834,
+  "monthly_requests": 35000,
+  "purchased_requests": 10000,
+  "credit": null,
   "bins": 2,
   "max_bins": 5,
-  "bin_request_ceiling": 12500
+  "bin_request_ceiling": 17500
 }
 ```
 
-`period` es el mes, expresado como su primer día. `requests` cuenta lo que han registrado este mes los bins del workspace, frente a `monthly_requests`. `bins` cuenta los bins que tienes, frente a `max_bins`. `bin_request_ceiling` es lo máximo que puede registrar un solo bin este mes.
+`period` es el mes, expresado como su primer día. `requests` cuenta lo que han registrado este mes los bins del workspace, frente a `monthly_requests`: las peticiones mensuales del plan más `purchased_requests`, las peticiones compradas con [crédito](#credit) este mes. Aquí, un workspace en Starter ha comprado un bloque además de sus 25.000. `bins` cuenta los bins que tienes, frente a `max_bins`. `bin_request_ceiling` es lo máximo que puede registrar un solo bin este mes, incluidas las peticiones compradas.
+
+`credit` es `null` mientras al mes le quedan peticiones. Una vez agotadas, indica qué está haciendo el crédito: `pending` mientras se compran más, así que los bins vuelven a registrar en cuestión de minutos; `empty` cuando el saldo no alcanza para un bloque; y `off` cuando el crédito está desactivado para Request Bins, o el plan no compra ninguna, como en Custom. Trátalo como una cadena abierta, y ten un caso por defecto para un valor que no conozcas.
 
 ## Quién puede hacer qué {#authority}
 
@@ -408,11 +412,21 @@ Un workspace tiene Request Bins en cuanto un propietario o administrador ha abie
 `GET /v1/plan` indica las vidas útiles en minutos, donde `0` significa hasta que se borre (`bin_ttl_minutes`) o sin límite del plan (`bin_ttl_max_minutes`), `read_api` y `forwarding` como `1` o `0`, `forward_max_body_bytes` en bytes y las cifras del reenvío como `0` en Free. Los precios están en el [resumen](/docs/product-bins#limits).
 
 - **El mes** es un mes natural en UTC: `period` en `GET /v1/usage`. Cuenta cada petición que registra un bin. Una petición rechazada o limitada por tasa no cuenta.
-- **Superadas las peticiones del mes**, o la parte que le corresponde a un bin (`bin_request_ceiling`), los bins responden `200` y no registran nada hasta el mes siguiente, y `refused_count` lo refleja. Ninguna llamada a la API se rechaza por ello.
+- **Superadas las peticiones del mes**, o la parte que le corresponde a un bin (`bin_request_ceiling`), los bins responden `200` y no registran nada hasta que el [crédito](#credit) compra más o empieza el mes siguiente, y `refused_count` lo refleja. Ninguna llamada a la API se rechaza por ello.
 - **La retención y la vida útil son relojes distintos.** Una petición se borra cuando se agota la retención del plan o cuando termina su bin, lo que ocurra primero.
-- **Avisos:** cuando el workspace llega al 80 % y después al 100 % de las peticiones del mes, se le avisa por email, que va al propietario del workspace salvo que elijas otra dirección, y con un webhook con el tipo de evento `bind.quota.threshold_reached` si configuras uno. Ambos están en **Notifications** en tu consola de la cuenta.
+- **Avisos:** cuando el workspace llega al 80 % y después al 100 % de las peticiones del mes, incluidas las compradas, se le avisa por email, que va al propietario del workspace salvo que elijas otra dirección, y con un webhook con el tipo de evento `bind.quota.threshold_reached` si configuras uno. Ambos están en **Notifications** en tu consola de la cuenta. El email indica qué hará el crédito.
 - **Mientras un pago está vencido,** crear y modificar bins se rechaza con `402` `workspace_frozen`, y los bins siguen registrando. Si termina el periodo de gracia, el workspace se suspende: los mismos rechazos llegan como `402` `workspace_suspended`, y los bins responden `200` y no registran nada. Borrar y leer siguen funcionando, y no se borra nada.
 - **En un plan más pequeño,** los bins que superan su `max_bins` quedan retenidos, empezando por los más recientes, como [`plan_downgrade`](#suspension), y vuelven, empezando por los más antiguos, en cuanto el plan los permite.
+
+### Más peticiones con crédito {#credit}
+
+El crédito es un saldo que tu workspace guarda para que los productos de NimbusNexus lo gasten cuando se les agota el mes. Lo añades en la [consola de la cuenta]({{ACCOUNT_BASE_URL}}/billing#credit), en **Billing**, donde la tarjeta **Credit** también activa o desactiva el gasto de cada producto. Para Request Bins está activado hasta que lo desactives.
+
+- **El bloque:** 10.000 peticiones por $4, en Free, Starter y Pro. En Custom, las peticiones adicionales se acuerdan por contrato, así que el crédito no compra ninguna.
+- **Cuándo:** aproximadamente cada 5 minutos, Request Bins compra un bloque para cada workspace que ha usado el 90 % de su mes y al que le quedan menos de 10.000 peticiones, mientras dure el saldo.
+- **Qué añade:** 10.000 a las peticiones del mes y a la parte que le corresponde a cada bin, así que `monthly_requests`, `purchased_requests` y `bin_request_ceiling` en [`GET /v1/usage`](#plan) crecen con el bloque.
+- **Solo para el mes:** las peticiones compradas caducan cuando termina el mes. Un bloque usado en parte no se reembolsa, y nada se traslada al mes siguiente.
+- **Cuando no puede comprar:** con el crédito desactivado, o con un saldo que no alcanza para un bloque, los bins responden `200` y, una vez superadas las peticiones del mes, no registran nada hasta el mes siguiente, y `credit` en `GET /v1/usage` indica cuál. Un emisor lo bastante rápido como para agotar las últimas peticiones antes de la siguiente compra también encuentra el mes agotado, durante unos minutos, y lo que envía entonces no se registra.
 
 ## Errores {#errors}
 
