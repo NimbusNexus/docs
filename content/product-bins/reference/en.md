@@ -2,7 +2,7 @@
 title: Request Bins reference
 description: Every route of the Request Bins API, what a bin URL answers and records, who may do what, and each plan's limits.
 publishedAt: 2026-10-22
-updatedAt: 2026-10-27
+updatedAt: 2026-10-30
 kind: reference
 ---
 
@@ -361,15 +361,19 @@ The call waits up to 13 seconds for the answer, and a server slower than that gi
 ```json
 {
   "period": "2026-10-01",
-  "requests": 1834,
-  "monthly_requests": 25000,
+  "requests": 26834,
+  "monthly_requests": 35000,
+  "purchased_requests": 10000,
+  "credit": null,
   "bins": 2,
   "max_bins": 5,
-  "bin_request_ceiling": 12500
+  "bin_request_ceiling": 17500
 }
 ```
 
-`period` is the month, as its first day. `requests` counts what the workspace's bins recorded this month, against `monthly_requests`. `bins` counts the bins held, against `max_bins`. `bin_request_ceiling` is the most one bin may record this month.
+`period` is the month, as its first day. `requests` counts what the workspace's bins recorded this month, against `monthly_requests`: the plan's month plus `purchased_requests`, the requests bought with [credit](#credit) this month. Here a Starter workspace has bought one block on top of its 25,000. `bins` counts the bins held, against `max_bins`. `bin_request_ceiling` is the most one bin may record this month, bought requests included.
+
+`credit` is `null` while the month has requests left. Once they are used up, it says what credit is doing: `pending` while more are being bought, so bins record again within minutes; `empty` when the balance is too low for a block; and `off` when credit is switched off for Request Bins, or the plan buys none, as on Custom. Treat it as an open string, and keep a default for a value you don't know.
 
 ## Who can do what {#authority}
 
@@ -408,11 +412,21 @@ A workspace has Request Bins once an owner or admin has opened the console, or a
 `GET /v1/plan` reports lifetimes in minutes, with `0` meaning until deleted (`bin_ttl_minutes`) or no plan limit (`bin_ttl_max_minutes`), `read_api` and `forwarding` as `1` or `0`, `forward_max_body_bytes` in bytes, and the forwarding numbers as `0` on Free. Prices are on the [overview](/docs/product-bins#limits).
 
 - **The month** is a calendar month in UTC: `period` in `GET /v1/usage`. Every request a bin records counts. A refused or rate-limited request doesn't.
-- **Past the month's requests**, or past one bin's share of them (`bin_request_ceiling`), bins answer `200` and record nothing until the next month, and `refused_count` shows it. No API call is refused for it.
+- **Past the month's requests**, or past one bin's share of them (`bin_request_ceiling`), bins answer `200` and record nothing until [credit](#credit) buys more or the next month begins, and `refused_count` shows it. No API call is refused for it.
 - **Retention and lifetime are separate clocks.** A request is deleted when the plan's retention runs out or when its bin ends, whichever comes first.
-- **Notices:** when the workspace reaches 80% and then 100% of the month's requests, it is told by email, which goes to the workspace owner unless you choose another address, and by a webhook with the event type `bind.quota.threshold_reached` if you set one up. Both are under **Notifications** in your account console.
+- **Notices:** when the workspace reaches 80% and then 100% of the month's requests, bought requests included, it is told by email, which goes to the workspace owner unless you choose another address, and by a webhook with the event type `bind.quota.threshold_reached` if you set one up. Both are under **Notifications** in your account console. The email says what credit will do.
 - **While a payment is overdue,** creating and changing bins is refused with `402` `workspace_frozen`, and bins keep recording. If the grace period ends, the workspace is suspended: the same refusals come as `402` `workspace_suspended`, and bins answer `200` and record nothing. Deleting and reading still work, and nothing is deleted.
 - **On a smaller plan,** bins over its `max_bins` are held back, newest first, as [`plan_downgrade`](#suspension), and come back, oldest first, once the plan allows them.
+
+### More requests with credit {#credit}
+
+Credit is a balance your workspace keeps for NimbusNexus products to spend when their month runs out. You add it in the [account console]({{ACCOUNT_BASE_URL}}/billing#credit), under **Billing**, where the **Credit** card also switches each product's spending on or off. It is on for Request Bins until you switch it off.
+
+- **The block:** 10,000 requests for $4, on Free, Starter and Pro. On Custom, more requests come by contract, so credit buys none.
+- **When:** about every 5 minutes, Request Bins buys one block for each workspace whose month is 90% used with fewer than 10,000 requests left, for as long as the balance lasts.
+- **What it adds:** 10,000 to the month's requests and to each bin's share of them, so `monthly_requests`, `purchased_requests` and `bin_request_ceiling` in [`GET /v1/usage`](#plan) grow with it.
+- **For the month only:** bought requests lapse when the month ends. A partly used block isn't refunded, and nothing carries over.
+- **When it can't buy:** with credit switched off, or a balance too low for a block, bins answer `200` and record nothing past the month's requests until the next month, and `credit` in `GET /v1/usage` says which. A sender fast enough to use up the last requests before the next purchase finds the month used up too, for a few minutes, and what it sends then isn't recorded.
 
 ## Errors {#errors}
 

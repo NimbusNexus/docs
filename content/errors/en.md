@@ -2,7 +2,7 @@
 title: Errors
 description: The error shape, the error codes the Webhooks, Inboxes and Request Bins APIs send, and how to handle each.
 publishedAt: 2026-05-20
-updatedAt: 2026-10-27
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -80,7 +80,7 @@ Treat every key in `details` as optional: read the ones you need and ignore the 
 | `quota_exceeded` | Both | `allocation`: a plan's ceiling on a count (Inboxes: addresses; Webhooks: endpoints). `period`: the monthly ceiling (Inboxes: messages; Webhooks: deliveries). | `metric` (`inboxes` or `messages` on Inboxes; `endpoints` or `deliveries` on Webhooks) and its `limit`; `current` on `allocation`, and on a Webhooks `period` (the deliveries used before the refused publish) when the count could be read; `period` on `period`: the month on Inboxes (`YYYY-MM`), the billing cycle's first day on Webhooks (`YYYY-MM-DD`). A publish is refused when its deliveries would take the count past `limit`, so on Webhooks `current` can be below `limit`. |
 | `quota_exceeded` | Request Bins | `allocation`: the plan's ceiling on bins, on `POST /v1/bins`. Never `period`: past the month's requests, bins answer their senders and record nothing, and no API call is refused. | `metric` (`bins`), its `limit`, and `current` |
 | `not_entitled` | Both | — | `feature`: `read_api` or `optional_phrase_gate` on Inboxes; `rabbitmq_sources` or `optional_endpoint_verification` on Webhooks. Webhooks sends `optional_endpoint_verification` for turning endpoint verification off on a plan that requires it; no plan does today. |
-| `not_entitled` | Request Bins | — | `feature`: `read_api`, reading captured requests with an API key on the Free plan |
+| `not_entitled` | Request Bins | — | `feature`: `read_api`, reading captured requests with an API key on the Free plan; `forwarding`, setting a forward URL or sending a test on the Free plan |
 | `payload_too_large` | Both | — | `limit` in bytes, on every `413`. Inboxes also sends `size` when the API measured the body. |
 | `payload_too_large` | Request Bins | — | `limit` in bytes, on every `413` |
 | `unknown_event_type` | Webhooks | — | `event_type`: the name that isn't registered |
@@ -91,7 +91,9 @@ Treat every key in `details` as optional: read the ones you need and ignore the 
 | `provider_secret_required` | Webhooks | — | `provider`: `stripe`, `github` or `rabbitmq` |
 | `broker_not_allowed` | Webhooks | None for your broker, whichever rule refused it (`not_system_broker` is sent only to the platform's own workspace) | `host`: the broker, as `host:port` |
 | `rate_limited` | Both | `inbox_rate` (Inboxes): one inbox's per-minute limit. Webhooks sends no reason. | `retry_after` in seconds, the same number as the `Retry-After` header (both APIs). On Inboxes' `inbox_rate`, also `rate_per_min`. |
+| `rate_limited` | Request Bins | — | `retry_after`: the seconds until the bin's next test send is allowed |
 | `unavailable` | Inboxes | `ingest_disabled`: message acceptance is switched off | — |
+| `unavailable` | Request Bins | `forwarding_disabled`: forwarding is switched off for the whole service. `forwarder_unavailable`: a test send wasn't picked up for sending within 3 seconds, so nothing was sent. | — |
 
 On `invalid_payload`, each entry in `details.errors` says what failed where. `path` is a JSON Pointer to the value that failed: `""` is the payload itself, and for a missing or unexpected member it points to the object that should or shouldn't hold it. `keyword` is the JSON Schema keyword that failed (`required`, `type`, `enum`, `const`, `minimum`, `maximum`, `minLength`, `maxLength`, `minItems`, `maxItems`, `pattern`, `format` or `additionalProperties`), or `other` for any other keyword. `params` holds `property` (the missing or unexpected member, one entry each), `count` (a length or item bound), `limit` (the bound of a `minimum` or `maximum`) or `type` (the one type the value should have been), and is empty when none of these applies, as on `enum` or `pattern`, or on a `type` that allows several. Entries never carry the regex, the allowed values or the value that failed; `message` still describes one failure in English.
 
@@ -226,7 +228,7 @@ All of these are `402`. Retrying the same request never helps: someone has to ch
 | `code` | API | What |
 |---|---|---|
 | `quota_exceeded` | Both | Over a plan limit: an allocation (Inboxes: addresses; Webhooks: endpoints) or a monthly ceiling (Inboxes: messages; Webhooks: deliveries), where you wait for the next period or upgrade. On both APIs `details.reason` says which, and `details` names the `metric`, its `limit` and, for an allocation, the `current` count. |
-| `quota_exceeded` | Request Bins | Over the plan's limit on bins, when creating one. `details.reason` is `allocation`, and `details` names the `metric` (`bins`), its `limit` and the `current` count. The monthly request limit never refuses an API call: past it, bins answer their senders and record nothing until the next month. |
+| `quota_exceeded` | Request Bins | Over the plan's limit on bins, when creating one. `details.reason` is `allocation`, and `details` names the `metric` (`bins`), its `limit` and the `current` count. The monthly request limit never refuses an API call: past it, bins answer their senders and record nothing until [credit](/docs/product-bins/reference#credit) buys more or the next month begins. |
 | `not_entitled` | All | The feature isn't in your plan, such as the read API on the Inboxes free plan, reading captured requests with an API key on the Request Bins Free plan, or a RabbitMQ source below Pro on Webhooks. `details.feature` names it. |
 | `workspace_frozen` | All | A charge is unsettled, so changes are refused. Settle it in your account console; upgrading the plan is refused too until you do. |
 | `workspace_suspended` | All | The grace period after an unsettled charge has ended and the service has stopped for this workspace. |
@@ -235,7 +237,7 @@ All of these are `402`. Retrying the same request never helps: someone has to ch
 
 On Webhooks, the endpoint limit is `quota_exceeded` on `POST /v1/endpoints`, with `details.reason` `allocation`, `metric` `endpoints`, `limit` (the plan's ceiling) and `current` (the endpoints the workspace has). A RabbitMQ source below Pro is `not_entitled` with `details.feature` `rabbitmq_sources`: on `POST /v1/sources`, and on a `PATCH /v1/sources/{id}` of a RabbitMQ source whose body sets `status` to `enabled` or sets any of `broker_identifier`, `broker_host`, `broker_port`, `broker_vhost`, `broker_user`, `broker_exchange`, `broker_topic` or `broker_queues`, even to the value it already has. Other changes, such as renaming or disabling the source, stay allowed. `max_attempts` above the plan's ceiling isn't a `402`: it is a `422` `validation_error` ([Request validation](#codes-validation)).
 
-On Request Bins, the bin limit is `quota_exceeded` on `POST /v1/bins`. Reading captured requests with an API key on Free is `not_entitled`, with `details.feature` `read_api`, on `GET /v1/bins/{id}/requests`, `GET /v1/requests` and `GET /v1/requests/{id}`; the console reads them on every plan. While a workspace is frozen or suspended, every write but a delete is refused with `workspace_frozen` or `workspace_suspended`, and reads stay open. Bins keep recording while the workspace is frozen and stop while it is suspended ([Plans and limits](/docs/product-bins/reference#limits)).
+On Request Bins, the bin limit is `quota_exceeded` on `POST /v1/bins`. Reading captured requests with an API key on Free is `not_entitled`, with `details.feature` `read_api`, on `GET /v1/bins/{id}/requests`, `GET /v1/requests`, `GET /v1/bins/{id}/paths` and `GET /v1/requests/{id}`; the console reads them on every plan. Setting a forward URL or sending a test on Free is `not_entitled` too, with `details.feature` `forwarding`. While a workspace is frozen or suspended, every write but a delete is refused with `workspace_frozen` or `workspace_suspended`, and reads stay open. Bins keep recording while the workspace is frozen and stop while it is suspended ([Plans and limits](/docs/product-bins/reference#limits)).
 
 ### Resources {#codes-resources}
 
@@ -270,8 +272,9 @@ A bulk replay whose `from` is after its `to` isn't a conflict: it is a `422` `va
 | `code` | Status | API | What |
 |---|---|---|---|
 | `rate_limited` | 429 | Both | Too many requests. If `Retry-After` is set, wait that many seconds and retry; otherwise back off. `details.retry_after` carries the same number on both APIs, and on Inboxes a per-inbox limit also sets `details.reason` to `inbox_rate`, with `details.rate_per_min`. |
+| `rate_limited` | 429 | Request Bins | More than 10 test sends to one bin's forward URL in a minute. `details.retry_after` says how many seconds until the next is allowed. |
 
-Request Bins' API sends no `rate_limited`. Its bin URLs limit how fast senders can send, and answer a sender over the limit with a `429` and `Retry-After`, not in this JSON shape ([What a bin URL answers](/docs/product-bins/reference#edge-answers)).
+Request Bins' API sends `rate_limited` for test sends only ([Test a forward URL](/docs/product-bins/reference#forward-test)). Its bin URLs limit how fast senders can send, and answer a sender over the limit with a `429` and `Retry-After`, not in this JSON shape ([What a bin URL answers](/docs/product-bins/reference#edge-answers)).
 
 ### Server {#codes-server}
 
@@ -279,6 +282,7 @@ Request Bins' API sends no `rate_limited`. Its bin URLs limit how fast senders c
 |---|---|---|---|
 | `internal_error` | 500 | All | Something broke on our side. Safe to retry idempotent requests. |
 | `unavailable` | 503 | Inboxes | Temporarily unable to serve the request: message acceptance is switched off, and `details.reason` is `ingest_disabled`. Retry with backoff. |
+| `unavailable` | 503 | Request Bins | Forwarding can't take the request: setting a forward URL or sending a test while forwarding is switched off for the whole service (`details.reason` `forwarding_disabled`), or a test that wasn't picked up for sending within 3 seconds, so nothing was sent (`forwarder_unavailable`). Retry later. |
 
 A `502` or `504` from the edge in front of the APIs can arrive with no JSON body at all. Treat a `5xx` you can't parse as retryable.
 
@@ -348,7 +352,7 @@ Earlier versions of this page listed the codes and fields on the left. The APIs 
 | `rate_limit_exceeded` | `rate_limited` (429) |
 | `quota_exceeded` as a 429 | `quota_exceeded` as a 402 |
 | `internal_error` on every API | `internal_error` on both APIs since 2026-10-15; Webhooks sent `internal` before |
-| `service_unavailable` (503), `gateway_timeout` (504) | `unavailable` (503) on Inboxes, when message acceptance is switched off; a gateway `502`/`504` may have no JSON body |
+| `service_unavailable` (503), `gateway_timeout` (504) | `unavailable` (503) on Inboxes, when message acceptance is switched off, and on Request Bins, when forwarding can't take a request; a gateway `502`/`504` may have no JSON body |
 
 ## Handling pattern {#pattern}
 
