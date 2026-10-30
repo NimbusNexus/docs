@@ -424,7 +424,7 @@ Credit is a balance your workspace keeps for NimbusNexus products to spend when 
 
 - **The block:** 10,000 requests for $4, on Free, Starter and Pro. On Custom, more requests come by contract, so credit buys none.
 - **When:** about every 5 minutes, Request Bins buys one block for each workspace whose month is 90% used with fewer than 10,000 requests left, for as long as the balance lasts.
-- **What it adds:** 10,000 to the month's requests and to each bin's share of them, so `monthly_requests`, `purchased_requests` and `bin_request_ceiling` in [`GET /v1/usage`](#plan) grow with it.
+- **What it adds:** 10,000 requests to the month, and to each bin's share its part of them, such as 5,000 on Starter, so `monthly_requests`, `purchased_requests` and `bin_request_ceiling` in [`GET /v1/usage`](#plan) grow with it.
 - **For the month only:** bought requests lapse when the month ends. A partly used block isn't refunded, and nothing carries over.
 - **When it can't buy:** with credit switched off, or a balance too low for a block, bins answer `200` and record nothing past the month's requests until the next month, and `credit` in `GET /v1/usage` says which. A sender fast enough to use up the last requests before the next purchase finds the month used up too, for a few minutes, and what it sends then isn't recorded.
 

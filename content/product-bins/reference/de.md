@@ -424,7 +424,7 @@ Guthaben ist ein Betrag, den Ihr Workspace bereithält und den NimbusNexus-Produ
 
 - **Der Block:** 10.000 Requests für $4, in Free, Starter und Pro. In Custom gibt es weitere Requests nach Vertrag, daher werden dort keine mit Guthaben gekauft.
 - **Wann:** Etwa alle 5 Minuten kauft Request Bins einen Block für jeden Workspace, dessen Monat zu 90 % verbraucht ist und der weniger als 10.000 Requests übrig hat, solange das Guthaben reicht.
-- **Was ein Block hinzufügt:** 10.000 zu den Requests des Monats und zum Anteil jedes Bins daran, sodass `monthly_requests`, `purchased_requests` und `bin_request_ceiling` in [`GET /v1/usage`](#plan) mitwachsen.
+- **Was ein Block hinzufügt:** 10.000 Requests zum Monat, und der Anteil jedes Bins wächst um seinen Teil davon, auf Starter etwa um 5.000, sodass `monthly_requests`, `purchased_requests` und `bin_request_ceiling` in [`GET /v1/usage`](#plan) mitwachsen.
 - **Nur für den Monat:** Gekaufte Requests verfallen, wenn der Monat endet. Ein teilweise genutzter Block wird nicht erstattet, und nichts wird in den nächsten Monat übertragen.
 - **Wenn nichts gekauft werden kann:** Ist die Nutzung des Guthabens ausgeschaltet oder reicht das Guthaben für keinen Block, antworten Bins nach Überschreiten der Requests des Monats mit `200` und zeichnen bis zum nächsten Monat nichts auf, und `credit` in `GET /v1/usage` sagt, welcher Fall vorliegt. Auch ein Absender, der schnell genug sendet, um die letzten Requests vor dem nächsten Kauf aufzubrauchen, findet den Monat für einige Minuten aufgebraucht vor, und was er dann sendet, wird nicht aufgezeichnet.
 

@@ -424,7 +424,7 @@ El crédito es un saldo que tu workspace guarda para que los productos de Nimbus
 
 - **El bloque:** 10.000 peticiones por $4, en Free, Starter y Pro. En Custom, las peticiones adicionales se acuerdan por contrato, así que el crédito no compra ninguna.
 - **Cuándo:** aproximadamente cada 5 minutos, Request Bins compra un bloque para cada workspace que ha usado el 90 % de su mes y al que le quedan menos de 10.000 peticiones, mientras dure el saldo.
-- **Qué añade:** 10.000 a las peticiones del mes y a la parte que le corresponde a cada bin, así que `monthly_requests`, `purchased_requests` y `bin_request_ceiling` en [`GET /v1/usage`](#plan) crecen con el bloque.
+- **Qué añade:** 10.000 peticiones al mes, y la parte de cada bin crece en la proporción que le corresponde de ellas, como 5.000 en Starter, así que `monthly_requests`, `purchased_requests` y `bin_request_ceiling` en [`GET /v1/usage`](#plan) crecen con el bloque.
 - **Solo para el mes:** las peticiones compradas caducan cuando termina el mes. Un bloque usado en parte no se reembolsa, y nada se traslada al mes siguiente.
 - **Cuando no puede comprar:** con el crédito desactivado, o con un saldo que no alcanza para un bloque, los bins responden `200` y, una vez superadas las peticiones del mes, no registran nada hasta el mes siguiente, y `credit` en `GET /v1/usage` indica cuál. Un emisor lo bastante rápido como para agotar las últimas peticiones antes de la siguiente compra también encuentra el mes agotado, durante unos minutos, y lo que envía entonces no se registra.
 
