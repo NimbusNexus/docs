@@ -2,7 +2,7 @@
 title: "Entregas e retentativas"
 description: "O que acontece com cada evento depois que ele é distribuído — estados de entrega, o cronograma de retentativas, a dead-letter queue e como reenviar."
 publishedAt: 2026-10-19
-updatedAt: 2026-10-21
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -16,9 +16,9 @@ Publicar um evento cria uma **entrega** para cada endpoint inscrito no tipo dele
 |---|---|
 | `queued` | Esperando a primeira tentativa. |
 | `sending` | Uma tentativa está em andamento. |
-| `sent` | O endpoint respondeu 2xx. Concluída. |
-| `failed` | A última tentativa falhou e outra está agendada (`next_attempt_at`). |
-| `dead` | Sem tentativas restantes, ou retida sem envio porque o endpoint precisa passar pela [verificação](/docs/product-webhooks/endpoint-verification#gated) antes. Fica na dead-letter queue até você enviá-la de novo. |
+| `sent` | O endpoint respondeu 2xx. Concluída. Uma entrega que a [transformação](/docs/product-webhooks/transformations#dropped) do endpoint decidiu não enviar também fica como `sent`, com `"dropped": true`. |
+| `failed` | A última tentativa falhou e outra está agendada (`next_attempt_at`). Também é o caso de uma entrega que espera a [transformação pausada](/docs/product-webhooks/transformations#versions) do endpoint. |
+| `dead` | Sem tentativas restantes, retida sem envio porque o endpoint precisa passar pela [verificação](/docs/product-webhooks/endpoint-verification#gated) antes, ou com falha na [transformação](/docs/product-webhooks/transformations#failures) do endpoint. Fica na dead-letter queue até você enviá-la de novo. |
 
 Qualquer coisa que não seja 2xx conta como falha: um status 4xx ou 5xx, um timeout, um erro de conexão ou de TLS. Cada tentativa espera até 10 segundos por uma resposta, ou o `delivery_timeout_ms` do próprio endpoint (de 100 ms a 60 s).
 
@@ -55,6 +55,8 @@ curl -s {{WEBHOOKS_BASE_URL}}/v1/deliveries/dlv_…/attempts \
 
 Quando a implantação registra esses dados, uma tentativa também traz a primeira parte do corpo da resposta do endpoint e os headers que enviamos (com as credenciais mascaradas).
 
+Quando o endpoint tem uma [transformação](/docs/product-webhooks/transformations#deliveries), a entrega também mostra a execução que a moldou — a versão, o corpo enviado, os logs ou o erro — e `GET /v1/deliveries/{id}/transform` retorna essa execução.
+
 ## Reenviar {#replay}
 
 | O quê | Como |
@@ -68,7 +70,7 @@ As quatro formas criam novas tentativas do evento armazenado; elas não publicam
 
 ## Webhooks operacionais {#operational}
 
-Para ficar sabendo de problemas de entrega sem ficar olhando o console, inscreva um endpoint seu nos nossos eventos operacionais: `endpoint.disabled`, `endpoint.degraded`, `endpoint.recovered` e `message.attempt.exhausted` (uma entrega foi para `dead`). Adicione um em **Operational webhooks** no console, ou com `POST /v1/operational-endpoints`. Eles são assinados como qualquer outra entrega.
+Para ficar sabendo de problemas de entrega sem ficar olhando o console, inscreva um endpoint seu nos nossos eventos operacionais: `endpoint.disabled`, `endpoint.degraded`, `endpoint.recovered`, `message.attempt.exhausted` (uma entrega foi para `dead`) e `transformation.disabled` (uma [transformação](/docs/product-webhooks/transformations#failures) foi desativada depois de falhar). Adicione um em **Operational webhooks** no console, ou com `POST /v1/operational-endpoints`. Eles são assinados como qualquer outra entrega.
 
 ## Por quanto tempo as entregas são mantidas {#retention}
 

@@ -1843,6 +1843,48 @@
           "published": true
         },
         {
+          "path": "product-webhooks/transformations",
+          "kind": "concept",
+          "title": {
+            "en": "Transformations",
+            "de": "Transformationen",
+            "es": "Transformaciones",
+            "fr": "Transformations",
+            "pt": "Transformações",
+            "uk": "Трансформації"
+          },
+          "description": {
+            "en": "Reshape, filter or drop each delivery with a short JavaScript function, run in a sandbox before it is signed and sent.",
+            "de": "Jede Zustellung mit einer kurzen JavaScript-Funktion, die in einer Sandbox läuft, umformen, filtern oder verwerfen, bevor sie signiert und gesendet wird.",
+            "es": "Adapta, filtra o descarta cada entrega con una función corta de JavaScript, ejecutada en un sandbox antes de que se firme y se envíe.",
+            "fr": "Remodelez, filtrez ou abandonnez chaque livraison avec une courte fonction JavaScript, exécutée dans une sandbox avant la signature et l’envoi.",
+            "pt": "Remodele, filtre ou descarte cada entrega com uma função JavaScript curta, executada em um sandbox antes que a entrega seja assinada e enviada.",
+            "uk": "Перетворюйте, фільтруйте або відкидайте кожну доставку короткою функцією на JavaScript, що виконується в пісочниці перед підписанням і надсиланням."
+          },
+          "published": true
+        },
+        {
+          "path": "product-webhooks/chat-apps",
+          "kind": "guide",
+          "title": {
+            "en": "Slack, Teams and Discord",
+            "de": "Slack, Teams und Discord",
+            "es": "Slack, Teams y Discord",
+            "fr": "Slack, Teams et Discord",
+            "pt": "Slack, Teams e Discord",
+            "uk": "Slack, Teams і Discord"
+          },
+          "description": {
+            "en": "Send events to a Slack, Microsoft Teams or Discord channel with a preset transformation.",
+            "de": "Events mit einer vorgefertigten Transformation an einen Kanal in Slack, Microsoft Teams oder Discord senden.",
+            "es": "Envía eventos a un canal de Slack, Microsoft Teams o Discord con una transformación predefinida.",
+            "fr": "Envoyez des événements vers un canal Slack, Microsoft Teams ou Discord avec une transformation prédéfinie.",
+            "pt": "Envie eventos para um canal do Slack, do Microsoft Teams ou do Discord com um preset de transformação.",
+            "uk": "Надсилайте події в канал Slack, Microsoft Teams чи Discord за допомогою пресету трансформації."
+          },
+          "published": true
+        },
+        {
           "path": "product-webhooks/event-types",
           "kind": "concept",
           "title": {

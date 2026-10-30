@@ -2,7 +2,7 @@
 title: "Доставки та повтори"
 description: "Що відбувається з кожною подією після розгалуження: стани доставок, розклад повторів, dead-letter черга й повторне надсилання."
 publishedAt: 2026-10-19
-updatedAt: 2026-10-21
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -16,9 +16,9 @@ kind: concept
 |---|---|
 | `queued` | Чекає на першу спробу. |
 | `sending` | Спроба триває. |
-| `sent` | Ендпоінт відповів 2xx. Готово. |
-| `failed` | Остання спроба не вдалася, і заплановано наступну (`next_attempt_at`). |
-| `dead` | Спроби вичерпано, або доставку не надіслано, бо її ендпоінт спершу має пройти [верифікацію](/docs/product-webhooks/endpoint-verification#gated). Зберігається в dead-letter черзі, доки ви не надішлете її знову. |
+| `sent` | Ендпоінт відповів 2xx. Готово. Доставка, яку [трансформація](/docs/product-webhooks/transformations#dropped) її ендпоінта вирішила не надсилати, теж має стан `sent`, з `"dropped": true`. |
+| `failed` | Остання спроба не вдалася, і заплановано наступну (`next_attempt_at`). Цей стан має й доставка, що чекає на [призупинену трансформацію](/docs/product-webhooks/transformations#versions) свого ендпоінта. |
+| `dead` | Спроби вичерпано, або доставку не надіслано, бо її ендпоінт спершу має пройти [верифікацію](/docs/product-webhooks/endpoint-verification#gated), або доставку провалила [трансформація](/docs/product-webhooks/transformations#failures) її ендпоінта. Зберігається в dead-letter черзі, доки ви не надішлете її знову. |
 
 Будь-що, крім 2xx, вважається невдачею: статус 4xx чи 5xx, тайм-аут, помилка зʼєднання чи TLS. Кожна спроба чекає на відповідь до 10 секунд або стільки, скільки задано у власному `delivery_timeout_ms` ендпоінта (від 100 мс до 60 с).
 
@@ -55,6 +55,8 @@ curl -s {{WEBHOOKS_BASE_URL}}/v1/deliveries/dlv_…/attempts \
 
 Якщо розгортання їх записує, спроба також містить початок тіла відповіді ендпоінта й заголовки, які ми надіслали (з прихованими обліковими даними).
 
+Якщо ендпоінт має [трансформацію](/docs/product-webhooks/transformations#deliveries), доставка також показує запуск, який її сформував, — версію, надіслане тіло, логи або помилку, — а `GET /v1/deliveries/{id}/transform` повертає цей запуск.
+
 ## Повторне надсилання {#replay}
 
 | Що | Як |
@@ -68,7 +70,7 @@ curl -s {{WEBHOOKS_BASE_URL}}/v1/deliveries/dlv_…/attempts \
 
 ## Операційні вебхуки {#operational}
 
-Щоб дізнаватися про проблеми з доставкою, не стежачи за консоллю, підпишіть власний ендпоінт на наші операційні події: `endpoint.disabled`, `endpoint.degraded`, `endpoint.recovered` і `message.attempt.exhausted` (доставка перейшла в `dead`). Додайте його в розділі **Operational webhooks** у консолі або через `POST /v1/operational-endpoints`. Вони підписуються так само, як будь-яка інша доставка.
+Щоб дізнаватися про проблеми з доставкою, не стежачи за консоллю, підпишіть власний ендпоінт на наші операційні події: `endpoint.disabled`, `endpoint.degraded`, `endpoint.recovered`, `message.attempt.exhausted` (доставка перейшла в `dead`) і `transformation.disabled` ([трансформацію](/docs/product-webhooks/transformations#failures) вимкнено через збої). Додайте його в розділі **Operational webhooks** у консолі або через `POST /v1/operational-endpoints`. Вони підписуються так само, як будь-яка інша доставка.
 
 ## Скільки зберігаються доставки {#retention}
 

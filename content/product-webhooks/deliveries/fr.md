@@ -2,7 +2,7 @@
 title: "Livraisons et réessais"
 description: "Ce qu’il advient de chaque événement après sa diffusion — les états d’une livraison, le calendrier des réessais, la dead-letter queue et comment effectuer des renvois."
 publishedAt: 2026-10-19
-updatedAt: 2026-10-21
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -16,9 +16,9 @@ Publier un événement crée une **livraison** pour chaque endpoint abonné à s
 |---|---|
 | `queued` | En attente de sa première tentative. |
 | `sending` | Une tentative est en cours. |
-| `sent` | L’endpoint a répondu 2xx. Terminé. |
-| `failed` | La dernière tentative a échoué et une autre est planifiée (`next_attempt_at`). |
-| `dead` | Plus de tentatives disponibles, ou retenue sans être envoyée parce que son endpoint doit d’abord passer la [vérification](/docs/product-webhooks/endpoint-verification#gated). Conservée dans la dead-letter queue jusqu’à ce que vous la renvoyiez. |
+| `sent` | L’endpoint a répondu 2xx. Terminé. Une livraison que la [transformation](/docs/product-webhooks/transformations#dropped) de son endpoint a choisi de ne pas envoyer est aussi `sent`, avec `"dropped": true`. |
+| `failed` | La dernière tentative a échoué et une autre est planifiée (`next_attempt_at`). C’est aussi l’état d’une livraison qui attend la [transformation en pause](/docs/product-webhooks/transformations#versions) de son endpoint. |
+| `dead` | Plus de tentatives disponibles, retenue sans être envoyée parce que son endpoint doit d’abord passer la [vérification](/docs/product-webhooks/endpoint-verification#gated), ou mise en échec par la [transformation](/docs/product-webhooks/transformations#failures) de son endpoint. Conservée dans la dead-letter queue jusqu’à ce que vous la renvoyiez. |
 
 Tout ce qui n’est pas un 2xx compte comme un échec : un statut 4xx ou 5xx, un timeout, une erreur de connexion ou de TLS. Chaque tentative attend une réponse jusqu’à 10 secondes, ou le `delivery_timeout_ms` propre à l’endpoint (de 100 ms à 60 s).
 
@@ -55,6 +55,8 @@ curl -s {{WEBHOOKS_BASE_URL}}/v1/deliveries/dlv_…/attempts \
 
 Là où le déploiement les enregistre, une tentative porte aussi le début du corps de la réponse de l’endpoint et les headers que nous avons envoyés (avec les justificatifs d’identité masqués).
 
+Quand l’endpoint a une [transformation](/docs/product-webhooks/transformations#deliveries), la livraison montre aussi l’exécution qui l’a mise en forme — la version, le corps envoyé, ses logs ou son erreur — et `GET /v1/deliveries/{id}/transform` renvoie cette exécution.
+
 ## Renvoyer {#replay}
 
 | Quoi | Comment |
@@ -68,7 +70,7 @@ Ces quatre opérations créent de nouvelles tentatives de l’événement stock�
 
 ## Webhooks opérationnels {#operational}
 
-Pour être informé des problèmes de livraison sans surveiller la console, abonnez un de vos propres endpoints à nos événements opérationnels : `endpoint.disabled`, `endpoint.degraded`, `endpoint.recovered` et `message.attempt.exhausted` (une livraison est passée à `dead`). Ajoutez-en un sous **Operational webhooks** dans la console, ou avec `POST /v1/operational-endpoints`. Ils sont signés comme n’importe quelle autre livraison.
+Pour être informé des problèmes de livraison sans surveiller la console, abonnez un de vos propres endpoints à nos événements opérationnels : `endpoint.disabled`, `endpoint.degraded`, `endpoint.recovered`, `message.attempt.exhausted` (une livraison est passée à `dead`) et `transformation.disabled` (une [transformation](/docs/product-webhooks/transformations#failures) a été désactivée après avoir échoué). Ajoutez-en un sous **Operational webhooks** dans la console, ou avec `POST /v1/operational-endpoints`. Ils sont signés comme n’importe quelle autre livraison.
 
 ## Durée de conservation des livraisons {#retention}
 

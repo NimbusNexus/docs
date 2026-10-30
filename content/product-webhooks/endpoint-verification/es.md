@@ -2,7 +2,7 @@
 title: "Verificación de endpoints"
 description: "Demuestra que un endpoint quiere tus eventos antes de que reciba ninguno — un desafío firmado de un solo uso que debe devolver."
 publishedAt: 2026-10-19
-updatedAt: 2026-10-28
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -83,10 +83,11 @@ Volver a enviar queda bloqueado de la misma forma. Volver a entregar una entrega
 
 Algunos receptores aceptan cualquier POST pero nunca devuelven un cuerpo que elijas tú — entre ellos, los catch hooks de Zapier. No pueden superar la verificación. Si tu plan te lo permite, deja la verificación desactivada para el proyecto que les entrega; si no, pon delante un pequeño intermediario propio que responda al desafío.
 
-Los incoming webhooks de Slack son un caso aparte. Solo aceptan un mensaje de Slack, con un campo `text` o `blocks`, así que rechazan todos los eventos que entregamos, incluso con la verificación desactivada. Para llevar eventos a Slack, apunta el endpoint a algo que convierta cada evento en un mensaje, como un receptor propio o un catch hook de Zapier.
+Los incoming webhooks de Slack son un caso aparte, y también los de Microsoft Teams y Discord. Solo aceptan su propio formato de mensaje, como un mensaje de Slack con un campo `text` o `blocks`, así que rechazan el sobre del evento que entregamos, incluso con la verificación desactivada. Con una [transformación](/docs/product-webhooks/transformations) en el endpoint, sí aceptan lo que les entregamos: los presets **Slack message**, **Microsoft Teams card** y **Discord message** convierten cada evento en un mensaje, en todos los planes de pago. Siguen sin poder responder al desafío, así que mantén la verificación desactivada para su proyecto. [Slack, Teams y Discord](/docs/product-webhooks/chat-apps) lo explica paso a paso.
 
 ## Próximos pasos {#next-steps}
 
 - [Verificación de firmas](/docs/product-webhooks/signatures) — la comprobación que hay que hacer antes de responder al desafío.
 - [Entregas y reintentos](/docs/product-webhooks/deliveries) — qué pasa cuando el endpoint ya recibe eventos.
+- [Transformaciones](/docs/product-webhooks/transformations) — envía a un receptor el formato que necesita.
 - [Inicio rápido](/docs/product-webhooks/quickstart) — de cero a una entrega verificada.

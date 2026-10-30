@@ -2,7 +2,7 @@
 title: "Webhooks"
 description: "A plataforma de webhooks gerenciada — publique um evento uma vez e nós assinamos, repetimos e reenviamos cada entrega aos seus assinantes."
 publishedAt: 2026-08-05
-updatedAt: 2026-10-19
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -30,6 +30,7 @@ Este produto é essa engrenagem ao redor. Ele também recebe na outra direção 
 | **Fonte** | Uma URL para a qual um provedor envia webhooks. Cada requisição assinada vira um evento. Veja [Fontes](/docs/product-webhooks/sources). |
 | **Endpoint** | Uma URL HTTPS registrada para receber webhooks, com uma ou mais inscrições. |
 | **Inscrição** | Uma regra de correspondência em um endpoint: `exact`, `prefix`, `suffix` ou `all`, mais um padrão como `order.`. |
+| **Transformação** | Uma função JavaScript curta em um endpoint que remodela, filtra ou descarta cada entrega antes que ela seja assinada e enviada. Nos planos pagos. Veja [Transformações](/docs/product-webhooks/transformations). |
 | **Entrega** | Um envio, com as tentativas rastreadas, de um evento para um endpoint correspondente. Assinada, repetida, observável. Veja [Entregas e retentativas](/docs/product-webhooks/deliveries). |
 | **Tipo de evento** | Uma entrada no catálogo de nomes de tipo, com um JSON Schema opcional. Veja [Tipos de evento](/docs/product-webhooks/event-types). |
 | **Segredo de assinatura** | Segredo por endpoint usado para assinar cada entrega com HMAC. Mostrado **uma vez**, na criação. |
@@ -50,7 +51,7 @@ Dois medidores contam esse processo, e a diferença importa quando você dimensi
 
 | Seção | Páginas | Para quê |
 |---|---|---|
-| **Build** | Sources, Endpoints, Event types | Configurar de onde os eventos vêm e para onde vão. |
+| **Build** | Sources, Endpoints, Event types, Pipeline | Configurar de onde os eventos vêm e para onde vão; a página Pipeline liga cada fonte aos endpoints que ela alcança, com a transformação no caminho. |
 | **Observe** | Events, Deliveries, Captured requests | Ver o que chegou, o que saiu e o que falhou. |
 | **Manage** | Operational webhooks, Audit log, Settings | Onde você é avisado quando algo quebra; quem mudou o quê; o seu plano e o uso do Webhooks, a verificação e as ferramentas de desenvolvedor. |
 
@@ -80,6 +81,8 @@ Escolha o escopo ao gerá-la. `admin` dá controle total; `publish` pode produzi
 - [Fontes](/docs/product-webhooks/sources) — receba webhooks do Stripe, do GitHub ou de qualquer remetente que assine com HMAC.
 - [Entregas e retentativas](/docs/product-webhooks/deliveries) — estados, o cronograma de retentativas e como reenviar.
 - [Verificação de endpoint](/docs/product-webhooks/endpoint-verification) — o desafio que um endpoint responde antes de receber eventos.
+- [Transformações](/docs/product-webhooks/transformations) — remodele, filtre ou descarte cada entrega com um script curto.
+- [Slack, Teams e Discord](/docs/product-webhooks/chat-apps) — envie eventos para um canal com um preset.
 - [Tipos de evento](/docs/product-webhooks/event-types) — o catálogo, a política para tipos desconhecidos e os schemas de payload.
 - [Requisições capturadas](/docs/product-webhooks/captured-requests) — as requisições brutas que chegaram a uma fonte.
 - [Verificação de assinatura](/docs/product-webhooks/signatures) — o contrato de assinatura e as três regras para verificá-la.

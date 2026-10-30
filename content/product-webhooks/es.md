@@ -2,7 +2,7 @@
 title: "Webhooks"
 description: "La plataforma de webhooks gestionada — publica un evento una vez y nosotros firmamos, reintentamos y reenviamos cada entrega a tus suscriptores."
 publishedAt: 2026-08-05
-updatedAt: 2026-10-19
+updatedAt: 2026-10-30
 kind: concept
 ---
 
@@ -30,6 +30,7 @@ Este producto es esa maquinaria que lo rodea. También recibe en el otro sentido
 | **Fuente** | Una URL a la que un proveedor envía webhooks. Cada petición firmada se convierte en un evento. Consulta [Fuentes](/docs/product-webhooks/sources). |
 | **Endpoint** | Una URL HTTPS registrada para recibir webhooks, con una o varias suscripciones. |
 | **Suscripción** | Una regla de coincidencia de un endpoint: `exact`, `prefix`, `suffix` o `all`, más un patrón como `order.`. |
+| **Transformación** | Una función corta de JavaScript asociada a un endpoint, que adapta, filtra o descarta cada entrega antes de que se firme y se envíe. En los planes de pago. Consulta [Transformaciones](/docs/product-webhooks/transformations). |
 | **Entrega** | Un envío, con seguimiento de sus intentos, de un evento a un endpoint que coincide. Firmada, reintentada, observable. Consulta [Entregas y reintentos](/docs/product-webhooks/deliveries). |
 | **Tipo de evento** | Una entrada del catálogo de nombres de tipo, con un JSON Schema opcional. Consulta [Tipos de evento](/docs/product-webhooks/event-types). |
 | **Secreto de firma** | Secreto propio de cada endpoint con el que se firma con HMAC cada entrega. Se muestra **una sola vez**, al crearlo. |
@@ -50,7 +51,7 @@ Sobre eso funcionan dos contadores, y la diferencia importa cuando eliges un pla
 
 | Sección | Páginas | Para qué |
 |---|---|---|
-| **Build** | Sources, Endpoints, Event types | Configurar de dónde vienen los eventos y adónde van. |
+| **Build** | Sources, Endpoints, Event types, Pipeline | Configurar de dónde vienen los eventos y adónde van; Pipeline muestra a qué endpoints llega cada fuente, con la transformación que hay por el camino. |
 | **Observe** | Events, Deliveries, Captured requests | Ver lo que llegó, lo que salió y lo que falló. |
 | **Manage** | Operational webhooks, Audit log, Settings | Dónde recibes un aviso cuando algo se rompe; quién cambió qué; tu plan y tu consumo de Webhooks, la verificación y las herramientas para desarrolladores. |
 
@@ -80,6 +81,8 @@ Elige el alcance al emitirla. `admin` da control total; `publish` puede producir
 - [Fuentes](/docs/product-webhooks/sources) — recibe webhooks de Stripe, GitHub o cualquier emisor que firme con HMAC.
 - [Entregas y reintentos](/docs/product-webhooks/deliveries) — estados, el calendario de reintentos y cómo volver a enviar.
 - [Verificación de endpoints](/docs/product-webhooks/endpoint-verification) — el desafío que responde un endpoint antes de recibir eventos.
+- [Transformaciones](/docs/product-webhooks/transformations) — adapta, filtra o descarta cada entrega con un script corto.
+- [Slack, Teams y Discord](/docs/product-webhooks/chat-apps) — envía eventos a un canal con un preset.
 - [Tipos de evento](/docs/product-webhooks/event-types) — el catálogo, la política para los tipos desconocidos y los esquemas de payload.
 - [Peticiones capturadas](/docs/product-webhooks/captured-requests) — las peticiones en bruto que llegaron a una fuente.
 - [Verificación de firmas](/docs/product-webhooks/signatures) — el contrato de firma y las tres reglas para comprobarlo.
