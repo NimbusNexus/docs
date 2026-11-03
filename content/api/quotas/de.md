@@ -2,7 +2,7 @@
 title: "Kontingente"
 description: "Limits pro Projekt für VMs, vCPU, RAM, Speicher, Floating-IPs und weitere Ressourcen."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -12,51 +12,40 @@ Kontingente sind Limits pro Projekt, die begrenzen, wie viel einer Ressource ein
 
 ## Wofür es Kontingente gibt {#what}
 
-Jedes Projekt hat ein Kontingent für jede dieser Ressourcen:
+Die Kontingent-Endpoints decken vier Dienste ab. Jeder antwortet mit seinen eigenen Kontingentnamen, zum Beispiel:
 
-| Ressource | Standardkontingent | Hinweise |
+| Dienst | Was er begrenzt | Beispiele für Kontingentnamen |
 | --- | --- | --- |
-| VMs | 50 | Pro Region; als „VM“ zählt jeder Zustand außer `terminated` |
-| vCPU | 200 | Summe über alle laufenden VMs |
-| RAM (GB) | 800 | Summe über alle laufenden VMs |
-| Blockspeicher (GB) | 5.000 | Summe aller Volumes (angehängt + getrennt) |
-| Objektspeicher (GB) | unbegrenzt | Nur weiches Limit: Ab ~50 TB melden wir uns bei Ihnen, um die Erwartungen abzustimmen |
-| Snapshots | 200 | Pro Region; gelöschte Snapshots zählen nicht |
-| Backups | 500 | Pro Region |
-| Floating-IPs | 20 | Pro Region |
-| Netzwerke | 10 | Pro Region |
-| Sicherheitsgruppen | 50 | Pro Region |
-| Load Balancer | 10 | Pro Region |
-| DNS-Zonen | 50 | Projektweit |
-| Benutzer | 25 | Projektweit |
+| `nova` | VMs | `instances`, `cores`, `ram` (in MB) |
+| `cinder` | Blockspeicher | `volumes`, `gigabytes`, `snapshots`, `backups` |
+| `neutron` | Netzwerk | `network`, `subnet`, `port`, `router`, `floatingip`, `security_group` |
+| `projects` | Projekte in Ihrem Workspace | `max_projects` |
 
-Die Standardwerte sind konservativ. Bei den meisten Produktionsprojekten werden die am stärksten genutzten Achsen (vCPU, RAM, Speicher) kurz nach dem Start auf 5–10× angehoben.
+Die Standardwerte lesen Sie mit `GET /api/v1/quota/{service}?defaults=true`. `max_projects` ist `-1`, also ohne Limit, es sei denn, für Ihren Workspace wurde ein Limit festgelegt.
 
 ## Kontingent vs. Verbrauch {#quota-vs-usage}
 
 Die Endpoints liefern beides:
 
-- `GET /v1/quotas` — die **Limits** (50 VMs, 200 vCPU usw.)
-- `GET /v1/quotas/usage` — den **aktuellen Verbrauch** (12 von 50 VMs genutzt, 48 von 200 vCPU usw.)
+- `GET /api/v1/quota/{service}` — die **Limits**, als Map von Kontingentnamen auf Zahlen.
+- `GET /api/v1/quota/{service}/usage` — den **aktuellen Verbrauch**: `used`, `reserved` und `limit` für jeden Kontingentnamen.
 
-Prüfen Sie immer den Verbrauch, bevor Sie Ressourcen in großer Zahl erstellen; ein Request, der Sie über das Kontingent bringen würde, erhält 429 mit leerem `Retry-After` (da das Kontingent nicht zeitlich begrenzt ist, hilft Wiederholen nicht — Sie müssen etwas löschen oder das Kontingent erhöhen).
+`{service}` ist `nova`, `cinder`, `neutron` oder `projects`.
+
+Prüfen Sie immer den Verbrauch, bevor Sie Ressourcen in großer Zahl erstellen; ein Request, der Sie über das Kontingent bringen würde, schlägt fehl (da das Kontingent nicht zeitlich begrenzt ist, hilft Wiederholen nicht — Sie müssen etwas löschen oder das Kontingent erhöhen).
 
 ## Kontingent erhöhen {#raising}
 
-Kontingenterhöhungen laufen über das Support-Kontaktformular, nicht über die API. Drei Gründe:
+Beantragen Sie eine Erhöhung mit `POST /api/v1/quota-request/`: Geben Sie den `service_name`, den `quota_name` und den `new_value` an, und begründen Sie sie in `reason`. Die Anfrage gilt für Ihr aktuelles Projekt oder, wenn der Dienst `projects` ist, für Ihren Workspace. Sie erfordert die Rolle `manager` oder `admin`, und für jedes Kontingent kann jeweils nur eine Anfrage offen sein.
 
-1. **Kapazitätsplanung.** Für große Erhöhungen (10×+) muss Hardware in der Zielregion reserviert werden.
-2. **Compliance.** Manche Kontingenterhöhungen erfordern ein kurzes Gespräch über die Art des Workloads.
-3. **Missbrauchsschutz.** Einen Self-Service-Endpoint für Kontingenterhöhungen würde ein kompromittiertes Konto als Erstes aufrufen.
-
-Die meisten Erhöhungen sind in weniger als einem Werktag erledigt. Produktionsmigrationen werden noch am selben Tag bearbeitet, wenn Sie sie in der Anfrage kennzeichnen.
+Ein Admin von NimbusNexus prüft jede Anfrage von Hand. Mit der Genehmigung gilt das neue Limit; eine Anfrage kann auch abgelehnt oder Ihnen zur Überarbeitung zurückgeschickt werden. So oder so kommt die Antwort als [Benachrichtigung](/docs/api/notifications) an. `GET /api/v1/quota-request/list` listet Ihre Anfragen auf, und `PATCH` oder `DELETE /api/v1/quota-request/` ändert eine offene Anfrage oder zieht sie zurück.
 
 ## Kontingente über Regionen hinweg {#regions}
 
-Die meisten Kontingente gelten **pro Region** (VMs, Snapshots, Netzwerke). Einige gelten **projektweit** (DNS-Zonen, Benutzer). Die Antwort des Endpoints macht das explizit — jeder Kontingenteintrag hat ein Feld `scope` (`region: us-east-1` oder `project`).
+Die Werte für `nova`, `cinder` und `neutron` gelten für die Region, in der sich Ihre Sitzung befindet; wechseln Sie die Region mit `GET /api/v1/account/rescope?region=<region_name>`. Das Kontingent `projects` zählt die Projekte in Ihrem gesamten Workspace. Die Antworten sind einfache Maps von Kontingentnamen auf Zahlen, ohne Feld für Region oder Scope.
 
 ## Nächste Schritte {#next-steps}
 
 - [Projekte](/docs/api/projects) — der Container, für den Kontingente gelten.
 - [Authentifizierung](/docs/authentication) — wie Sie diese Endpoints aufrufen.
-- Das **Support-Kontaktformular** unter [/contact/support]({{BASE_URL}}/contact/support) — dort beantragen Sie Kontingenterhöhungen.
+- [Benachrichtigungen](/docs/api/notifications) — wo die Antwort auf eine Kontingentanfrage ankommt.

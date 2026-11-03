@@ -1,22 +1,22 @@
 ---
 title: "Solicitações de região"
-description: "Solicite acesso a uma região à qual você ainda não tem acesso ou um aumento de cota em uma região à qual já tem."
+description: "Peça à NimbusNexus que abra uma região que ela ainda não atende."
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: region-requests
 ---
 
 # Solicitações de região
 
-Por padrão, as contas novas recebem acesso a uma região (a que escolheram no cadastro). Para adicionar acesso a outras regiões, é preciso uma solicitação de região — um formulário curto que explica a carga de trabalho que precisa da nova região. A maioria das contas de produção é aprovada em até um dia útil; esse controle existe para o planejamento de capacidade e para sinalizar padrões incomuns (uma conta recém-criada pedindo capacidade em cinco regiões no primeiro dia merece uma conversa rápida).
+Uma sessão conectada pode usar qualquer região que a NimbusNexus atende: `GET /api/v1/account/datacenters` lista as regiões, e `GET /api/v1/account/rescope?region=<region_name>` muda para uma delas (veja [Visão geral da conta](/docs/api/account-overview)). Uma solicitação de região é para um lugar que a NimbusNexus ainda não atende. Ela nos diz onde você gostaria que abríssemos em seguida.
 
-Este endpoint também cuida dos aumentos de cota — uma solicitação para aumentar o limite de quantidade de VMs, de vCPU ou de armazenamento em uma região à qual você já tem acesso. O motivo do controle é o mesmo: solicitações grandes exigem planejamento de capacidade. Veja [Cotas](/docs/api/quotas) para o modelo de cotas em si.
+Uma solicitação de região não altera cotas. Para aumentar um limite, envie uma solicitação de cota com `POST /api/v1/quota-request/` (veja [Cotas](/docs/api/quotas)).
 
-Esta parte da API existe para que um deploy programático possa disparar a solicitação e seguir adiante; a aprovação continua acontecendo manualmente do nosso lado (este é um dos poucos cantos da API que, por design, não são totalmente self-service).
+`POST /api/v1/account/region-requests` é o que está por trás do formulário "solicitar uma região" no site da NimbusNexus, por isso não exige login. Envie um `email` e um `regionCode`: um de `ams`, `par`, `mad`, `sto`, `mil`, `waw`, `dxb`, `tlv`, `bom`, `icn`, `hkg`, `cgk`, `gru`, `mex`, `yyz` ou `jnb`, ou `__other` com o lugar em `regionOtherText`. `company` e `note` são opcionais. A resposta é só `success`: nada é aprovado nem concedido. Contamos as solicitações para ver onde está a demanda.
 
 ## Próximos passos {#next-steps}
 
 - [Regiões](/docs/api/regions) — a lista de regiões disponíveis.
-- [Cotas](/docs/api/quotas) — os limites por projeto que uma solicitação de região também pode ajustar.
+- [Cotas](/docs/api/quotas) — como pedir um limite maior.
 - [Visão geral da conta](/docs/api/account-overview) — o contexto da conta para o acesso a regiões.

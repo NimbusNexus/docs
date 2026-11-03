@@ -2,14 +2,14 @@
 title: "Grupos de usuários"
 description: "Grupos de usuários para atribuir funções em conjunto. Úteis quando os times crescem além das concessões por usuário."
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: user-groups
 ---
 
 # Grupos de usuários
 
-Um grupo de usuários é uma coleção nomeada de usuários que podem receber funções juntos. Em vez de conceder `vms:read` a quinze engenheiros, um por um, você o concede ao grupo `backend-team` e adiciona os novos engenheiros ao grupo.
+Um grupo de usuários é uma coleção nomeada de usuários que podem receber funções juntos. Em vez de conceder a função `reader` em um projeto a quinze engenheiros, um por um, você a concede ao grupo `backend-team` e adiciona os novos engenheiros ao grupo. Conceda a função com `POST /api/v1/roles/grant`, indicando o `group` e o `project`, e adicione membros com `POST /api/v1/groups/grant`.
 
 Os grupos têm escopo de workspace. Um usuário pode pertencer a vários grupos; um grupo pode ter funções em vários projetos dentro do seu workspace. As atribuições de função são aditivas — um usuário recebe a união de todas as funções concedidas diretamente a ele mais todas as funções concedidas a um grupo do qual faz parte.
 
