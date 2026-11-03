@@ -2,7 +2,7 @@
 title: "Groupes de sécurité"
 description: "Ensembles de règles de pare-feu avec état, appliqués aux interfaces réseau des VM."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -21,9 +21,10 @@ Vous n’écrivez de règles que pour le sens **qui initie** la connexion. Si vo
 Chaque règle comporte :
 
 - **Direction** — `ingress` ou `egress`
-- **Protocole** — `tcp`, `udp`, `icmp` ou `any`
-- **Plage de ports** — port unique (`80`), plage (`8000-9000`) ou « any »
-- **Source / destination** — un bloc CIDR (`0.0.0.0/0`, `10.0.0.0/8`) OU l’identifiant d’un autre groupe de sécurité
+- **Type Ethernet** — `ether` : `IPv4` ou `IPv6`
+- **Protocole** — `any`, un nom comme `tcp`, `udp`, `icmp`, `ipv6-icmp` ou `sctp`, ou `custom` avec un numéro de protocole (0–255) dans `protocol_custom`
+- **Plage de ports** — `port_min` et `port_max`, chacun entre 0 et 65535. Indiquez `port_min` seul pour un port unique (`80`), les deux pour une plage (`8000` à `9000`), ou aucun des deux pour n’importe quel port
+- **Source / destination** — un bloc CIDR dans `remote_cidr` (`0.0.0.0/0`, `10.0.0.0/8`), un autre groupe de sécurité dans `remote_sec_grp`, ou un [groupe d’adresses](/docs/api/address-groups) dans `remote_addr_grp`
 
 Le mode « la source est un autre groupe de sécurité » est celui qu’il est le plus utile de connaître. Une règle comme « autoriser le port 5432 depuis `web-tier-sg` » permet à chaque VM du groupe `web-tier-sg` d’atteindre votre VM Postgres sur le port 5432 — sans avoir à énumérer les IP, et la règle continue de fonctionner à mesure que des VM entrent dans `web-tier-sg` ou en sortent lors des mises à l’échelle.
 
