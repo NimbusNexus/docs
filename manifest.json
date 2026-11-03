@@ -777,7 +777,7 @@
             "pt": "Armazenamento no tier de arquivo, com a menor tarifa por GB e recuperação medida à parte.",
             "uk": "Архівне сховище з найнижчим тарифом за GB і окремою тарифікацією отримання даних."
           },
-          "published": true
+          "published": false
         },
         {
           "path": "api/snapshots",
@@ -799,7 +799,7 @@
             "pt": "Cópias pontuais de VMs, volumes de blocos e bancos de dados gerenciados.",
             "uk": "Копії VM, блокових томів і керованих баз даних на певний момент часу."
           },
-          "published": true
+          "published": false
         },
         {
           "path": "api/backups",
@@ -879,7 +879,7 @@
             "pt": "Postgres, MySQL, MongoDB, Redis, Kafka e OpenSearch gerenciados — provisione, faça snapshots, restaure.",
             "uk": "Керовані Postgres, MySQL, MongoDB, Redis, Kafka та OpenSearch: розгортання, снапшоти, відновлення."
           },
-          "published": true
+          "published": false
         }
       ]
     },
@@ -1354,12 +1354,12 @@
             "uk": "Міжпроєктні довіри"
           },
           "description": {
-            "en": "Time-bounded permission grants between projects.",
-            "de": "Zeitlich begrenzte Vergabe von Berechtigungen zwischen Projekten.",
-            "es": "Concesiones de permisos temporales entre proyectos.",
-            "fr": "Des permissions accordées entre projets pour une durée limitée.",
-            "pt": "Concessões temporárias de permissão entre projetos.",
-            "uk": "Надання дозволів між проєктами на обмежений час."
+            "en": "Short-lived delegations that let NimbusNexus act for you on one project, for queued jobs and object-storage credentials.",
+            "de": "Kurzlebige Delegierungen, mit denen NimbusNexus in einem Projekt für Sie handelt, für Jobs in der Warteschlange und Zugangsdaten für den Objektspeicher.",
+            "es": "Delegaciones de corta duración que permiten a NimbusNexus actuar por ti en un proyecto, para trabajos en cola y credenciales del almacenamiento de objetos.",
+            "fr": "Des délégations de courte durée qui permettent à NimbusNexus d’agir pour vous sur un projet, pour les tâches en file d’attente et les identifiants du stockage objet.",
+            "pt": "Delegações de curta duração que deixam a NimbusNexus agir por você em um projeto, para tarefas em fila e credenciais do armazenamento de objetos.",
+            "uk": "Короткочасні делегування, які дають NimbusNexus змогу діяти від вашого імені в одному проєкті: для завдань у черзі та облікових даних обʼєктного сховища."
           },
           "published": true
         }
@@ -1426,12 +1426,12 @@
             "uk": "Огляд акаунта"
           },
           "description": {
-            "en": "Top-level account metadata — owner, billing contact, region access, plan tier.",
-            "de": "Übergeordnete Kontometadaten — Inhaber, Abrechnungskontakt, Regionszugriff, Tarif.",
-            "es": "Metadatos generales de la cuenta — propietario, contacto de facturación, acceso a regiones y plan.",
-            "fr": "Les métadonnées du compte — propriétaire, contact de facturation, accès aux régions, niveau de plan.",
-            "pt": "Metadados de nível superior da conta — proprietário, contato de faturamento, acesso a regiões, nível do plano.",
-            "uk": "Метадані акаунта верхнього рівня: власник, контакт для білінгу, доступ до регіонів, рівень плану."
+            "en": "Sign-in and session calls — sign up, log in and out, reset or change a password, and switch project, workspace or region.",
+            "de": "Anmeldung und Sitzung — registrieren, an- und abmelden, ein Passwort zurücksetzen oder ändern und Projekt, Workspace oder Region wechseln.",
+            "es": "Inicio de sesión y sesión — regístrate, inicia y cierra sesión, restablece o cambia una contraseña y cambia de proyecto, workspace o región.",
+            "fr": "Connexion et session — inscrivez-vous, connectez-vous et déconnectez-vous, réinitialisez ou changez un mot de passe, et changez de projet, d’espace de travail ou de région.",
+            "pt": "Login e sessão — cadastre-se, entre e saia, redefina ou troque uma senha e mude de projeto, workspace ou região.",
+            "uk": "Вхід і сесія: реєстрація, вхід і вихід, скидання чи зміна пароля, перемикання проєкту, робочого простору або регіону."
           },
           "published": true
         },
@@ -1448,12 +1448,12 @@
             "uk": "Двофакторна автентифікація"
           },
           "description": {
-            "en": "TOTP and WebAuthn second factors on your account.",
-            "de": "TOTP und WebAuthn als zweiter Faktor für Ihr Konto.",
-            "es": "Segundos factores TOTP y WebAuthn en tu cuenta.",
-            "fr": "Seconds facteurs TOTP et WebAuthn sur votre compte.",
-            "pt": "Segundos fatores TOTP e WebAuthn na sua conta.",
-            "uk": "Другі фактори TOTP і WebAuthn для вашого акаунта."
+            "en": "A TOTP second factor, from an authenticator app, on top of your password.",
+            "de": "Ein TOTP-Zweitfaktor aus einer Authenticator-App, zusätzlich zu Ihrem Passwort.",
+            "es": "Un segundo factor TOTP, de una app de autenticación, además de tu contraseña.",
+            "fr": "Un second facteur TOTP, issu d’une application d’authentification, en plus de votre mot de passe.",
+            "pt": "Um segundo fator TOTP, de um app autenticador, além da sua senha.",
+            "uk": "Другий фактор TOTP із застосунку-автентифікатора на додачу до пароля."
           },
           "published": true
         },
@@ -1470,12 +1470,12 @@
             "uk": "Сповіщення"
           },
           "description": {
-            "en": "Per-account notification preferences.",
-            "de": "Benachrichtigungseinstellungen pro Konto.",
-            "es": "Preferencias de notificación de la cuenta.",
-            "fr": "Préférences de notification par compte.",
-            "pt": "Preferências de notificação por conta.",
-            "uk": "Налаштування сповіщень для акаунта."
+            "en": "Your in-app notifications — list them, mark them read, delete them, and receive them live over a WebSocket.",
+            "de": "Ihre In-App-Benachrichtigungen — auflisten, als gelesen markieren, löschen und live über einen WebSocket empfangen.",
+            "es": "Tus notificaciones en la app — lístalas, márcalas como leídas, bórralas y recíbelas en directo por un WebSocket.",
+            "fr": "Vos notifications dans l’application — listez-les, marquez-les comme lues, supprimez-les et recevez-les en direct par un WebSocket.",
+            "pt": "Suas notificações no app — liste, marque como lidas, exclua e receba ao vivo por um WebSocket.",
+            "uk": "Ваші сповіщення в застосунку: перелік, позначення прочитаними, видалення й отримання наживо через WebSocket."
           },
           "published": true
         },
@@ -1492,12 +1492,12 @@
             "uk": "Підтвердження телефону"
           },
           "description": {
-            "en": "Verify a phone number for SMS-based 2FA and account recovery.",
-            "de": "Eine Telefonnummer für 2FA per SMS und die Kontowiederherstellung verifizieren.",
-            "es": "Verifica un número de teléfono para la 2FA por SMS y la recuperación de la cuenta.",
-            "fr": "Vérifiez un numéro de téléphone pour la 2FA par SMS et la récupération du compte.",
-            "pt": "Verifique um número de telefone para 2FA por SMS e recuperação de conta.",
-            "uk": "Підтвердьте номер телефону для 2FA через SMS і відновлення акаунта."
+            "en": "Add a phone number to your user and verify it with a code sent by SMS.",
+            "de": "Eine Telefonnummer zu Ihrem Benutzer hinzufügen und mit einem per SMS gesendeten Code bestätigen.",
+            "es": "Añade un número de teléfono a tu usuario y verifícalo con un código enviado por SMS.",
+            "fr": "Ajoutez un numéro de téléphone à votre utilisateur et vérifiez-le avec un code envoyé par SMS.",
+            "pt": "Adicione um número de telefone ao seu usuário e verifique-o com um código enviado por SMS.",
+            "uk": "Додайте номер телефону до свого користувача й підтвердьте його кодом із SMS."
           },
           "published": true
         },
@@ -1514,12 +1514,12 @@
             "uk": "Запити на регіони"
           },
           "description": {
-            "en": "Request access to a region, or a quota uplift in a region you already have.",
-            "de": "Zugriff auf eine Region beantragen oder eine Kontingenterhöhung in einer Region, die Sie bereits nutzen.",
-            "es": "Solicita acceso a una región, o un aumento de cuota en una región a la que ya tienes acceso.",
-            "fr": "Demandez l’accès à une région, ou une augmentation de quota dans une région où vous avez déjà accès.",
-            "pt": "Solicite acesso a uma região ou um aumento de cota em uma região à qual você já tem acesso.",
-            "uk": "Запросіть доступ до регіону або збільшення квоти в регіоні, до якого вже маєте доступ."
+            "en": "Ask NimbusNexus to open a region it doesn't serve yet.",
+            "de": "NimbusNexus bitten, eine Region zu eröffnen, die es noch nicht bedient.",
+            "es": "Pide a NimbusNexus que abra una región que todavía no ofrece.",
+            "fr": "Demandez à NimbusNexus d’ouvrir une région qu’il ne dessert pas encore.",
+            "pt": "Peça à NimbusNexus que abra uma região que ela ainda não atende.",
+            "uk": "Попросіть NimbusNexus відкрити регіон, якого ще немає."
           },
           "published": true
         }
@@ -1564,20 +1564,20 @@
           "kind": "reference",
           "openapiTag": "invoices",
           "title": {
-            "en": "Invoices",
-            "de": "Rechnungen",
-            "es": "Facturas",
-            "fr": "Factures",
-            "pt": "Faturas",
-            "uk": "Рахунки"
+            "en": "Billing",
+            "de": "Abrechnung",
+            "es": "Facturación",
+            "fr": "Facturation",
+            "pt": "Faturamento",
+            "uk": "Білінг"
           },
           "description": {
-            "en": "Monthly invoices — list, fetch, view the breakdown.",
-            "de": "Monatsrechnungen — auflisten, abrufen, Aufschlüsselung ansehen.",
-            "es": "Facturas mensuales — listado, consulta y desglose.",
-            "fr": "Les factures mensuelles — listez-les, récupérez-les, consultez leur détail.",
-            "pt": "Faturas mensais — liste, busque, veja o detalhamento.",
-            "uk": "Місячні рахунки: список, отримання, деталізація."
+            "en": "Your workspace's balances, unsettled charges, promotional credit and billing details.",
+            "de": "Salden, offene Kosten, Aktionsguthaben und Rechnungsdaten Ihres Workspaces.",
+            "es": "Saldos, cargos pendientes, crédito promocional y datos de facturación de tu workspace.",
+            "fr": "Soldes, frais non réglés, crédit promotionnel et coordonnées de facturation de votre espace de travail.",
+            "pt": "Saldos, cobranças pendentes, crédito promocional e dados de faturamento do seu workspace.",
+            "uk": "Баланси, неоплачені нарахування, промокредит і платіжні дані вашого робочого простору."
           },
           "published": true
         },
@@ -1594,12 +1594,12 @@
             "uk": "Способи оплати"
           },
           "description": {
-            "en": "Saved cards, ACH accounts, and default-payment configuration.",
-            "de": "Gespeicherte Karten, ACH-Konten und die Einstellung der Standard-Zahlungsmethode.",
-            "es": "Tarjetas guardadas, cuentas ACH y configuración del método de pago por defecto.",
-            "fr": "Cartes enregistrées, comptes ACH et configuration du moyen de paiement par défaut.",
-            "pt": "Cartões salvos, contas ACH e configuração do pagamento padrão.",
-            "uk": "Збережені картки, ACH-рахунки й налаштування способу оплати за замовчуванням."
+            "en": "Saved cards, and the default card for top-ups.",
+            "de": "Gespeicherte Karten und die Standardkarte für Aufladungen.",
+            "es": "Tarjetas guardadas y la tarjeta por defecto para las recargas.",
+            "fr": "Cartes enregistrées et carte par défaut pour les recharges.",
+            "pt": "Cartões salvos e o cartão padrão para recargas.",
+            "uk": "Збережені картки й картка за замовчуванням для поповнень."
           },
           "published": true
         },
