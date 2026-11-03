@@ -624,12 +624,12 @@
             "uk": "Розміри VM"
           },
           "description": {
-            "en": "Catalog of compute shapes across the gp, co, mo, and gx families.",
-            "de": "Katalog der Compute-Größen in den Familien gp, co, mo und gx.",
-            "es": "Catálogo de configuraciones de cómputo de las familias gp, co, mo y gx.",
-            "fr": "Catalogue des configurations de calcul des familles gp, co, mo et gx.",
-            "pt": "Catálogo de configurações de computação nas famílias gp, co, mo e gx.",
-            "uk": "Каталог обчислювальних конфігурацій у сімействах gp, co, mo і gx."
+            "en": "Compute flavors — vCPUs, RAM and swap — and how a VM gets one.",
+            "de": "Compute-Flavors — vCPUs, RAM und Swap — und wie eine VM einen bekommt.",
+            "es": "Flavors de cómputo — vCPUs, RAM y swap — y cómo obtiene uno una VM.",
+            "fr": "Les flavors de calcul — vCPU, RAM et swap — et comment une VM en obtient un.",
+            "pt": "Flavors de computação — vCPUs, RAM e swap — e como uma VM recebe um.",
+            "uk": "Обчислювальні flavor-и — vCPU, RAM і swap — і як VM отримує один із них."
           },
           "published": true
         },
@@ -668,12 +668,12 @@
             "uk": "SSH-ключі"
           },
           "description": {
-            "en": "Public keys registered on the project and injected into VMs at boot.",
-            "de": "Öffentliche Schlüssel, die im Projekt registriert und beim Boot in VMs eingespielt werden.",
-            "es": "Claves públicas registradas en el proyecto e inyectadas en las VMs al arrancar.",
-            "fr": "Clés publiques enregistrées sur le projet et injectées dans les VM au démarrage.",
-            "pt": "Chaves públicas registradas no projeto e injetadas nas VMs no boot.",
-            "uk": "Публічні ключі, зареєстровані в проєкті, які додаються у VM під час завантаження."
+            "en": "Public keys registered under your user and installed in a VM at boot.",
+            "de": "Öffentliche Schlüssel, die unter Ihrem Benutzer registriert und beim Boot in einer VM installiert werden.",
+            "es": "Claves públicas registradas en tu usuario e instaladas en una VM al arrancar.",
+            "fr": "Clés publiques enregistrées sous votre utilisateur et installées dans une VM au démarrage.",
+            "pt": "Chaves públicas registradas no seu usuário e instaladas em uma VM no boot.",
+            "uk": "Публічні ключі, зареєстровані для вашого користувача, які встановлюються у VM під час завантаження."
           },
           "published": true
         },
@@ -726,12 +726,12 @@
             "uk": "Блокове сховище"
           },
           "description": {
-            "en": "Persistent NVMe volumes attached to VMs. Three tiers, live resize, snapshots.",
-            "de": "Persistente NVMe-Volumes, die an VMs angehängt werden. Drei Tiers, Live-Resize, Snapshots.",
-            "es": "Volúmenes NVMe persistentes conectados a VMs. Tres tiers, redimensionado en caliente y snapshots.",
-            "fr": "Volumes NVMe persistants attachés aux VM. Trois tiers, redimensionnement à chaud, snapshots.",
-            "pt": "Volumes NVMe persistentes anexados a VMs. Três tiers, redimensionamento ao vivo, snapshots.",
-            "uk": "Постійні NVMe-томи, підʼєднані до VM. Три рівні, зміна розміру наживо, снапшоти."
+            "en": "Persistent volumes for VMs — create, attach, detach, grow, and delete.",
+            "de": "Persistente Volumes für VMs — erstellen, anhängen, trennen, vergrößern und löschen.",
+            "es": "Volúmenes persistentes para VMs — crea, conecta, desconecta, amplía y borra.",
+            "fr": "Volumes persistants pour les VM — créez, attachez, détachez, agrandissez et supprimez.",
+            "pt": "Volumes persistentes para VMs — crie, anexe, desanexe, aumente e exclua.",
+            "uk": "Постійні томи для VM: створення, підʼєднання, відʼєднання, збільшення й видалення."
           },
           "published": true
         },
@@ -748,12 +748,12 @@
             "uk": "Обʼєктне сховище"
           },
           "description": {
-            "en": "S3-compatible buckets with three storage classes and free in-region transfer to VMs.",
-            "de": "S3-kompatible Buckets mit drei Storage-Klassen und kostenlosem Transfer zu VMs in derselben Region.",
-            "es": "Buckets compatibles con S3, con tres clases de almacenamiento y transferencia gratuita a las VMs de la misma región.",
-            "fr": "Buckets compatibles S3, avec trois classes de stockage et un transfert intra-région gratuit vers les VM.",
-            "pt": "Buckets compatíveis com S3, com três classes de armazenamento e transferência gratuita para VMs na mesma região.",
-            "uk": "S3-сумісні bucket-и з трьома класами сховища та безкоштовною передачею даних до VM у межах регіону."
+            "en": "Containers and objects in your project, with public-read options and short-lived credentials.",
+            "de": "Container und Objekte in Ihrem Projekt, mit Optionen für öffentliches Lesen und kurzlebigen Zugangsdaten.",
+            "es": "Contenedores y objetos de tu proyecto, con opciones de lectura pública y credenciales de corta duración.",
+            "fr": "Conteneurs et objets de votre projet, avec des options de lecture publique et des identifiants de courte durée.",
+            "pt": "Contêineres e objetos do seu projeto, com opções de leitura pública e credenciais de curta duração.",
+            "uk": "Контейнери й обʼєкти у вашому проєкті з опціями публічного читання та короткочасними обліковими даними."
           },
           "published": true
         },
@@ -814,12 +814,12 @@
             "uk": "Бекапи"
           },
           "description": {
-            "en": "Scheduled and on-demand backups with deduplication, retention policies, and cross-region restore.",
-            "de": "Geplante und On-Demand-Backups mit Deduplizierung, Aufbewahrungsrichtlinien und Cross-Region-Restore.",
-            "es": "Backups programados y bajo demanda, con deduplicación, políticas de retención y restauración entre regiones.",
-            "fr": "Sauvegardes planifiées et à la demande, avec déduplication, politiques de rétention et restauration inter-région.",
-            "pt": "Backups agendados e sob demanda, com deduplicação, políticas de retenção e restauração entre regiões.",
-            "uk": "Заплановані бекапи й бекапи на вимогу з дедуплікацією, політиками зберігання та міжрегіональним відновленням."
+            "en": "Snapshots and backups of block volumes, on demand or on a schedule, restored in place.",
+            "de": "Snapshots und Backups von Block-Volumes, on demand oder nach Zeitplan, an Ort und Stelle wiederhergestellt.",
+            "es": "Snapshots y backups de volúmenes de bloques, bajo demanda o programados, restaurados en su sitio.",
+            "fr": "Snapshots et sauvegardes de volumes block, à la demande ou planifiés, restaurés sur place.",
+            "pt": "Snapshots e backups de volumes de blocos, sob demanda ou agendados, restaurados no lugar.",
+            "uk": "Снапшоти й бекапи блокових томів — на вимогу або за розкладом, із відновленням на місці."
           },
           "published": true
         },
@@ -836,12 +836,12 @@
             "uk": "Заплановані бекапи"
           },
           "description": {
-            "en": "Recurring backup schedules — daily, weekly, custom. Separate from on-demand backups.",
-            "de": "Wiederkehrende Backup-Zeitpläne — täglich, wöchentlich, individuell. Getrennt von On-Demand-Backups.",
-            "es": "Programaciones de backups recurrentes — diarias, semanales o personalizadas. Independientes de los backups bajo demanda.",
-            "fr": "Planifications de sauvegarde récurrentes — quotidiennes, hebdomadaires, personnalisées. Distinctes des sauvegardes à la demande.",
-            "pt": "Agendamentos recorrentes de backup — diários, semanais, personalizados. Separados dos backups sob demanda.",
-            "uk": "Регулярні розклади бекапів — щоденні, щотижневі, власні. Окремо від бекапів на вимогу."
+            "en": "Recurring backup schedules — daily, weekly or monthly. Separate from on-demand backups.",
+            "de": "Wiederkehrende Backup-Zeitpläne — täglich, wöchentlich oder monatlich. Getrennt von On-Demand-Backups.",
+            "es": "Programaciones de backups recurrentes — diarias, semanales o mensuales. Independientes de los backups bajo demanda.",
+            "fr": "Planifications de sauvegarde récurrentes — quotidiennes, hebdomadaires ou mensuelles. Distinctes des sauvegardes à la demande.",
+            "pt": "Agendamentos recorrentes de backup — diários, semanais ou mensais. Separados dos backups sob demanda.",
+            "uk": "Регулярні розклади бекапів — щоденні, щотижневі або щомісячні. Окремо від бекапів на вимогу."
           },
           "published": true
         }
@@ -908,12 +908,12 @@
             "uk": "Регіони"
           },
           "description": {
-            "en": "Geographic locations NimbusNexus serves, with live + pre-launch status.",
-            "de": "Geografische Standorte, die NimbusNexus bedient, mit Status Live oder Pre-Launch.",
-            "es": "Las ubicaciones geográficas en las que opera NimbusNexus, con su estado: activa o en prelanzamiento.",
-            "fr": "Les emplacements géographiques desservis par NimbusNexus, actifs ou en pré-lancement.",
-            "pt": "Locais geográficos atendidos pela NimbusNexus, com status ativo e de pré-lançamento.",
-            "uk": "Географічні локації NimbusNexus — активні й ті, що готуються до запуску."
+            "en": "The regions NimbusNexus serves, and how your session picks one.",
+            "de": "Die Regionen, die NimbusNexus bedient, und wie Ihre Sitzung eine auswählt.",
+            "es": "Las regiones en las que opera NimbusNexus y cómo elige una tu sesión.",
+            "fr": "Les régions desservies par NimbusNexus, et comment votre session en choisit une.",
+            "pt": "As regiões atendidas pela NimbusNexus e como a sua sessão escolhe uma.",
+            "uk": "Регіони, які обслуговує NimbusNexus, і як ваша сесія вибирає один із них."
           },
           "published": true
         },
@@ -1106,12 +1106,12 @@
             "uk": "Спільні мережі"
           },
           "description": {
-            "en": "Share a network between projects in the same workspace.",
-            "de": "Ein Netzwerk für andere Projekte im selben Workspace freigeben.",
-            "es": "Comparte una red entre proyectos del mismo workspace.",
-            "fr": "Partagez un réseau entre les projets d’un même espace de travail.",
-            "pt": "Compartilhe uma rede entre projetos do mesmo workspace.",
-            "uk": "Діліться мережею між проєктами одного робочого простору."
+            "en": "Share a network, QoS policy, security group, subnet pool, address scope or address group with another project you hold a role on.",
+            "de": "Ein Netzwerk, eine QoS-Richtlinie, eine Sicherheitsgruppe, einen Subnetz-Pool, einen Adressbereich oder eine Adressgruppe für ein anderes Projekt freigeben, in dem Sie eine Rolle haben.",
+            "es": "Comparte una red, una política de QoS, un grupo de seguridad, un pool de subredes, un ámbito de direcciones o un grupo de direcciones con otro proyecto en el que tengas un rol.",
+            "fr": "Partagez un réseau, une politique QoS, un groupe de sécurité, un pool de sous-réseaux, une portée d’adresses ou un groupe d’adresses avec un autre projet sur lequel vous détenez un rôle.",
+            "pt": "Compartilhe uma rede, uma política de QoS, um grupo de segurança, um pool de sub-redes, um escopo de endereços ou um grupo de endereços com outro projeto em que você tem uma função.",
+            "uk": "Надайте спільний доступ до мережі, політики QoS, групи безпеки, пулу підмереж, області адрес або групи адрес іншому проєкту, у якому маєте роль."
           },
           "published": true
         },
@@ -1128,12 +1128,12 @@
             "uk": "Політики QoS"
           },
           "description": {
-            "en": "Bandwidth limits, DSCP marking, and minimum-bandwidth guarantees on network ports.",
-            "de": "Bandbreitenlimits, DSCP-Markierung und garantierte Mindestbandbreite auf Netzwerkports.",
-            "es": "Límites de ancho de banda, marcado DSCP y garantías de ancho de banda mínimo en los puertos de red.",
-            "fr": "Limites de bande passante, marquage DSCP et bande passante minimale garantie sur les ports réseau.",
-            "pt": "Limites de banda, marcação DSCP e garantias de banda mínima em portas de rede.",
-            "uk": "Обмеження смуги пропускання, маркування DSCP і гарантована мінімальна смуга на мережевих портах."
+            "en": "Bandwidth limits, DSCP marking and minimum-bandwidth rules for ports, networks, router gateways and load balancer VIPs.",
+            "de": "Bandbreitenlimits, DSCP-Markierung und Mindestbandbreiten-Regeln für Ports, Netzwerke, Router-Gateways und Load-Balancer-VIPs.",
+            "es": "Límites de ancho de banda, marcado DSCP y reglas de ancho de banda mínimo para puertos, redes, gateways de routers y VIPs de balanceadores de carga.",
+            "fr": "Limites de bande passante, marquage DSCP et règles de bande passante minimale pour les ports, les réseaux, les passerelles de routeurs et les VIP de load balancers.",
+            "pt": "Limites de banda, marcação DSCP e regras de banda mínima para portas, redes, gateways de roteadores e VIPs de balanceadores de carga.",
+            "uk": "Обмеження смуги пропускання, маркування DSCP і правила мінімальної смуги для портів, мереж, шлюзів маршрутизаторів і VIP балансувальників навантаження."
           },
           "published": true
         }
