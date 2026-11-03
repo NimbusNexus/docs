@@ -2,17 +2,17 @@
 title: DNS zones
 description: Authoritative DNS zones hosted on NimbusNexus nameservers.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # DNS zones
 
-A DNS zone is an authoritative domain hosted on NimbusNexus nameservers. Create a zone for `example.com`, point your domain registrar at our nameservers, then add [records](/docs/api/dns-records) to publish addresses, mail routing, and verification tokens for that domain.
+A DNS zone is an authoritative domain hosted on NimbusNexus nameservers. Create one with `POST /api/v1/zones/`, giving its `name` with the trailing dot (`example.com.`) and an administrator `email`; the zone belongs to the calling project. Then point your domain registrar at our nameservers, and add [records](/docs/api/dns-records) to publish addresses, mail routing, and verification tokens for that domain.
 
 ## Delegation {#delegation}
 
-After creating a zone, the response carries the four nameservers you need to configure at your registrar:
+These are the nameservers to configure at your registrar:
 
 ```text
 {{DNS_NS1}}
@@ -30,17 +30,6 @@ You can keep using your existing DNS provider in parallel during a migration —
 One zone = one domain. `example.com` is one zone; `api.example.com` is a subdomain handled by an A or CNAME record inside the `example.com` zone, not a separate zone — unless you specifically want to delegate `api.example.com` to a different DNS provider, in which case you'd create both `example.com` (with NS records pointing at the other provider for the subdomain) and the subdomain zone separately.
 
 For typical use, one zone per registered domain is the right shape.
-
-## DNSSEC {#dnssec}
-
-DNSSEC is enabled by default on every zone we host. The DS records to publish at your registrar are returned in the zone record and can be re-fetched at any time. We rotate ZSK + KSK on a 90-day cadence; KSK rollovers require a DS update at the registrar.
-
-## Pricing {#pricing}
-
-- **Zones:** \$0.50 per zone per month.
-- **Queries:** First 1 million queries/month free per zone, \$0.40 per million after.
-
-For comparison: Cloudflare's authoritative DNS is free at the basic tier, Route 53 is \$0.50/zone + per-query, AWS Cloud Map is more expensive. Our pricing puts us between Cloudflare and Route 53.
 
 ## What's next {#next-steps}
 
