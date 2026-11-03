@@ -1,58 +1,44 @@
 ---
 title: "Projetos"
-description: "A unidade de isolamento para recursos, faturamento e controle de acesso."
+description: "A unidade de isolamento para recursos e controle de acesso, dentro de um workspace."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Projetos
 
-Um projeto é a **unidade de isolamento** na NimbusNexus — para recursos, faturamento e controle de acesso. Todo recurso (VM, volume, bucket, banco de dados, rede, …) pertence a exatamente um projeto; toda chave de API tem escopo de exatamente um projeto; toda linha de fatura corresponde a exatamente um projeto.
+Um projeto é a **unidade de isolamento** na NimbusNexus — para recursos e controle de acesso. Todo projeto pertence a um [workspace](/docs/api/workspaces). Todo recurso (VM, volume, bucket, rede, …) pertence a exatamente um projeto, e toda chave de API tem escopo de exatamente um projeto. O faturamento é por workspace: uma única fatura cobre todos os projetos dele.
 
 ## Por que os projetos importam {#why}
 
-Três garantias que a fronteira do projeto dá a você:
+Duas garantias que a fronteira do projeto dá a você:
 
 1. **Raio de impacto.** Uma chave de API comprometida do projeto `dev` não consegue tocar recursos de `prod`. Eles literalmente não são visíveis de dentro de `dev`.
-2. **Atribuição de custos.** Cada projeto recebe sua própria fatura. Se o financeiro quiser cobrar do marketing a fatura de hospedagem do site, o marketing ganha um projeto. Se a engenharia quiser alocar os gastos por time, cada time ganha um projeto.
-3. **Cota.** As cotas são por projeto. Um projeto que sai criando VMs sem controle não esgota a margem de outro projeto.
+2. **Cota.** As cotas são por projeto. Um projeto que sai criando VMs sem controle não esgota a margem de outro projeto.
 
-## Hierarquia de projetos {#hierarchy}
+## Criar um projeto {#create}
 
-Os projetos podem ter um projeto pai (a partir do nível de organização). A hierarquia fica assim:
+`POST /api/v1/projects/` recebe o ID do workspace como `domain_id`, um `project_name` e, opcionalmente, uma `project_description` e `enabled`. O nome precisa ser único no workspace; se não for, a API retorna `409`. Um workspace pode ter um limite de projetos; acima dele, criar retorna `403`.
 
-```text
-acme-org (root)
-├── acme-prod
-├── acme-staging
-└── acme-dev
-```
-
-Um usuário com a função `admin` em `acme-org` herda automaticamente o admin em todos os filhos. Um usuário com admin apenas em `acme-prod` não consegue ver `acme-staging` nem `acme-dev`. Esse é o mecanismo padrão para "governança centralizada, dia a dia descentralizado".
-
-A hierarquia é opcional. Contas do nível padrão recebem um projeto raiz por conta; contas do nível de organização podem montar árvores de até 5 níveis de profundidade.
+Os projetos ficam lado a lado no workspace. A API não permite aninhar um projeto dentro de outro.
 
 ## O que fica em um projeto {#contents}
 
-- VMs, volumes, snapshots, backups
-- Buckets, arquivos
-- Bancos de dados
+- VMs, volumes, backups
+- Buckets
 - Redes, sub-redes, roteadores, grupos de segurança, IPs flutuantes, balanceadores de carga
 - Zonas DNS + registros
-- Usuários, funções + atribuições, chaves de API
-- A conta de faturamento que paga por tudo isso
+- Atribuições de função e chaves de API (os usuários a quem elas pertencem ficam no workspace)
 
 Os projetos não podem ser mesclados. Para consolidar dois projetos, você teria de exportar e reimportar os recursos e excluir o original — não existe uma operação atômica de mesclagem, de propósito, porque a atribuição resultante de "o que foi mesclado onde" seria impossível de auditar.
 
 ## Exclusão {#deletion}
 
-`DELETE /v1/projects/{id}` é **destrutivo e irreversível**. Todo recurso dentro do projeto é destruído: VMs, volumes, snapshots, backups, buckets, bancos de dados, zonas DNS — tudo. Os registros de usuários e as atribuições de função são revogados de forma atômica.
-
-Por segurança, a API exige um header de confirmação (`X-Confirm-Project-Delete: <project-id>`) nessa chamada; sem ele, a requisição retorna 400.
+`DELETE /api/v1/projects/` recebe o `id` do projeto no corpo da requisição, e é **irreversível**. Remove a rede padrão do projeto e depois exclui o projeto e as atribuições de função dele. Não exclui mais nada, então exclua antes as VMs, os volumes, os buckets e os outros recursos do projeto.
 
 ## Próximos passos {#next-steps}
 
-- [Usuários](/docs/api/users) — as identidades dentro de um projeto.
+- [Workspaces](/docs/api/workspaces) — o contêiner em que os projetos ficam.
 - [Funções](/docs/api/roles) — o que os usuários precisam ter para fazer qualquer coisa.
 - [Cotas](/docs/api/quotas) — limites de recursos por projeto.
