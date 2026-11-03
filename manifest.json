@@ -749,7 +749,7 @@
           },
           "description": {
             "en": "Containers and objects in your project, with public-read options and short-lived credentials.",
-            "de": "Container und Objekte in Ihrem Projekt, mit Optionen für öffentliches Lesen und kurzlebigen Zugangsdaten.",
+            "de": "Container und Objekte in Ihrem Projekt, mit Optionen für öffentliches Lesen und kurzlebigen Credentials.",
             "es": "Contenedores y objetos de tu proyecto, con opciones de lectura pública y credenciales de corta duración.",
             "fr": "Conteneurs et objets de votre projet, avec des options de lecture publique et des identifiants de courte durée.",
             "pt": "Contêineres e objetos do seu projeto, com opções de leitura pública e credenciais de curta duração.",
@@ -1355,7 +1355,7 @@
           },
           "description": {
             "en": "Short-lived delegations that let NimbusNexus act for you on one project, for queued jobs and object-storage credentials.",
-            "de": "Kurzlebige Delegierungen, mit denen NimbusNexus in einem Projekt für Sie handelt, für Jobs in der Warteschlange und Zugangsdaten für den Objektspeicher.",
+            "de": "Kurzlebige Delegierungen, mit denen NimbusNexus in einem Projekt für Sie handelt, für Jobs in der Warteschlange und Credentials für den Objektspeicher.",
             "es": "Delegaciones de corta duración que permiten a NimbusNexus actuar por ti en un proyecto, para trabajos en cola y credenciales del almacenamiento de objetos.",
             "fr": "Des délégations de courte durée qui permettent à NimbusNexus d’agir pour vous sur un projet, pour les tâches en file d’attente et les identifiants du stockage objet.",
             "pt": "Delegações de curta duração que deixam a NimbusNexus agir por você em um projeto, para tarefas em fila e credenciais do armazenamento de objetos.",
