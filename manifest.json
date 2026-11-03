@@ -1266,12 +1266,12 @@
             "uk": "Проєкти"
           },
           "description": {
-            "en": "The unit of isolation for resources, billing, and access control.",
-            "de": "Die Isolationseinheit für Ressourcen, Abrechnung und Zugriffskontrolle.",
-            "es": "La unidad de aislamiento para recursos, facturación y control de acceso.",
-            "fr": "L’unité d’isolation des ressources, de la facturation et du contrôle d’accès.",
-            "pt": "A unidade de isolamento para recursos, faturamento e controle de acesso.",
-            "uk": "Одиниця ізоляції для ресурсів, білінгу та керування доступом."
+            "en": "The unit of isolation for resources and access control, inside a workspace.",
+            "de": "Die Isolationseinheit für Ressourcen und Zugriffskontrolle, innerhalb eines Workspaces.",
+            "es": "La unidad de aislamiento para recursos y control de acceso, dentro de un workspace.",
+            "fr": "L’unité d’isolation des ressources et du contrôle d’accès, au sein d’un espace de travail.",
+            "pt": "A unidade de isolamento para recursos e controle de acesso, dentro de um workspace.",
+            "uk": "Одиниця ізоляції для ресурсів і керування доступом у межах робочого простору."
           },
           "published": true
         },

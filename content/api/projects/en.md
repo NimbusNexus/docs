@@ -1,58 +1,44 @@
 ---
 title: Projects
-description: The unit of isolation for resources, billing, and access control.
+description: The unit of isolation for resources and access control, inside a workspace.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Projects
 
-A project is the **unit of isolation** on NimbusNexus — for resources, billing, and access control. Every resource (VM, volume, bucket, database, network, …) belongs to exactly one project; every API key is scoped to exactly one project; every invoice line is for exactly one project.
+A project is the **unit of isolation** on NimbusNexus — for resources and access control. Every project belongs to one [workspace](/docs/api/workspaces). Every resource (VM, volume, bucket, network, …) belongs to exactly one project, and every API key is scoped to exactly one project. Billing is per workspace: one bill covers all of its projects.
 
 ## Why projects matter {#why}
 
-Three guarantees the project boundary gives you:
+Two guarantees the project boundary gives you:
 
 1. **Blast radius.** A compromised API key for the `dev` project can't touch `prod` resources. They literally aren't visible from inside `dev`.
-2. **Cost attribution.** Each project gets its own bill. If finance wants to charge marketing for the website's hosting bill, marketing gets a project. If engineering wants to allocate spend per team, each team gets a project.
-3. **Quota.** Quotas are per-project. One project running away with VM creates doesn't drain another project's headroom.
+2. **Quota.** Quotas are per-project. One project running away with VM creates doesn't drain another project's headroom.
 
-## Project hierarchy {#hierarchy}
+## Creating a project {#create}
 
-Projects can have a parent project (organization tier and up). The hierarchy looks like:
+`POST /api/v1/projects/` takes the workspace's ID as `domain_id`, a `project_name` and, optionally, a `project_description` and `enabled`. The name must be unique in the workspace, or the API answers `409`. A workspace can have a limit on how many projects it holds; past it, create answers `403`.
 
-```text
-acme-org (root)
-├── acme-prod
-├── acme-staging
-└── acme-dev
-```
-
-A user with the `admin` role on `acme-org` automatically inherits admin on every child. A user with admin only on `acme-prod` can't see `acme-staging` or `acme-dev`. This is the standard mechanism for "centralized governance, decentralized day-to-day."
-
-Hierarchy is optional. Default-tier accounts get one root project per account; organization-tier accounts can build trees up to 5 levels deep.
+Projects sit side by side in their workspace. The API has no way to nest one project under another.
 
 ## What lives in a project {#contents}
 
-- VMs, volumes, snapshots, backups
-- Buckets, archives
-- Databases
+- VMs, volumes, backups
+- Buckets
 - Networks, subnets, routers, security groups, floating IPs, load balancers
 - DNS zones + records
-- Users, roles + assignments, API keys
-- The billing account that pays for all of the above
+- Role assignments and API keys (the users they belong to live in the workspace)
 
 Projects can't be merged. To consolidate two projects, you'd export-and-reimport the resources and delete the original — there's no atomic merge operation, deliberately, because the resulting "what got merged where" attribution would be unauditable.
 
 ## Deletion {#deletion}
 
-`DELETE /v1/projects/{id}` is **destructive and irreversible**. Every resource inside the project is destroyed: VMs, volumes, snapshots, backups, buckets, databases, DNS zones — all of it. The user records and role assignments are revoked atomically.
-
-For safety the API requires a confirmation header (`X-Confirm-Project-Delete: <project-id>`) on this call; without it the request returns 400.
+`DELETE /api/v1/projects/` takes the project's `id` in the request body, and it's **irreversible**. It removes the project's default network, then deletes the project and its role assignments. It deletes nothing else, so delete the project's VMs, volumes, buckets and other resources first.
 
 ## What's next {#next-steps}
 
-- [Users](/docs/api/users) — the identities inside a project.
+- [Workspaces](/docs/api/workspaces) — the container projects live in.
 - [Roles](/docs/api/roles) — what users hold to do anything.
 - [Quotas](/docs/api/quotas) — per-project resource limits.
