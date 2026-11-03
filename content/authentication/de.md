@@ -2,64 +2,52 @@
 title: "Authentifizierung"
 description: "API-Keys, Scopes, Projektgrenzen und wie Sie Credentials sicher rotieren."
 publishedAt: 2026-05-19
-updatedAt: 2026-10-15
+updatedAt: 2026-11-03
 kind: concept
 ---
 
 # Authentifizierung
 
-Die NimbusNexus-API verwendet **API-Keys** als Bearer-Tokens. Für jeden Endpoint gilt derselbe Mechanismus — kein eigenes Credential-Format pro Ressource, kein separates Signaturverfahren für „fortgeschrittene“ Aufrufe. Wenn Sie einen authentifizierten Request senden können, können Sie alle senden.
+Die NimbusNexus-API unter `{{API_HOST}}` nimmt einen **API-Key** im Header `X-API-Key` entgegen. Jeder Key gehört einer Person und gilt in einem Projekt, mit den Rollen und Zugriffsregeln, mit denen er erstellt wurde.
 
 ## Aufbau eines Requests {#request-shape}
 
-Senden Sie den Key im Header `Authorization`. Das Format ist wörtlich das Wort `Bearer`, gefolgt von Ihrem Key:
+Senden Sie den Key im Header `X-API-Key`:
 
 ```bash
-curl {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer nn_live_xxxxxxxxxxxxxxxx"
+curl {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY"
 ```
 
-Keys tragen ein Präfix je nach Umgebung: `nn_live_*` für die Produktion, `nn_test_*` für die Sandbox. Nach dem Präfix folgen 32–48 Zeichen aus einem base32-sicheren Alphabet.
+Der Key ist der Wert `api_key`, den Sie beim Erstellen erhalten: die ID des Keys und sein Secret, durch einen Doppelpunkt verbunden und base64-kodiert. Auf einen Key, den die API nicht dekodieren kann oder nicht kennt, antwortet sie mit `401`.
 
 ## Key generieren {#generating}
 
-Im Dashboard: **Settings → API keys → New key**. Den Wert des Keys sehen Sie genau einmal, beim Erstellen; kopieren Sie ihn dann. Danach zeigt das Dashboard nur das Präfix + die letzten 4 Zeichen, damit Sie die Keys auseinanderhalten können, ohne das Secret offenzulegen.
-
-Eine API zum Erstellen von API-Keys gibt es absichtlich nicht. Wenn ein Key kompromittiert ist, braucht die Wiederherstellung einen Out-of-Band-Kanal, den der kompromittierte Key nicht erreichen kann — dass Sie dafür das Dashboard verwenden müssen, ist der Engpass, der diese Wiederherstellung sauber macht.
+Erstellen Sie einen Key im Dashboard oder mit `POST /api/v1/api_keys/` aus einer angemeldeten Sitzung, die für das Projekt des Keys gilt. Geben Sie ihm einen `name`, der unter Ihren Keys eindeutig ist, und optional eine `description` und ein `expires_at`. Die Antwort enthält den Key genau einmal, in `api_key`; kopieren Sie ihn dann. Danach liefert die API Name, Rollen, Zugriffsregeln und Ablauf des Keys, aber nie sein Secret.
 
 ## Bindung an ein Projekt {#project-scope}
 
 Jeder API-Key gilt für ein **einzelnes Projekt**. Der Key kann Ressourcen in seinem Projekt lesen und schreiben; Ressourcen in anderen Projekten sieht er nicht, auch nicht innerhalb desselben Kontos.
 
-Projekte sind die Einheit für Zugriffskontrolle, Abrechnung und Isolation. Das Standardprojekt, das ein neues Konto mitbringt, reicht aus, wenn Sie allein entwickeln; Produktionsteams wollen meist ein Projekt pro Umgebung (`prod`, `staging`, `dev`), damit ein kompromittierter Dev-Key keine Produktionsdaten erreicht.
+Projekte sind die Einheit für Zugriffskontrolle und Isolation; abgerechnet wird pro Workspace. Das Standardprojekt, das ein neues Konto mitbringt, reicht aus, wenn Sie allein entwickeln; Produktionsteams wollen meist ein Projekt pro Umgebung (`prod`, `staging`, `dev`), damit ein kompromittierter Dev-Key keine Produktionsdaten erreicht.
 
 Projekt wechseln = einen neuen Key im Zielprojekt generieren. Einen Mechanismus nach dem Muster „diesen Key verwenden, aber so tun, als wäre man in einem anderen Projekt“ gibt es nicht; er würde die Isolationsgarantie aushöhlen.
 
-## Scopes (Fähigkeiten) {#scopes}
+## Was ein Key darf {#scopes}
 
-Keys tragen **Scopes**, die begrenzen, was sie in ihrem Projekt tun dürfen. Ein neuer Key erhält standardmäßig Lesen+Schreiben auf alles im Projekt; beim Erstellen können Sie das einschränken, z. B. auf nur `vms:read` für einen Monitoring-Agenten, der nie Ressourcen erstellen muss.
+Ein Key handelt mit **Rollen** in seinem Projekt, und **Zugriffsregeln** begrenzen, welche Aufrufe er machen darf:
 
-Die vollständige Liste der Scopes folgt den Ressourcentypen:
+- `roles` — die Rollen, mit denen der Key handelt, ausgewählt aus denen, die Sie im Projekt haben. Lassen Sie das Feld weg, erhält der Key alle.
+- `access_rules` — die Aufrufe, die der Key machen darf. Jede Regel ist ein `service` (`api` für diese API), eine `method` und ein `path`, etwa `GET` und `/api/v1/instance/`. `GET /api/v1/api_keys/access_rules_artifacts` listet jede Methode und jeden Pfad auf, die Sie angeben können; auf einen Pfad, den es nicht gibt, antwortet das Erstellen des Keys mit `422`.
+- `unrestricted: true` — keine Zugriffsregeln: Der Key darf jeden Aufruf machen, den seine Rollen erlauben.
 
-- `vms:read`, `vms:write`, `vms:create`, `vms:delete`
-- `databases:read`, `databases:write`, …
-- `block-storage:read`, `block-storage:write`, …
-- `object-storage:read`, `object-storage:write`, …
-- `iam:read`, `iam:write` (Benutzer, Projekte und Keys selbst verwalten)
-
-Ein Request an einen Endpoint, der einen Scope verlangt, den der Key nicht hat, erhält `403 Forbidden` mit `error.code: 'forbidden'`, und `error.message` nennt, was gefehlt hat. So kostet es wenig, mit engen Scopes zu beginnen und sie erst zu erweitern, wenn etwas fehlschlägt. (Frühere Versionen dieser Seite versprachen `scope_required` mit dem Scope in `error.fields.scope`; die API hat keins von beiden je gesendet.)
+Ein Key ohne Zugriffsregeln und ohne `unrestricted` kann nur seine eigene Sitzung lesen (`GET /api/v1/account/get_session_auth_data`). Ein Aufruf außerhalb der Zugriffsregeln eines Keys erhält `403` mit der Meldung „API key is restricted for this path!“. So kostet es wenig, mit engen Regeln zu beginnen und Aufrufe erst hinzuzufügen, wenn einer abgelehnt wird.
 
 ## Rotation {#rotation}
 
-Jeder Key lässt sich unabhängig rotieren. Das Rotieren eines Keys:
+Einen Rotations-Aufruf gibt es nicht. Um einen Key zu ersetzen, erstellen Sie den neuen, stellen Ihre Tools darauf um und löschen dann den alten mit `DELETE /api/v1/api_keys/{api_key_id}`. Die API prüft den Key bei jedem Request, deshalb funktioniert ein gelöschter Key schon beim nächsten Aufruf nicht mehr. Tools, die den Key lange halten (CI/CD, deployte Agenten), sollten ihn beim Prozessstart neu einlesen, damit sich eine Rotation innerhalb eines Deploy-Zyklus durchsetzt. Geben Sie Keys ein `expires_at`, damit ein vergessener Key von selbst aufhört zu funktionieren.
 
-1. Generiert einen neuen Wert für den Key.
-2. Markiert den alten Key als **veraltet**, hält ihn aber **24 Stunden** lang gültig.
-3. Protokolliert in diesem Zeitraum die Nutzung beider Keys, damit Sie prüfen können, ob der neue Key im Einsatz ist, bevor der alte ungültig wird.
-
-Für die automatische Rotation (die wir empfehlen) rufen Sie die IAM-API nach einem Zeitplan auf und lassen die 24-stündige Übergangsfrist das Rollout-Fenster abfangen. Tools, die den Key lange halten (CI/CD, deployte Agenten), sollten ihn beim Prozessstart neu einlesen, damit sich eine Rotation innerhalb eines Deploy-Zyklus durchsetzt.
-
-Wenn Sie vermuten, dass ein Key kompromittiert ist, **widerrufen** Sie ihn, statt ihn zu rotieren — das überspringt die 24-stündige Übergangsfrist und macht den alten Key sofort ungültig. Im Dashboard widerrufen Sie mit einem Klick; für den programmatischen Notfall-Widerruf gibt es zusätzlich einen IAM-Endpoint.
+Wenn Sie vermuten, dass ein Key kompromittiert ist, löschen Sie ihn sofort, im Dashboard oder mit `DELETE /api/v1/api_keys/{api_key_id}` aus einer angemeldeten Sitzung.
 
 ## Häufige Fehler {#errors}
 
@@ -81,4 +69,3 @@ Die Fehler oben verwenden das Standard-Fehlerformat, das unter [Fehler](/docs/er
 
 - Lesen Sie [Konventionen](/docs/conventions), um die Muster kennenzulernen, denen jeder Endpoint folgt (Ressourcen-IDs, Paginierung, Fehler, Idempotenz).
 - Lesen Sie die [Referenz für virtuelle Maschinen](/docs/api/vms) für ein konkretes, ausgearbeitetes Beispiel einer Ressourcen-API.
-- Für Dienst-zu-Dienst-Setups in Ihrer eigenen Infrastruktur können Sie außerdem **Trust-Beziehungen** zwischen Projekten anlegen — siehe die IAM-Referenz (folgt in Kürze).

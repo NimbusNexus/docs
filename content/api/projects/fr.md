@@ -1,58 +1,44 @@
 ---
 title: "Projets"
-description: "L’unité d’isolation des ressources, de la facturation et du contrôle d’accès."
+description: "L’unité d’isolation des ressources et du contrôle d’accès, au sein d’un espace de travail."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Projets
 
-Un projet est l’**unité d’isolation** de NimbusNexus — pour les ressources, la facturation et le contrôle d’accès. Chaque ressource (VM, volume, bucket, base de données, réseau, …) appartient à exactement un projet ; chaque clé API a pour portée exactement un projet ; chaque ligne de facture concerne exactement un projet.
+Un projet est l’**unité d’isolation** de NimbusNexus — pour les ressources et le contrôle d’accès. Chaque projet appartient à un [espace de travail](/docs/api/workspaces). Chaque ressource (VM, volume, bucket, réseau, …) appartient à exactement un projet, et chaque clé API a pour portée exactement un projet. La facturation se fait par espace de travail : une seule facture couvre tous ses projets.
 
 ## Pourquoi les projets comptent {#why}
 
-Trois garanties qu’apporte la frontière de projet :
+Deux garanties qu’apporte la frontière de projet :
 
 1. **Rayon d’impact.** Une clé API compromise du projet `dev` ne peut pas toucher aux ressources de `prod`. Elles ne sont littéralement pas visibles depuis `dev`.
-2. **Attribution des coûts.** Chaque projet a sa propre facture. Si la finance veut refacturer au marketing l’hébergement du site web, le marketing obtient son propre projet. Si l’ingénierie veut répartir les dépenses par équipe, chaque équipe obtient son propre projet.
-3. **Quota.** Les quotas sont par projet. Un projet qui s’emballe en créant des VM n’entame pas la marge d’un autre projet.
+2. **Quota.** Les quotas sont par projet. Un projet qui s’emballe en créant des VM n’entame pas la marge d’un autre projet.
 
-## Hiérarchie des projets {#hierarchy}
+## Créer un projet {#create}
 
-Les projets peuvent avoir un projet parent (à partir du niveau organisation). La hiérarchie ressemble à ceci :
+`POST /api/v1/projects/` prend l’ID de l’espace de travail dans `domain_id`, un `project_name` et, en option, une `project_description` et `enabled`. Le nom doit être unique dans l’espace de travail, sinon l’API répond `409`. Un espace de travail peut avoir une limite de projets ; au-delà, la création répond `403`.
 
-```text
-acme-org (root)
-├── acme-prod
-├── acme-staging
-└── acme-dev
-```
-
-Un utilisateur qui a le rôle `admin` sur `acme-org` hérite automatiquement des droits admin sur chaque enfant. Un utilisateur admin uniquement sur `acme-prod` ne voit ni `acme-staging` ni `acme-dev`. C’est le mécanisme standard pour une « gouvernance centralisée, un quotidien décentralisé ».
-
-La hiérarchie est facultative. Les comptes du niveau par défaut ont un seul projet racine par compte ; les comptes de niveau organisation peuvent construire des arborescences jusqu’à 5 niveaux de profondeur.
+Les projets sont côte à côte dans leur espace de travail. L’API ne permet pas d’imbriquer un projet dans un autre.
 
 ## Ce que contient un projet {#contents}
 
-- VM, volumes, snapshots, sauvegardes
-- Buckets, archives
-- Bases de données
+- VM, volumes, sauvegardes
+- Buckets
 - Réseaux, sous-réseaux, routeurs, groupes de sécurité, IP flottantes, load balancers
 - Zones DNS + enregistrements
-- Utilisateurs, rôles + attributions, clés API
-- Le compte de facturation qui paie tout ce qui précède
+- Attributions de rôles et clés API (les utilisateurs à qui elles appartiennent vivent dans l’espace de travail)
 
 Les projets ne peuvent pas être fusionnés. Pour regrouper deux projets, il faut exporter puis réimporter les ressources et supprimer l’original — il n’existe délibérément aucune opération de fusion atomique, car l’attribution qui en résulterait (« qu’est-ce qui a été fusionné où ») serait impossible à auditer.
 
 ## Suppression {#deletion}
 
-`DELETE /v1/projects/{id}` est **destructif et irréversible**. Chaque ressource du projet est détruite : VM, volumes, snapshots, sauvegardes, buckets, bases de données, zones DNS — tout. Les fiches des utilisateurs et les attributions de rôles sont révoquées de façon atomique.
-
-Par sécurité, l’API exige un header de confirmation (`X-Confirm-Project-Delete: <project-id>`) sur cet appel ; sans lui, la requête renvoie 400.
+`DELETE /api/v1/projects/` prend l’`id` du projet dans le corps de la requête, et c’est **irréversible**. L’appel supprime le réseau par défaut du projet, puis le projet et ses attributions de rôles. Il ne supprime rien d’autre : supprimez donc d’abord les VM, volumes, buckets et autres ressources du projet.
 
 ## Étapes suivantes {#next-steps}
 
-- [Utilisateurs](/docs/api/users) — les identités d’un projet.
+- [Espaces de travail](/docs/api/workspaces) — le conteneur dans lequel vivent les projets.
 - [Rôles](/docs/api/roles) — ce que les utilisateurs doivent détenir pour pouvoir agir.
 - [Quotas](/docs/api/quotas) — les limites de ressources par projet.

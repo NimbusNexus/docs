@@ -2,64 +2,52 @@
 title: "Autenticação"
 description: "Chaves de API, escopos, fronteiras de projeto e como rotacionar credenciais com segurança."
 publishedAt: 2026-05-19
-updatedAt: 2026-10-15
+updatedAt: 2026-11-03
 kind: concept
 ---
 
 # Autenticação
 
-A API da NimbusNexus usa **chaves de API** como tokens Bearer. Existe um único mecanismo para todos os endpoints — nenhum formato de credencial por recurso, nenhum esquema de assinatura separado para chamadas "avançadas". Se você consegue fazer uma requisição autenticada, consegue fazer todas.
+A API da NimbusNexus em `{{API_HOST}}` recebe uma **chave de API** no header `X-API-Key`. Cada chave pertence a uma pessoa e funciona em um projeto, com as funções e as regras de acesso com que foi criada.
 
 ## Como é uma requisição {#request-shape}
 
-Envie a chave no header `Authorization`. O formato é a palavra literal `Bearer` seguida da sua chave:
+Envie a chave no header `X-API-Key`:
 
 ```bash
-curl {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer nn_live_xxxxxxxxxxxxxxxx"
+curl {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY"
 ```
 
-As chaves têm um prefixo por ambiente: `nn_live_*` para produção, `nn_test_*` para o sandbox. Depois do prefixo, elas têm 32–48 caracteres de um alfabeto seguro para base32.
+A chave é o valor `api_key` devolvido quando você a cria: o ID da chave e o segredo dela, unidos por dois-pontos e codificados em base64. Uma chave que a API não consegue decodificar ou não reconhece recebe `401`.
 
 ## Gerar uma chave {#generating}
 
-No painel: **Settings → API keys → New key**. Você vê o valor da chave uma única vez, no momento da criação; copie-o nessa hora. Depois disso, o painel mostra apenas o prefixo + os 4 últimos caracteres, para que você saiba qual chave é qual sem expor o segredo.
-
-De propósito, não existe uma API para criar chaves de API. O caminho de recuperação quando uma chave é comprometida precisa de um canal fora de banda que a chave comprometida não alcance — ter que usar o painel é o gargalo que torna essa recuperação limpa.
+Crie uma chave no painel ou com `POST /api/v1/api_keys/` a partir de uma sessão conectada com escopo do projeto da chave. Dê a ela um `name` único entre as suas chaves e, opcionalmente, uma `description` e um `expires_at`. A resposta traz a chave uma única vez, em `api_key`; copie-a nessa hora. Depois disso, a API devolve o nome, as funções, as regras de acesso e a expiração da chave, mas nunca o segredo.
 
 ## Escopo de projeto {#project-scope}
 
 Toda chave de API tem escopo de um **único projeto**. A chave pode ler e gravar recursos no seu projeto; ela não vê recursos de outros projetos, nem dentro da mesma conta.
 
-Os projetos são a unidade de controle de acesso, faturamento e isolamento. O projeto padrão que vem com uma conta nova serve para desenvolvimento individual; times de produção costumam querer um projeto por ambiente (`prod`, `staging`, `dev`), para que uma chave de dev comprometida não alcance dados de produção.
+Os projetos são a unidade de controle de acesso e isolamento; o faturamento é por workspace. O projeto padrão que vem com uma conta nova serve para desenvolvimento individual; times de produção costumam querer um projeto por ambiente (`prod`, `staging`, `dev`), para que uma chave de dev comprometida não alcance dados de produção.
 
 Trocar de projeto = gerar uma nova chave no projeto de destino. Não existe um mecanismo do tipo "use esta chave, mas finja que está em outro projeto"; isso enfraqueceria a garantia de isolamento.
 
-## Escopos (capacidades) {#scopes}
+## O que uma chave pode fazer {#scopes}
 
-As chaves carregam **escopos** que limitam o que elas podem fazer dentro do seu projeto. O conjunto de escopos padrão de uma chave nova é leitura+gravação em tudo no projeto; na criação, você pode restringi-lo, por exemplo, a apenas `vms:read` para um agente de monitoramento que nunca precisa criar recursos.
+Uma chave age com **funções** no projeto dela, e **regras de acesso** limitam as chamadas que ela pode fazer:
 
-A lista completa de escopos espelha os tipos de recurso:
+- `roles` — as funções com que a chave age, escolhidas entre as que você tem no projeto. Se você omitir o campo, a chave recebe todas.
+- `access_rules` — as chamadas que a chave pode fazer. Cada regra é um `service` (`api` para esta API), um `method` e um `path`, como `GET` e `/api/v1/instance/`. `GET /api/v1/api_keys/access_rules_artifacts` lista todos os métodos e caminhos que você pode indicar; para um caminho que não existe, criar a chave retorna `422`.
+- `unrestricted: true` — sem regras de acesso: a chave pode fazer qualquer chamada que as funções dela permitam.
 
-- `vms:read`, `vms:write`, `vms:create`, `vms:delete`
-- `databases:read`, `databases:write`, …
-- `block-storage:read`, `block-storage:write`, …
-- `object-storage:read`, `object-storage:write`, …
-- `iam:read`, `iam:write` (gerenciar os próprios usuários, projetos e chaves)
-
-Uma requisição a um endpoint que exige um escopo que a chave não tem retorna `403 Forbidden` com `error.code: 'forbidden'`, e `error.message` diz o que faltou. Isso torna barato começar com escopos restritos e ampliá-los só quando algo falhar. (Versões anteriores desta página prometiam `scope_required`, com o escopo em `error.fields.scope`; a API nunca enviou nenhum dos dois.)
+Uma chave sem regras de acesso e sem `unrestricted` só consegue ler a própria sessão (`GET /api/v1/account/get_session_auth_data`). Uma chamada fora das regras de acesso de uma chave recebe `403`, com a mensagem "API key is restricted for this path!". Isso torna barato começar com regras restritas e acrescentar chamadas só quando uma for recusada.
 
 ## Rotação {#rotation}
 
-Cada chave pode ser rotacionada de forma independente. Rotacionar uma chave:
+Não existe chamada de rotação. Para substituir uma chave, crie a nova, passe as suas ferramentas para ela e depois exclua a antiga com `DELETE /api/v1/api_keys/{api_key_id}`. A API confere a chave a cada requisição, então uma chave excluída deixa de funcionar já na chamada seguinte. Ferramentas que guardam a chave por muito tempo (CI/CD, agentes implantados) devem relê-la ao iniciar o processo, para que uma rotação se propague dentro de um ciclo de deploy. Dê às chaves um `expires_at`, para que uma chave esquecida pare de funcionar sozinha.
 
-1. Gera um novo valor de chave.
-2. Marca a chave antiga como **descontinuada**, mas a mantém válida por **24 horas**.
-3. Registra o uso das duas chaves durante essa janela, para que você confirme que a nova chave está em uso antes de a antiga deixar de funcionar.
-
-Para a rotação automatizada (que recomendamos), chame a API de IAM para rotacionar segundo um agendamento e deixe a sobreposição de 24 horas absorver a janela de implantação. Ferramentas que guardam a chave por muito tempo (CI/CD, agentes implantados) devem relê-la ao iniciar o processo, para que uma rotação se propague dentro de um ciclo de deploy.
-
-Se você suspeitar que uma chave foi comprometida, **revogue-a** em vez de rotacioná-la — isso pula o período de carência de 24 horas e invalida a chave antiga imediatamente. O painel tem uma revogação com um clique; também há um endpoint de IAM para revogação de emergência programática.
+Se você suspeitar que uma chave foi comprometida, exclua-a na hora, no painel ou com `DELETE /api/v1/api_keys/{api_key_id}` a partir de uma sessão conectada.
 
 ## Erros comuns {#errors}
 
@@ -81,4 +69,3 @@ Os erros acima usam o formato de erro padrão descrito em [Erros](/docs/errors).
 
 - Leia [Convenções](/docs/conventions) para conhecer os padrões que todo endpoint segue (ids de recurso, paginação, erros, idempotência).
 - Leia a [referência de máquinas virtuais](/docs/api/vms) para ver um exemplo concreto e completo de uma API de recurso.
-- Para configurações de serviço a serviço dentro da sua própria infraestrutura, você também pode criar **relações de confiança** entre projetos — veja a referência de IAM (em breve).

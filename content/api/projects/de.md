@@ -1,58 +1,44 @@
 ---
 title: "Projekte"
-description: "Die Isolationseinheit für Ressourcen, Abrechnung und Zugriffskontrolle."
+description: "Die Isolationseinheit für Ressourcen und Zugriffskontrolle, innerhalb eines Workspaces."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Projekte
 
-Ein Projekt ist die **Isolationseinheit** bei NimbusNexus — für Ressourcen, Abrechnung und Zugriffskontrolle. Jede Ressource (VM, Volume, Bucket, Datenbank, Netzwerk, …) gehört zu genau einem Projekt; jeder API-Key ist auf genau ein Projekt beschränkt; jede Rechnungsposition gilt für genau ein Projekt.
+Ein Projekt ist die **Isolationseinheit** bei NimbusNexus — für Ressourcen und Zugriffskontrolle. Jedes Projekt gehört zu einem [Workspace](/docs/api/workspaces). Jede Ressource (VM, Volume, Bucket, Netzwerk, …) gehört zu genau einem Projekt, und jeder API-Key ist auf genau ein Projekt beschränkt. Abgerechnet wird pro Workspace: Eine Rechnung deckt alle seine Projekte ab.
 
 ## Warum Projekte wichtig sind {#why}
 
-Drei Garantien, die Ihnen die Projektgrenze gibt:
+Zwei Garantien, die Ihnen die Projektgrenze gibt:
 
 1. **Schadensradius.** Ein kompromittierter API-Key für das Projekt `dev` kann keine Ressourcen in `prod` anfassen. Sie sind aus `dev` heraus buchstäblich nicht sichtbar.
-2. **Kostenzuordnung.** Jedes Projekt bekommt eine eigene Rechnung. Wenn die Finanzabteilung dem Marketing die Hosting-Rechnung der Website berechnen will, bekommt das Marketing ein Projekt. Wenn die Entwicklung Ausgaben pro Team zuordnen will, bekommt jedes Team ein Projekt.
-3. **Kontingent.** Kontingente gelten pro Projekt. Ein Projekt, das außer Kontrolle gerät und VMs am laufenden Band erstellt, verbraucht nicht den Spielraum eines anderen Projekts.
+2. **Kontingent.** Kontingente gelten pro Projekt. Ein Projekt, das außer Kontrolle gerät und VMs am laufenden Band erstellt, verbraucht nicht den Spielraum eines anderen Projekts.
 
-## Projekthierarchie {#hierarchy}
+## Ein Projekt erstellen {#create}
 
-Projekte können ein übergeordnetes Projekt haben (ab dem Tarif Organization). Die Hierarchie sieht so aus:
+`POST /api/v1/projects/` nimmt die ID des Workspaces als `domain_id`, einen `project_name` und optional eine `project_description` und `enabled` entgegen. Der Name muss im Workspace eindeutig sein, sonst antwortet die API mit `409`. Ein Workspace kann ein Limit für die Zahl seiner Projekte haben; darüber hinaus antwortet das Erstellen mit `403`.
 
-```text
-acme-org (root)
-├── acme-prod
-├── acme-staging
-└── acme-dev
-```
-
-Ein Benutzer mit der Rolle `admin` in `acme-org` erbt automatisch Admin-Rechte in jedem untergeordneten Projekt. Ein Benutzer mit Admin-Rechten nur in `acme-prod` kann `acme-staging` und `acme-dev` nicht sehen. Das ist der Standardmechanismus für „zentrale Governance, dezentraler Alltag“.
-
-Die Hierarchie ist optional. Konten im Standardtarif erhalten ein Root-Projekt pro Konto; Konten im Tarif Organization können Bäume mit bis zu 5 Ebenen aufbauen.
+Projekte stehen in ihrem Workspace nebeneinander. Die API kann kein Projekt unter einem anderen anlegen.
 
 ## Was in einem Projekt liegt {#contents}
 
-- VMs, Volumes, Snapshots, Backups
-- Buckets, Archive
-- Datenbanken
+- VMs, Volumes, Backups
+- Buckets
 - Netzwerke, Subnetze, Router, Sicherheitsgruppen, Floating-IPs, Load Balancer
 - DNS-Zonen + -Einträge
-- Benutzer, Rollen + Zuweisungen, API-Keys
-- Das Abrechnungskonto, das für all das bezahlt
+- Rollenzuweisungen und API-Keys (die Benutzer, denen sie gehören, liegen im Workspace)
 
 Projekte lassen sich nicht zusammenführen. Um zwei Projekte zu konsolidieren, exportieren Sie die Ressourcen, importieren sie erneut und löschen das ursprüngliche Projekt — eine atomare Zusammenführung gibt es bewusst nicht, weil sich die daraus entstehende Zuordnung „was wurde wohin zusammengeführt“ nicht prüfen ließe.
 
 ## Löschen {#deletion}
 
-`DELETE /v1/projects/{id}` ist **destruktiv und nicht umkehrbar**. Jede Ressource im Projekt wird gelöscht: VMs, Volumes, Snapshots, Backups, Buckets, Datenbanken, DNS-Zonen — alles. Die Benutzerdatensätze und Rollenzuweisungen werden atomar widerrufen.
-
-Zur Sicherheit verlangt die API bei diesem Aufruf einen Bestätigungs-Header (`X-Confirm-Project-Delete: <project-id>`); ohne ihn wird der Request mit 400 beantwortet.
+`DELETE /api/v1/projects/` nimmt die `id` des Projekts im Request-Body entgegen und ist **nicht umkehrbar**. Es entfernt das Standardnetzwerk des Projekts und löscht dann das Projekt und seine Rollenzuweisungen. Sonst löscht es nichts, deshalb löschen Sie zuerst die VMs, Volumes, Buckets und anderen Ressourcen des Projekts.
 
 ## Nächste Schritte {#next-steps}
 
-- [Benutzer](/docs/api/users) — die Identitäten innerhalb eines Projekts.
+- [Workspaces](/docs/api/workspaces) — der Container, in dem Projekte liegen.
 - [Rollen](/docs/api/roles) — was Benutzer brauchen, um überhaupt etwas tun zu können.
 - [Kontingente](/docs/api/quotas) — Ressourcenlimits pro Projekt.
