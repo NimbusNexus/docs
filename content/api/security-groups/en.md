@@ -2,7 +2,7 @@
 title: Security groups
 description: Stateful firewall rule sets applied to VM network interfaces.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -21,9 +21,10 @@ Compare to a stateless ACL (e.g. AWS Network ACLs), where you'd need symmetric r
 Each rule has:
 
 - **Direction** — `ingress` or `egress`
-- **Protocol** — `tcp`, `udp`, `icmp`, or `any`
-- **Port range** — single port (`80`), range (`8000-9000`), or "any"
-- **Source / destination** — a CIDR block (`0.0.0.0/0`, `10.0.0.0/8`) OR another security group id
+- **Ether type** — `ether`: `IPv4` or `IPv6`
+- **Protocol** — `any`, a name such as `tcp`, `udp`, `icmp`, `ipv6-icmp` or `sctp`, or `custom` with a protocol number (0–255) in `protocol_custom`
+- **Port range** — `port_min` and `port_max`, each 0–65535. Give `port_min` alone for a single port (`80`), both for a range (`8000` to `9000`), or neither for any port
+- **Source / destination** — a CIDR block in `remote_cidr` (`0.0.0.0/0`, `10.0.0.0/8`), another security group in `remote_sec_grp`, or an [address group](/docs/api/address-groups) in `remote_addr_grp`
 
 The "source is another security group" mode is the one most worth knowing about. A rule like "allow port 5432 from `web-tier-sg`" lets every VM in the `web-tier-sg` group hit your Postgres VM on 5432 — without needing to enumerate IPs, and the rule keeps working as VMs scale in and out of the `web-tier-sg`.
 
