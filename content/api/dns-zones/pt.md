@@ -2,17 +2,17 @@
 title: "Zonas DNS"
 description: "Zonas DNS autoritativas hospedadas nos servidores de nomes da NimbusNexus."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Zonas DNS
 
-Uma zona DNS é um domínio autoritativo hospedado nos servidores de nomes da NimbusNexus. Crie uma zona para `example.com`, aponte o registrador do seu domínio para os nossos servidores de nomes e depois adicione [registros](/docs/api/dns-records) para publicar endereços, roteamento de e-mail e tokens de verificação desse domínio.
+Uma zona DNS é um domínio autoritativo hospedado nos servidores de nomes da NimbusNexus. Crie uma com `POST /api/v1/zones/`, informando o `name` com o ponto final (`example.com.`) e um `email` de administrador; a zona pertence ao projeto que faz a chamada. Depois aponte o registrador do seu domínio para os nossos servidores de nomes e adicione [registros](/docs/api/dns-records) para publicar endereços, roteamento de e-mail e tokens de verificação desse domínio.
 
 ## Delegação {#delegation}
 
-Depois que você cria uma zona, a resposta traz os quatro servidores de nomes que você precisa configurar no seu registrador:
+Estes são os servidores de nomes que você precisa configurar no seu registrador:
 
 ```text
 {{DNS_NS1}}
@@ -30,17 +30,6 @@ Você pode continuar usando seu provedor de DNS atual em paralelo durante uma mi
 Uma zona = um domínio. `example.com` é uma zona; `api.example.com` é um subdomínio tratado por um registro A ou CNAME dentro da zona `example.com`, não uma zona separada — a menos que você queira especificamente delegar `api.example.com` a outro provedor de DNS. Nesse caso, você criaria separadamente a zona `example.com` (com registros NS apontando para o outro provedor no caso do subdomínio) e a zona do subdomínio.
 
 No uso típico, uma zona por domínio registrado é o formato certo.
-
-## DNSSEC {#dnssec}
-
-O DNSSEC vem ativado por padrão em todas as zonas que hospedamos. Os registros DS que você deve publicar no registrador são retornados no objeto da zona e podem ser buscados de novo a qualquer momento. Rotacionamos a ZSK + KSK a cada 90 dias; os rollovers da KSK exigem uma atualização do DS no registrador.
-
-## Preços {#pricing}
-
-- **Zonas:** \$0,50 por zona por mês.
-- **Consultas:** primeiro 1 milhão de consultas/mês gratuito por zona, \$0,40 por milhão depois disso.
-
-Para comparação: o DNS autoritativo da Cloudflare é gratuito no tier básico, o Route 53 custa \$0,50/zona + cobrança por consulta e o AWS Cloud Map é mais caro. Nossos preços nos colocam entre a Cloudflare e o Route 53.
 
 ## Próximos passos {#next-steps}
 

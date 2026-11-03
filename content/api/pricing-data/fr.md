@@ -2,21 +2,28 @@
 title: "Données tarifaires"
 description: "Accès programmatique à la grille tarifaire de référence. En lecture seule."
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: pricing-data
 ---
 
 # Données tarifaires
 
-L’endpoint des données tarifaires est un flux en lecture seule de la grille tarifaire de référence de NimbusNexus — tailles de VM par famille, classes de stockage en bloc, tiers de stockage objet, tarifs d’egress, multiplicateurs par moteur de base de données managée, absolument tout. Les mêmes données alimentent les pages de tarifs du site marketing et les projections de coûts de la console.
+Les endpoints des données tarifaires sont un flux en lecture seule de ce que facture NimbusNexus, avec un endpoint par type de ressource :
+
+- `GET /api/v1/pricing/vm` — les tailles de VM. `architecture` et `vm_class` sont obligatoires ; `cpu` et `ram` restreignent la liste.
+- `GET /api/v1/pricing/storage` — le stockage en bloc, pour un `volume_type` donné.
+- `GET /api/v1/pricing/port`, `/api/v1/pricing/floating_ip` et `/api/v1/pricing/image` — les ports réseau, les IP flottantes et le stockage des images.
+- `GET /api/v1/pricing/bandwidth` — la bande passante sortante.
+
+Chaque prix est accompagné de sa période de facturation : unique, horaire, journalière, mensuelle ou annuelle. Vous n’avez pas besoin de vous connecter pour les lire. Un appelant dont la portée est l’un de vos projets voit les prix qui s’appliquent à votre espace de travail ; tout autre appelant voit les prix catalogue.
 
 Cas d’usage : intégrer des estimations de coûts en temps réel dans votre processus de provisionnement (afficher « cette VM coûtera $X/mois » avant que l’utilisateur clique sur Launch), construire des outils internes d’attribution des coûts, ou simplement tenir votre propre tableur « ce que NimbusNexus facture pour X en ce moment ».
 
-Les prix sont exprimés en USD et changent chaque fois que nous ajustons la grille tarifaire publiée (c’est rare — en général une ou deux fois par an, et nous prévenons par e-mail 30 jours avant toute hausse).
+Les prix sont exprimés en USD.
 
 ## Étapes suivantes {#next-steps}
 
-- [Factures](/docs/api/invoices) — ce que donnent les prix en pratique.
+- [Facturation](/docs/api/invoices) — vos soldes et les frais pas encore réglés.
 - [Optimiser votre facture mensuelle](/docs/guides/cost-optimization) — le guide de stratégie pour réduire votre facture.
 - La [page des tarifs du site marketing]({{BASE_URL}}/pricing) — la version lisible par un humain de ces données.

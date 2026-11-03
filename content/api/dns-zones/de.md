@@ -2,17 +2,17 @@
 title: "DNS-Zonen"
 description: "Autoritative DNS-Zonen auf den Nameservern von NimbusNexus."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # DNS-Zonen
 
-Eine DNS-Zone ist eine autoritative Domain auf den Nameservern von NimbusNexus. Erstellen Sie eine Zone für `example.com`, richten Sie Ihren Domain-Registrar auf unsere Nameserver und fügen Sie dann [Einträge](/docs/api/dns-records) hinzu, um Adressen, Mail-Routing und Verifizierungs-Tokens für diese Domain zu veröffentlichen.
+Eine DNS-Zone ist eine autoritative Domain auf den Nameservern von NimbusNexus. Erstellen Sie eine mit `POST /api/v1/zones/` und geben Sie dabei ihren `name` mit abschließendem Punkt (`example.com.`) und eine Administrator-`email` an; die Zone gehört dem aufrufenden Projekt. Richten Sie dann Ihren Domain-Registrar auf unsere Nameserver und fügen Sie [Einträge](/docs/api/dns-records) hinzu, um Adressen, Mail-Routing und Verifizierungs-Tokens für diese Domain zu veröffentlichen.
 
 ## Delegierung {#delegation}
 
-Nachdem Sie eine Zone erstellt haben, enthält die Antwort die vier Nameserver, die Sie bei Ihrem Registrar konfigurieren müssen:
+Diese Nameserver konfigurieren Sie bei Ihrem Registrar:
 
 ```text
 {{DNS_NS1}}
@@ -30,17 +30,6 @@ Während einer Migration können Sie Ihren bisherigen DNS-Anbieter parallel weit
 Eine Zone = eine Domain. `example.com` ist eine Zone; `api.example.com` ist eine Subdomain, die über einen A- oder CNAME-Eintrag in der Zone `example.com` abgebildet wird, keine eigene Zone — es sei denn, Sie wollen `api.example.com` gezielt an einen anderen DNS-Anbieter delegieren. Dann erstellen Sie `example.com` (mit NS-Einträgen, die für die Subdomain auf den anderen Anbieter zeigen) und die Zone der Subdomain getrennt voneinander.
 
 Für die typische Nutzung ist eine Zone pro registrierter Domain der richtige Aufbau.
-
-## DNSSEC {#dnssec}
-
-DNSSEC ist für jede Zone, die wir hosten, standardmäßig aktiviert. Die DS-Einträge, die Sie bei Ihrem Registrar veröffentlichen müssen, sind im Zonendatensatz enthalten und lassen sich jederzeit erneut abrufen. Wir rotieren ZSK + KSK alle 90 Tage; nach einem KSK-Rollover müssen Sie den DS-Eintrag beim Registrar aktualisieren.
-
-## Preise {#pricing}
-
-- **Zonen:** \$0,50 pro Zone und Monat.
-- **Abfragen:** Die erste 1 Million Abfragen/Monat pro Zone ist kostenlos, danach \$0,40 pro Million.
-
-Zum Vergleich: Das autoritative DNS von Cloudflare ist im Basis-Tarif kostenlos, Route 53 kostet \$0,50/Zone + pro Abfrage, AWS Cloud Map ist teurer. Mit unseren Preisen liegen wir zwischen Cloudflare und Route 53.
 
 ## Nächste Schritte {#next-steps}
 

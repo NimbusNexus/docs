@@ -2,7 +2,7 @@
 title: "Registros DNS"
 description: "Registros A, AAAA, CNAME, MX, TXT, SRV e NS dentro de uma zona."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -19,10 +19,13 @@ Um conjunto de registros é uma tupla `(name, type)` dentro de uma [zona](/docs/
 | **CNAME** | Alias para outro nome                        | `other.example.com.`                          |
 | **MX**    | Servidor de e-mail                           | `10 mail.example.com.`                        |
 | **TXT**   | Texto livre — verificação, SPF, DKIM, DMARC  | `"v=spf1 -all"`                               |
+| **SPF**   | Política SPF, em um tipo de registro próprio | `"v=spf1 -all"`                               |
 | **SRV**   | Localização de serviço                       | `10 5 5060 sip.example.com.`                  |
 | **NS**    | Delegação para outros servidores de nomes    | `ns1.other.com.`                              |
 | **CAA**   | Autorização de autoridade certificadora      | `0 issue "letsencrypt.org"`                   |
-| **PTR**   | Ponteiro de DNS reverso (para IPs flutuantes) | Veja [IPs flutuantes](/docs/api/floating-ips) |
+| **SSHFP** | Impressão digital da chave de host SSH       | `4 2 <sha256-fingerprint>`                    |
+| **NAPTR** | Regra de reescrita para a busca de um serviço | `100 10 "U" "E2U+sip" "!^.*$!sip:info@example.com!" .` |
+| **PTR**   | Ponteiro de DNS reverso                      | Veja [DNS reverso](/docs/api/reverse-dns)     |
 
 Não suportamos: `ALIAS` / `ANAME` (CNAME flattening no apex) — em vez disso, use o CNAME em um subdomínio ou, no apex, um registro A apontando para um IP flutuante.
 
@@ -40,13 +43,9 @@ Os servidores de nomes retornam os três valores a cada consulta, e os resolvedo
 
 ## TTLs {#ttl}
 
-Cada conjunto de registros tem um TTL em segundos — por quanto tempo os resolvedores guardam a resposta em cache antes de consultar de novo. Padrões:
+Cada conjunto de registros tem um TTL em segundos — por quanto tempo os resolvedores guardam a resposta em cache antes de consultar de novo. Defina `ttl` ao criar ou atualizar um conjunto de registros. Sem ele, o conjunto de registros usa o TTL da zona dele, que é 3600 (1 hora), a menos que você defina outro na zona.
 
-- **A / AAAA / CNAME:** 300 segundos (5 minutos) — bom para atualizações rápidas / failover
-- **MX / NS:** 3600 (1 hora) — estes mudam raramente
-- **TXT para verificação:** 60 — curto para que as novas verificações sejam rápidas
-
-Use TTLs mais baixos enquanto estiver iterando ativamente; aumente-os quando os registros se estabilizarem, para reduzir o volume de consultas + o custo.
+Use TTLs mais baixos enquanto estiver iterando ativamente; aumente-os quando os registros se estabilizarem, para reduzir o volume de consultas.
 
 ## Próximos passos {#next-steps}
 

@@ -1,21 +1,27 @@
 ---
-title: "Rechnungen"
-description: "Monatsrechnungen — auflisten, abrufen, Aufschlüsselung ansehen."
+title: "Abrechnung"
+description: "Salden, offene Kosten, Aktionsguthaben und Rechnungsdaten Ihres Workspaces."
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: invoices
 ---
 
-# Rechnungen
+# Abrechnung
 
-Rechnungen werden monatlich am 1. des Folgemonats erstellt und decken den gesamten Verbrauch des vorherigen Kalendermonats ab. Jede Rechnung ist nach Ressource und Tag aufgeschlüsselt, sodass Sie jede Position auf bestimmte VMs / Volumes / Buckets / Datenbanken zurückführen können.
+Abgerechnet wird pro Workspace. Diese Endpoints lesen, wie das Konto des Workspaces steht, und pflegen seine Rechnungsdaten:
 
-Dieser Endpoint bietet programmatischen Zugriff auf dieselben Daten, die das Dashboard zeigt. Anwendungsfälle: Rechnungspositionen in Ihr eigenes System zur Kostenzuordnung einspeisen, Rechnungen für steuerliche Zwecke archivieren, Rechnungen mit Ihrem Bestellbuch abgleichen.
+- `GET /api/v1/billing/public/balances` — ausstehende Postpaid-Kosten, verfügbares Aktionsguthaben und das Prepaid-Guthaben, in einer Momentaufnahme.
+- `GET /api/v1/billing/public/accrued_charges` — die Summe der bisher angefallenen Kosten, die noch nicht beglichen sind.
+- `GET /api/v1/billing/public/cash_balance` — das Prepaid-Guthaben, mit dem Zeitpunkt seiner letzten Änderung.
+- `GET /api/v1/billing/public/promotion_grants` — aktives Aktionsguthaben, mit dem Restbetrag jeder Gutschrift und ihrem Ablaufdatum.
+- `GET` und `PATCH /api/v1/billing/public/billing_info` — die Rechnungsadresse, der Firmenname und die E-Mail-Adressen, die Kontoauszüge und Zahlungsbelege erhalten.
 
-Rechnungen gibt es auch als PDF — dasselbe Format, das in den meisten Rechtsordnungen für die steuerliche Geltendmachung verwendet wird. Das JSON-Format ist die maßgebliche Quelle; das PDF wird aus dem JSON erzeugt.
+Die Rechnungen selbst sind über die API nicht verfügbar.
+
+Diese Aufrufe brauchen eine angemeldete Sitzung, gesendet als `Authorization: Bearer` oder als Sitzungs-Cookie. Ein API-Key kann sie nicht ausführen.
 
 ## Nächste Schritte {#next-steps}
 
-- [Zahlungsmethoden](/docs/api/payment-methods) — womit Rechnungen bezahlt werden.
-- [Preisdaten](/docs/api/pricing-data) — die Preise pro Ressource, aus denen sich die Rechnungssummen ergeben.
+- [Zahlungsmethoden](/docs/api/payment-methods) — die Karten, mit denen das Prepaid-Guthaben aufgeladen wird.
+- [Preisdaten](/docs/api/pricing-data) — die Preise pro Ressource hinter den Kosten.
