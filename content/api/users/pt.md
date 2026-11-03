@@ -22,20 +22,22 @@ O que um usuário pode fazer em um projeto vem das funções que ele tem ali, co
 
 ## O que você pode fazer com um usuário {#actions}
 
-- **Criar** — adiciona um usuário ao workspace de quem chama, com um `name` e, opcionalmente, um `password`, uma `description` e a flag `enabled`.
 - **Obter** — lê o registro de um usuário pelo ID.
 - **Atualizar** — altera o nome, a descrição, a flag enabled ou a senha.
 - **Excluir** — remove permanentemente. Todas as atribuições de função e chaves de API do usuário são revogadas de forma atômica.
 
-As quatro exigem a função `admin`. Atualizar e excluir também aceitam a chave de API de um admin. Criar e obter precisam de uma sessão com escopo do próprio workspace, não de um dos projetos dele. Uma chave de API sempre tem escopo de um único projeto, então uma chamada com uma chave a qualquer uma das duas recebe `400`.
+As três exigem a função `admin`. Atualizar e excluir também aceitam a chave de API de um admin. Obter precisa de uma sessão com escopo do próprio workspace, não de um dos projetos dele. Uma chave de API sempre tem escopo de um único projeto, então obter com uma chave recebe `400`.
 
-Uma senha entra e nunca sai: o registro de um usuário só tem `id`, `name`, `description` e `enabled`.
+As pessoas entram em um workspace e saem dele em **Members**, no [console da sua conta]({{ACCOUNT_BASE_URL}}/members): convide-as ali e remova-as ali. Esta API lê e atualiza os registros de usuário delas.
+
+Atualizar ainda aceita um `password`, mas nem o painel nem os apps pedem essa senha: eles fazem o login das pessoas com a conta NimbusNexus delas. Uma senha nunca sai: o registro de um usuário só tem `id`, `name`, `description` e `enabled`.
 
 Não existe "desativar" separado de "excluir". Se você quer uma desativação lógica (manter o histórico de auditoria, impedir o login), defina `enabled: false` com uma atualização — esse é o caminho da desativação lógica. Excluir é exclusão física + revogar tudo.
 
 ## O que você não pode fazer {#cant-do}
 
-- **Mover um usuário para outro workspace.** Crie um novo usuário no workspace de destino, conceda ali as funções que quiser e exclua o antigo. Dentro de um workspace não há nada para mover: conceda ao usuário uma função no outro projeto.
+- **Criar um usuário.** `POST /api/v1/users` retorna `403 Forbidden`. Um usuário criado pela API não teria uma conta NimbusNexus para entrar, então convide as pessoas no console da sua conta.
+- **Mover um usuário para outro workspace.** Convide a pessoa para o outro workspace em **Members**, no console da sua conta, e conceda ali as funções de que ela precisa. Dentro de um workspace não há nada para mover: conceda ao usuário uma função no outro projeto.
 - **Obter um usuário de outro workspace.** Obter só encontra usuários do workspace de quem chama. Para qualquer outro, a API retorna `404`.
 
 ## Próximos passos {#next-steps}

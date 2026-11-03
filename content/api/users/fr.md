@@ -22,20 +22,22 @@ Ce qu’un utilisateur peut faire dans un projet découle des rôles qu’il y d
 
 ## Ce que vous pouvez faire sur un utilisateur {#actions}
 
-- **Créer** — ajouter un utilisateur à l’espace de travail de l’appelant, avec un `name` et, en option, un `password`, une `description` et l’indicateur `enabled`.
 - **Lire** — lire la fiche d’un utilisateur par son ID.
 - **Modifier** — changer le nom, la description, l’indicateur d’activation ou le mot de passe.
 - **Supprimer** — supprimer définitivement. Toutes les attributions de rôles et les clés API de l’utilisateur sont révoquées de façon atomique.
 
-Les quatre exigent le rôle `admin`. Modifier et supprimer acceptent aussi la clé API d’un administrateur. Créer et lire exigent une session dont la portée est l’espace de travail lui-même, et non l’un de ses projets. Une clé API est toujours propre à un seul projet : un appel avec une clé à l’une ou l’autre reçoit donc `400`.
+Les trois exigent le rôle `admin`. Modifier et supprimer acceptent aussi la clé API d’un administrateur. Lire exige une session dont la portée est l’espace de travail lui-même, et non l’un de ses projets. Une clé API est toujours propre à un seul projet : une lecture avec une clé reçoit donc `400`.
 
-Un mot de passe entre et ne ressort jamais : la fiche d’un utilisateur ne contient que `id`, `name`, `description` et `enabled`.
+Les personnes rejoignent et quittent un espace de travail dans **Members**, dans votre [console de compte]({{ACCOUNT_BASE_URL}}/members) : invitez-les là, et retirez-les là. Cette API lit et modifie leurs fiches d’utilisateur.
+
+Modifier accepte toujours un `password`, mais ni la console ni les apps ne le demandent jamais : elles connectent les personnes avec leur compte NimbusNexus. Un mot de passe ne ressort jamais : la fiche d’un utilisateur ne contient que `id`, `name`, `description` et `enabled`.
 
 Il n’existe pas de « désactiver » distinct de « supprimer ». Si vous voulez une désactivation douce (conserver l’historique d’audit, empêcher la connexion), définissez `enabled: false` via une mise à jour — c’est la voie de la désactivation douce. La suppression est définitive et révoque tout.
 
 ## Ce que vous ne pouvez pas faire {#cant-do}
 
-- **Déplacer un utilisateur vers un autre espace de travail.** Créez un nouvel utilisateur dans l’espace de travail cible, accordez-y les rôles voulus, supprimez l’ancien. Au sein d’un même espace de travail, il n’y a rien à déplacer : accordez à l’utilisateur un rôle sur l’autre projet.
+- **Créer un utilisateur.** `POST /api/v1/users` répond `403 Forbidden`. Un utilisateur créé via l’API n’aurait aucun compte NimbusNexus pour se connecter : invitez plutôt les personnes dans votre console de compte.
+- **Déplacer un utilisateur vers un autre espace de travail.** Invitez la personne dans l’autre espace de travail depuis **Members**, dans votre console de compte, et accordez-lui là-bas les rôles dont elle a besoin. Au sein d’un même espace de travail, il n’y a rien à déplacer : accordez à l’utilisateur un rôle sur l’autre projet.
 - **Lire un utilisateur d’un autre espace de travail.** Lire ne trouve que les utilisateurs de l’espace de travail de l’appelant. Pour tout autre, l’API répond `404`.
 
 ## Étapes suivantes {#next-steps}

@@ -22,20 +22,22 @@ Was ein Benutzer in einem Projekt tun kann, ergibt sich aus den Rollen, die er d
 
 ## Was Sie mit einem Benutzer tun können {#actions}
 
-- **Erstellen** — einen Benutzer im Workspace des Aufrufers anlegen, mit `name` und optional `password`, `description` und dem Flag `enabled`.
 - **Abrufen** — einen Benutzerdatensatz per ID lesen.
 - **Aktualisieren** — Name, Beschreibung, Aktivierungs-Flag oder Passwort ändern.
 - **Löschen** — dauerhaft entfernen. Alle Rollenzuweisungen und API-Keys des Benutzers werden atomar widerrufen.
 
-Alle vier erfordern die Rolle `admin`. Aktualisieren und Löschen akzeptieren auch den API-Key eines Admins. Erstellen und Abrufen brauchen eine Sitzung, die für den Workspace selbst gilt, nicht für eines seiner Projekte. Ein API-Key gilt immer für ein einzelnes Projekt, deshalb antwortet die API auf den Aufruf eines Keys bei beiden mit `400`.
+Alle drei erfordern die Rolle `admin`. Aktualisieren und Löschen akzeptieren auch den API-Key eines Admins. Abrufen braucht eine Sitzung, die für den Workspace selbst gilt, nicht für eines seiner Projekte. Ein API-Key gilt immer für ein einzelnes Projekt, deshalb antwortet die API beim Abrufen mit einem Key mit `400`.
 
-Ein Passwort geht hinein und kommt nie wieder heraus: Ein Benutzerdatensatz enthält nur `id`, `name`, `description` und `enabled`.
+Menschen kommen über **Members** in Ihrer [Kontokonsole]({{ACCOUNT_BASE_URL}}/members) in einen Workspace und verlassen ihn auch dort: Laden Sie sie dort ein und entfernen Sie sie dort. Diese API liest und aktualisiert ihre Benutzerdatensätze.
+
+Aktualisieren nimmt weiterhin ein `password` an, aber das Dashboard und die Apps fragen nie danach, denn beide melden Menschen mit ihrem NimbusNexus-Konto an. Ein Passwort kommt nie wieder heraus: Ein Benutzerdatensatz enthält nur `id`, `name`, `description` und `enabled`.
 
 Es gibt kein „Deaktivieren“ getrennt vom „Löschen“. Wenn Sie einen Benutzer nur weich deaktivieren wollen (Audit-Verlauf behalten, Anmeldung verhindern), setzen Sie per Aktualisierung `enabled: false` — das ist der Weg zum weichen Deaktivieren. Löschen bedeutet endgültiges Löschen + Widerruf von allem.
 
 ## Was Sie nicht tun können {#cant-do}
 
-- **Einen Benutzer in einen anderen Workspace verschieben.** Legen Sie im Ziel-Workspace einen neuen Benutzer an, erteilen Sie dort die gewünschten Rollen und löschen Sie den alten. Innerhalb eines Workspaces gibt es nichts zu verschieben: Erteilen Sie dem Benutzer eine Rolle im anderen Projekt.
+- **Einen Benutzer erstellen.** `POST /api/v1/users` antwortet mit `403 Forbidden`. Ein über die API erstellter Benutzer hätte kein NimbusNexus-Konto, mit dem er sich anmelden könnte, deshalb laden Sie Menschen stattdessen in der Kontokonsole ein.
+- **Einen Benutzer in einen anderen Workspace verschieben.** Laden Sie die Person unter **Members** in der Kontokonsole in den anderen Workspace ein und erteilen Sie ihr dort die Rollen, die sie braucht. Innerhalb eines Workspaces gibt es nichts zu verschieben: Erteilen Sie dem Benutzer eine Rolle im anderen Projekt.
 - **Einen Benutzer aus einem anderen Workspace abrufen.** Abrufen findet nur Benutzer im Workspace des Aufrufers. Für alle anderen antwortet die API mit `404`.
 
 ## Nächste Schritte {#next-steps}
