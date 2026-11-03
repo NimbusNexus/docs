@@ -1,19 +1,21 @@
 ---
 title: Phone verification
-description: Verify a phone number for SMS-based 2FA and account recovery.
+description: Add a phone number to your user and verify it with a code sent by SMS.
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: phone-verification
 ---
 
 # Phone verification
 
-A verified phone number can act as a fallback second factor and as a recovery channel for the rare case where a user has lost both their password and their TOTP/WebAuthn device. Verification is the standard "we text a code, you enter it" flow.
+Phone verification adds a phone number to your user and checks that it reaches you. Verification is the standard "we text a code, you enter it" flow.
 
-SMS as a primary 2FA factor is weaker than TOTP or WebAuthn (SIM-swap attacks, SS7 issues). NimbusNexus supports SMS 2FA but defaults to TOTP for new enrollment; SMS is offered as the recovery-only path for production-tier accounts. Enterprise accounts can disable SMS entirely if their threat model excludes it.
+`POST /api/v1/phone/` takes a `phone_code` (the country calling code, digits only) and a `phone_number`, and texts a six-digit code to that number. The code is good for 10 minutes. `POST /api/v1/phone/phone_passcode_validation` with that `passcode` marks the number verified. `GET /api/v1/phone/` shows the verified number, and `DELETE /api/v1/phone/` removes it. To change the number, start again with `POST /api/v1/phone/`.
+
+A verified number isn't a second factor or a recovery channel. [Two-factor authentication](/docs/api/two-factor-auth) uses a TOTP code, and a lost password is reset by email (see [Account overview](/docs/api/account-overview)).
 
 ## What's next {#next-steps}
 
-- [Two-factor authentication](/docs/api/two-factor-auth) — the primary 2FA setup.
+- [Two-factor authentication](/docs/api/two-factor-auth) — the TOTP second factor.
 - [Users](/docs/api/users) — the resource phone numbers attach to.
