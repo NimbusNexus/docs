@@ -2,7 +2,7 @@
 title: "Referencia de Request Bins"
 description: "Todas las rutas de la API de Request Bins, qué responde y qué registra la URL de un bin, quién puede hacer qué y los límites de cada plan."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-30
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -93,8 +93,14 @@ La URL base es `https://bins.nimbusnexus.net/v1`. Las peticiones y las respuesta
 | `POST /v1/bins` | Crea un bin; `201` con [el bin](#bin) | write |
 | `GET /v1/bins` | Los bins del workspace, del más reciente al más antiguo; `url` o `slug` busca uno | read |
 | `GET /v1/bins/{id}` | Un bin | read |
-| `PATCH /v1/bins/{id}` | Cambia el nombre de un bin, lo desactiva y lo activa, o fija su [URL de reenvío](#forwarding) | write |
+| `PATCH /v1/bins/{id}` | Cambia el nombre de un bin, lo desactiva y lo activa, o fija su [URL de reenvío](#forwarding) y su [pipeline](#pipeline) | write; con un paso de credencial, admin |
 | `POST /v1/bins/{id}/forward-test` | Envía una [prueba](#forward-test) a la URL de reenvío del bin y devuelve lo que respondió | write |
+| `POST /v1/bins/{id}/forward-pipeline/test` | Ejecuta una [pipeline](#pipeline-test) sobre una de las peticiones del bin sin enviar nada | write |
+| `GET /v1/pipeline-templates` | Las [plantillas](#pipeline-templates) de las que puede partir una pipeline | read |
+| `POST /v1/secrets` | Guarda un [secreto](#secrets); `201` con el secreto, nunca con su valor | admin |
+| `GET /v1/secrets`, `GET /v1/secrets/{id}` | Los secretos del workspace, del más reciente al más antiguo, o uno de ellos, con su nombre y su id | read |
+| `PATCH /v1/secrets/{id}` | Cambia el nombre de un secreto o sustituye su valor | admin |
+| `DELETE /v1/secrets/{id}` | Borra un secreto; `204` | admin |
 | `DELETE /v1/bins/{id}` | Borra un bin; `204` | admin |
 | `GET /v1/bins/{id}/requests` | Las [peticiones capturadas](#requests) de un bin, de la más reciente a la más antigua | read; con una clave, un plan de pago |
 | `GET /v1/requests` | Las [peticiones capturadas](#all-requests) de todos los bins en una sola lista, de la más reciente a la más antigua | read; con una clave, un plan de pago |
@@ -146,10 +152,14 @@ Las listas se paginan con `limit` (de 1 a 200, 50 por defecto) y `offset` (de 0 
 | `forward_url` | Adónde [reenvía](#forwarding) el bin cada petición que registra, o `null` si no reenvía. |
 | `forward_paused_at`, `forward_paused_reason` | Cuándo se [pausó](/docs/product-bins/forwarding#paused) el reenvío tras envíos fallidos, y por qué: `failed_in_a_row` o `failing_for_an_hour`. `null` y vacío mientras no está pausado. |
 | `forward_last_error`, `forward_last_error_at` | El último envío que falló: qué salió mal, como `HTTP 503` o un timeout, nunca lo que contenía la petición; y cuándo. |
+| `forward_pipeline` | La [pipeline](#pipeline) que ejecuta primero cada reenvío, o `null`. Un paso de credencial que haya en ella hace referencia a su secreto por el id. |
+| `forward_pipeline_version` | Sube con cada cambio de la pipeline, también cuando se quita; `0` antes del primero. El `pipeline.version` de un reenvío es la versión que se ejecutó. |
+| `forward_pipeline_changes_body` | `true` cuando un paso cambia el cuerpo, así que los reenvíos ya no llevan la firma del emisor. |
+| `forward_pipeline_updated_at` | Cuándo cambió la pipeline por última vez, o `null`. |
 
 ### Modifica o borra un bin {#change}
 
-`PATCH /v1/bins/{id}` acepta `label`, `status` (`enabled` o `disabled`), `forward_url` ([Reenvío](#forwarding)) o cualquier combinación de ellos, y responde con el bin. Desactivarlo detiene el registro y conserva lo que el bin contiene. Un bin desactivado sigue contando para los bins del plan.
+`PATCH /v1/bins/{id}` acepta `label`, `status` (`enabled` o `disabled`), `forward_url` ([Reenvío](#forwarding)), `forward_pipeline` con `forward_pipeline_changes_body` ([Pipelines](#pipeline)) o cualquier combinación de ellos, y responde con el bin. Desactivarlo detiene el registro y conserva lo que el bin contiene. Un bin desactivado sigue contando para los bins del plan.
 
 Antes, `status` era `active` donde ahora es `enabled`, y ninguna respuesta dice ya `active`. `PATCH` sigue aceptando `"status": "active"` y el bin se devuelve como `enabled`, pero esa grafía está obsoleta y se rechazará a partir de una fecha que aún está por anunciar, así que envía `enabled`.
 
@@ -271,6 +281,8 @@ Un bin en Starter, Pro o Custom puede reenviar cada petición que registra a una
 
 Trata `reason`, `forward_paused_reason` y el `reason` de un reenvío como cadenas abiertas, y ten un caso por defecto para un valor que no conozcas.
 
+Cambiar la URL de reenvío de un bin cuya pipeline tiene un paso de credencial requiere **admin**: decide adónde se envía el secreto. Volver a fijar la misma URL, para reanudarlo, o quitarla sigue requiriendo solo **write**.
+
 Cuando el reenvío se pausa, se avisa al workspace una vez, por email y con un webhook con el tipo de evento `bind.forwarding.paused`; [Cuando el reenvío se pausa](/docs/product-bins/forwarding#paused) muestra el cuerpo del webhook.
 
 ### Prueba una URL de reenvío {#forward-test}
@@ -282,9 +294,10 @@ Cuando el reenvío se pausa, se avisa al workspace una vez, por email y con un w
 | `ok` | `true` cuando tu servidor respondió `2xx` o `3xx`. |
 | `answer` | Lo que respondió: `status`; `headers`, objetos con un `name` y un `value`, en el orden en que se enviaron; los primeros 8 KiB del cuerpo como `body_base64`; y `truncated`, `true` cuando el cuerpo pasaba de ese tamaño. `null` cuando no llegó ninguna respuesta. |
 | `duration_ms` | Cuánto tardó el envío. |
-| `error` | Por qué no llegó ninguna respuesta, como un timeout o una conexión rechazada; vacío cuando llegó una. |
+| `error` | Por qué no llegó ninguna respuesta, como un timeout o una conexión rechazada, o que la pipeline del bin omitió el evento de prueba o lo hizo fallar; vacío cuando llegó una respuesta. |
+| `pipeline` | Lo que hizo la [pipeline](#pipeline) del bin con el evento de prueba, con la misma forma que el `pipeline` de un reenvío; `null` cuando el bin no tiene ninguna. |
 
-La llamada espera la respuesta hasta 13 segundos, y un servidor más lento da `ok` `false` con un `error` que lo indica. Un bin puede enviar 10 pruebas por minuto: a partir de ahí, la respuesta es `429` `rate_limited`, y `details.retry_after` indica cuántos segundos faltan para que se permita la siguiente. `503` `unavailable`, con `details.reason` `forwarder_unavailable`, significa que la prueba no se recogió para enviarla en un plazo de 3 segundos, así que no se envió nada: vuelve a intentarlo en breve. Una URL que en el momento del envío resulta no ser pública se rechaza con el `422` anterior.
+La pipeline del bin se ejecuta primero sobre el evento de prueba, como en cada reenvío, así que una prueba también comprueba que tu servidor acepta la credencial que añade un paso de credencial. La llamada espera la respuesta hasta 13 segundos, y un servidor más lento da `ok` `false` con un `error` que lo indica. Un bin puede enviar 10 pruebas por minuto: a partir de ahí, la respuesta es `429` `rate_limited`, y `details.retry_after` indica cuántos segundos faltan para que se permita la siguiente. `503` `unavailable`, con `details.reason` `forwarder_unavailable`, significa que la prueba no se recogió para enviarla en un plazo de 3 segundos, así que no se envió nada: vuelve a intentarlo en breve. Una URL que en el momento del envío resulta no ser pública se rechaza con el `422` anterior.
 
 ### Los reenvíos de una petición {#forwards}
 
@@ -298,11 +311,12 @@ La llamada espera la respuesta hasta 13 segundos, y un servidor más lento da `o
 | `url` | Adónde va: la URL de reenvío tal como era cuando llegó la petición, con la ruta y la query de la petición añadidas. |
 | `attempts`, `max_attempts` | Los intentos hechos hasta ahora, y el máximo que permitía el plan cuando se puso en cola. |
 | `next_attempt_at` | Cuándo toca el siguiente intento, mientras `state` es `retrying`; si no, `null`. |
-| `last_error` | Qué salió mal en el último intento, como `HTTP 503` o un timeout, o por qué está esperando; vacío una vez enviado. |
-| `answer` | Lo que respondió tu servidor en el último intento, con la misma forma que en una [prueba](#forward-test). `null` cuando ese intento no obtuvo respuesta. |
+| `last_error` | Qué salió mal en el último intento, como `HTTP 503`, un timeout o `pipeline_failed: …`, o por qué está esperando, o qué paso lo omitió; vacío una vez enviado. |
+| `answer` | Lo que respondió tu servidor en el último intento, con la misma forma que en una [prueba](#forward-test). `null` cuando ese intento no obtuvo respuesta. Si la respuesta repetía una credencial que añadió la pipeline, ahí aparece como `[redacted]`. |
 | `duration_ms` | Cuánto tardó el último intento; `null` antes del primero. |
 | `created_at` | Cuándo se puso en cola. |
 | `sent_at` | Cuándo se envió; `null` hasta entonces. |
+| `pipeline` | Lo que hizo la pipeline del bin en el último intento, o `null` cuando no se ejecutó ninguna: `version`; `step`, el paso que lo omitió o lo hizo fallar, contado desde 0, o `null`; `body_changed`, `true` cuando un paso reescribió el cuerpo; `headers`, todas las cabeceras enviadas, incluidas las nuestras, con el valor de una credencial enmascarado como `Bearer ••••`; y `credential_query`, los nombres de los parámetros de query que añadió un paso de credencial. |
 
 | `state` | Qué significa |
 | --- | --- |
@@ -324,6 +338,63 @@ La llamada espera la respuesta hasta 13 segundos, y un servidor más lento da `o
 | `suspended` | El bin o su workspace se suspendió antes de su turno. |
 | `not_entitled` | El plan dejó de incluir el reenvío antes de su turno. |
 | `request_gone` | La petición llegó al final de su retención antes de su turno. |
+| `filtered` | Un paso de filtro de la pipeline del bin omitió la petición. `pipeline.step` indica cuál. |
+
+### Pipelines {#pipeline}
+
+La pipeline de un bin se ejecuta en cada reenvío, antes de que se envíe. [Una pipeline antes de cada reenvío](/docs/product-bins/forwarding#pipeline) explica los pasos, lo que leen y lo que hace un reenvío con ellos; esta sección cubre la API. `forward_pipeline` en `PATCH /v1/bins/{id}` acepta la pipeline, un documento JSON `{"version": 1, "steps": [...]}`, y `null` la quita:
+
+- **Un paso que cambia el cuerpo** (`drop`, `set` o `map`) solo se guarda con `"forward_pipeline_changes_body": true` en la misma petición. Sin ese campo, la respuesta es `422` `invalid_pipeline` con el motivo `changes_body`.
+- **Un paso de credencial** requiere **admin**, igual que guardar un secreto. Quitar una pipeline requiere **write**.
+- **Volver a enviar el mismo documento** no cambia nada, y `forward_pipeline_version` se queda igual.
+- **En Free**, la respuesta es `402` `not_entitled` con `details.feature` `forwarding`. Mientras el reenvío está desactivado para todo el servicio, es `503` `unavailable`, `forwarding_disabled`.
+
+Una pipeline que nunca podría ejecutarse se rechaza al guardarla o al probarla. La respuesta es `422` `invalid_pipeline` e indica el primer problema: `details.reason`; `details.path`, un JSON Pointer dentro del documento, como `/steps/1/headers/set/Via` (no aparece cuando el problema es todo el documento); y `details.step`, el índice del paso, contado desde 0.
+
+| `reason` | Por qué |
+| --- | --- |
+| `invalid_document`, `unsupported_version`, `no_steps`, `too_many_steps` | El documento no es `{"version": 1, "steps": [...]}` con entre 1 y 20 pasos. |
+| `invalid_step`, `unknown_step`, `invalid_value` | Un paso no es `filter`, `drop`, `set`, `map`, `headers` ni `auth`, o contiene un ajuste que ese paso no admite. |
+| `invalid_path`, `invalid_template`, `invalid_filter`, `invalid_header`, `not_json` | Hay una ruta, una plantilla, un filtro, un nombre o un valor de cabecera, o un valor que no es válido. |
+| `invalid_secret` | Un paso de credencial hace referencia a algo que no es el id de un secreto, como un valor. La respuesta nunca lo repite. |
+| `auth_not_last` | Un paso de credencial va antes de un paso de otro tipo: los pasos de credencial van al final, para que ningún paso pueda leer la credencial. |
+| `too_deep`, `too_large` | El anidamiento es demasiado profundo, un paso supera los 16 KiB o el documento supera los 64 KiB. |
+| `managed_header` | Un paso fija una de las cabeceras que ponemos nosotros en todo reenvío, como `Via` o `X-Forwarded-For`, o una que añade nuestro edge (`CF-*`, `X-Real-IP`, `CDN-Loop`). |
+| `forbidden_header` | Un paso fija una cabecera hop-by-hop, `Proxy-Authorization` o `Set-Cookie`. |
+| `credential_header` | Un paso de cabeceras fija `Authorization`, `Cookie` o `X-Api-Key`, lo que guardaría la credencial en la pipeline. Añádela con un paso de credencial en su lugar. |
+| `unknown_secret` | Un paso de credencial hace referencia a un secreto que el workspace no tiene. |
+| `changes_body` | Un paso cambia el cuerpo, y `forward_pipeline_changes_body` no era `true`. |
+
+#### Prueba una pipeline {#pipeline-test}
+
+`POST /v1/bins/{id}/forward-pipeline/test` ejecuta una pipeline una vez y no envía nada. Acepta `pipeline`, un documento que ejecutar (sin él, se ejecuta la del propio bin), y `request_id`, una de las peticiones del bin (sin él, la más reciente, o el evento de prueba cuando el bin no tiene ninguna). El documento se comprueba igual que al guardarlo, salvo que un paso que cambia el cuerpo no necesita confirmación:
+
+| Campo | Qué es |
+| --- | --- |
+| `status` | `ok`, se enviaría un reenvío; `dropped`, un filtro lo omite; `failed`, la pipeline lo hace fallar. |
+| `request_id` | La petición sobre la que se ejecutó, o `test`. |
+| `step`, `reason`, `error` | El paso que lo omitió o lo hizo fallar, contado desde 0; `no_match` o `matched` en un filtro, o por qué falló; y lo mismo con palabras. Vacíos con `ok`. |
+| `method`, `headers` | Lo que enviaría un reenvío: todas las cabeceras, incluidas las nuestras, con el valor de una credencial enmascarado. |
+| `credential_query` | Los nombres de los parámetros de query que añadiría un paso de credencial. |
+| `body_base64`, `body_changed` | El cuerpo que enviaría, y `true` cuando un paso lo reescribió. |
+| `duration_ms` | Cuánto tardó la ejecución. |
+
+#### Plantillas {#pipeline-templates}
+
+`GET /v1/pipeline-templates` lista las pipelines de las que puede partir una nueva: los mensajes `slack`, `discord` y `teams`, `keep_fields` y `drop_personal`. Cada una tiene un `id` que nunca cambia, un `name`, una `description`, el documento `pipeline` y `changes_body`, que hoy es `true` en todas. Al guardar una, el bin recibe su propia copia.
+
+### Secretos {#secrets}
+
+Un secreto es una credencial que añade un paso de credencial: un token bearer, una contraseña o una clave de API. El workspace tiene un único almacén de secretos, y la pipeline de cualquier bin puede hacer referencia a ellos por su id. `POST /v1/secrets` acepta `name` (hasta 200 caracteres) y `value` (ASCII imprimible, hasta 4.096 caracteres), y responde `201`:
+
+| Campo | Qué es |
+| --- | --- |
+| `id` | `sec_` y 24 caracteres hexadecimales: a lo que hace referencia un paso de credencial. |
+| `name` | El nombre que le das. |
+| `bin_count` | Cuántos bins vivos tienen una pipeline que hace referencia a él. |
+| `created_at`, `updated_at` | Cuándo se guardó, y cuándo se renombró o se sustituyó por última vez. |
+
+Ninguna respuesta lleva el valor de un secreto, y un rechazo nunca lo repite. `PATCH /v1/secrets/{id}` acepta `name` o `value`, y todos los reenvíos envían el valor nuevo a partir de su siguiente intento. `DELETE /v1/secrets/{id}` responde `204`, o `409` `conflict` con `details.reason` `secret_in_use`, `details.id` y `details.bins` mientras la pipeline de un bin hace referencia a él. Guardar, sustituir y borrar requieren **admin**. Guardar requiere un plan con reenvío; en Free la respuesta es `402` `not_entitled`, `forwarding`. Donde todavía no se pueden guardar secretos, la respuesta es `503` `unavailable`, `secrets_unavailable`.
 
 ### Plan y consumo {#plan}
 
@@ -377,15 +448,15 @@ La llamada espera la respuesta hasta 13 segundos, y un servidor más lento da `o
 
 ## Quién puede hacer qué {#authority}
 
-| | Leer bins, plan y consumo | Leer peticiones capturadas | Crear, renombrar, desactivar y activar bins, y configurar el reenvío | Borrar y vaciar bins |
-| --- | --- | --- | --- | --- |
-| Propietario o administrador del workspace | sí | sí | sí | sí |
-| Miembro | sí | sí | sí | no |
-| Lector, o cualquier otro rol | sí | sí | no | no |
-| Clave con **Read & write** (alcance `admin`) | sí | en planes de pago | sí | sí |
-| Clave con **Read** (alcance `read`) | sí | en planes de pago | no | no |
+| | Leer bins, plan y consumo | Leer peticiones capturadas | Crear, renombrar, desactivar y activar bins, y configurar el reenvío | Borrar y vaciar bins | Secretos, y pipelines que envían uno |
+| --- | --- | --- | --- | --- | --- |
+| Propietario o administrador del workspace | sí | sí | sí | sí | sí |
+| Miembro | sí | sí | sí | no | no |
+| Lector, o cualquier otro rol | sí | sí | no | no | no |
+| Clave con **Read & write** (alcance `admin`) | sí | en planes de pago | sí | sí | sí |
+| Clave con **Read** (alcance `read`) | sí | en planes de pago | no | no | no |
 
-Una acción rechazada responde `403` `forbidden` con `details.reason` `role`, y `details.required` indica el rol que necesita: `member` para crear o modificar un bin, `admin` para borrarlo o vaciarlo. Para una clave, ambos equivalen a **Read & write** (el alcance `admin`). La consola de la cuenta crea claves **Read** y **Read & write**, y una clave con cualquier otro alcance, como `write`, se trata como **Read**.
+Una acción rechazada responde `403` `forbidden` con `details.reason` `role`, y `details.required` indica el rol que necesita: `member` para crear o modificar un bin; `admin` para borrarlo o vaciarlo, para guardar, sustituir o borrar un [secreto](#secrets), o para decidir adónde va un secreto (guardar una pipeline cuyo paso de credencial hace referencia a uno, o cambiar la URL de reenvío de un bin cuya pipeline envía uno). Para una clave, ambos equivalen a **Read & write** (el alcance `admin`). La consola de la cuenta crea claves **Read** y **Read & write**, y una clave con cualquier otro alcance, como `write`, se trata como **Read**.
 
 Request Bins da servicio a workspaces completos. Un puesto de invitado, o una clave limitada a un proyecto, se rechaza en todas las rutas con `403` `project_confined`.
 
@@ -438,18 +509,20 @@ Los errores de la API usan el formato descrito en [Errores](/docs/errors), con l
 | `401` | `unauthorized` | Sin credencial, una credencial revocada o una sesión de consola que ha terminado; `details.reason` indica cuál. |
 | `401` | `invalid_credential` | Una clave que no se verifica, ha caducado o se creó para otro producto. |
 | `402` | `quota_exceeded` | Crear un bin cuando todos los bins del plan están en uso. |
-| `402` | `not_entitled` | En Free: leer peticiones capturadas con una clave (`details.feature` `read_api`), o fijar una URL de reenvío o enviar una prueba (`forwarding`). |
+| `402` | `not_entitled` | En Free: leer peticiones capturadas con una clave (`details.feature` `read_api`), o fijar una URL de reenvío o una pipeline, enviar una prueba o guardar un secreto (`forwarding`). |
 | `402` | `workspace_frozen`, `workspace_suspended` | Crear o modificar un bin mientras un pago está vencido, o después de que se haya interrumpido el servicio. |
 | `403` | `forbidden` | `details.reason` es `role`, `project_confined`, `product_not_enabled`, `csrf` o `no_workspace`. |
-| `404` | `not_found` | No existe ese bin o esa petición en tu workspace, o se ha borrado o ha caducado; `details.reason` es `bin` o `request`. |
+| `404` | `not_found` | No existe ese bin, esa petición o ese secreto en tu workspace, o se ha borrado o ha caducado; `details.reason` es `bin`, `request` o `secret`. |
 | `405` | `method_not_allowed` | La ruta existe, pero no para este método. |
+| `409` | `conflict` | Borrar un secreto al que hace referencia la pipeline de un bin: `details.reason` `secret_in_use` ([Secretos](#secrets)). |
 | `413` | `payload_too_large` | Un cuerpo de petición de más de 2 MiB. |
+| `422` | `invalid_pipeline` | Una pipeline que nunca podría ejecutarse, al guardarla o al probarla; `details.reason`, `details.path` y `details.step` indican el problema ([Pipelines](#pipeline)). |
 | `422` | `validation_error` | Un parámetro o un campo no ha superado la validación. Un carácter NUL en la ruta, la query o un cuerpo JSON es el tipo de entrada `bins.nul_character`, una URL de reenvío a la que un bin no reenvía es `bins.forward_target` ([Reenvío](#forwarding)), y una búsqueda cuyas partes se contradicen es `bins.search_conflict` ([Peticiones capturadas](#requests)). |
 | `429` | `rate_limited` | Más de 10 envíos de prueba a un mismo bin en un minuto; `details.retry_after` indica cuándo volver a intentarlo. |
 | `500` | `internal_error` | Algo ha fallado por nuestra parte. |
-| `503` | `unavailable` | Fijar una URL de reenvío o enviar una prueba mientras el reenvío está desactivado para todo el servicio (`details.reason` `forwarding_disabled`), o una prueba que no se recogió para enviarla en un plazo de 3 segundos, así que no se envió nada (`forwarder_unavailable`). |
+| `503` | `unavailable` | Fijar una URL de reenvío o una pipeline, o enviar una prueba, mientras el reenvío está desactivado para todo el servicio (`details.reason` `forwarding_disabled`); una prueba que no se recogió para enviarla en un plazo de 3 segundos, así que no se envió nada (`forwarder_unavailable`); o guardar un secreto donde todavía no se pueden guardar secretos (`secrets_unavailable`). |
 
-La API no envía ningún `409`, y solo envía `429` para los envíos de prueba.
+La API solo envía `409` para un secreto en uso, y `429` solo para los envíos de prueba.
 
 ## Próximos pasos {#next-steps}
 

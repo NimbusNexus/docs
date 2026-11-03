@@ -2,7 +2,7 @@
 title: "Referência de Request Bins"
 description: "Todas as rotas da API de Request Bins, o que a URL de um bin responde e registra, quem pode fazer o quê e os limites de cada plano."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-30
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -93,8 +93,14 @@ A URL base é `https://bins.nimbusnexus.net/v1`. Requisições e respostas são 
 | `POST /v1/bins` | Cria um bin; `201` com [o bin](#bin) | write |
 | `GET /v1/bins` | Os bins do workspace, do mais novo para o mais antigo; `url` ou `slug` encontra um | read |
 | `GET /v1/bins/{id}` | Um bin | read |
-| `PATCH /v1/bins/{id}` | Renomeia um bin, o desativa e ativa, ou define a [URL de encaminhamento](#forwarding) dele | write |
+| `PATCH /v1/bins/{id}` | Renomeia um bin, o desativa e ativa, ou define a [URL de encaminhamento](#forwarding) e o [pipeline](#pipeline) dele | write; com uma etapa de credencial, admin |
 | `POST /v1/bins/{id}/forward-test` | Envia um [teste](#forward-test) para a URL de encaminhamento do bin e retorna o que ela respondeu | write |
+| `POST /v1/bins/{id}/forward-pipeline/test` | Executa um [pipeline](#pipeline-test) sobre uma das requisições do bin, sem enviar nada | write |
+| `GET /v1/pipeline-templates` | Os [templates](#pipeline-templates) que servem de ponto de partida para um pipeline | read |
+| `POST /v1/secrets` | Armazena um [segredo](#secrets); `201` com o segredo, nunca com o valor dele | admin |
+| `GET /v1/secrets`, `GET /v1/secrets/{id}` | Os segredos do workspace, do mais novo para o mais antigo, ou um só, com nome e id | read |
+| `PATCH /v1/secrets/{id}` | Renomeia um segredo ou substitui o valor dele | admin |
+| `DELETE /v1/secrets/{id}` | Exclui um segredo; `204` | admin |
 | `DELETE /v1/bins/{id}` | Exclui um bin; `204` | admin |
 | `GET /v1/bins/{id}/requests` | As [requisições capturadas](#requests) de um bin, da mais nova para a mais antiga | read; com uma chave, um plano pago |
 | `GET /v1/requests` | As [requisições capturadas](#all-requests) de todos os bins em uma única lista, da mais nova para a mais antiga | read; com uma chave, um plano pago |
@@ -146,10 +152,14 @@ As listas são paginadas com `limit` (de 1 a 200, padrão 50) e `offset` (de 0 a
 | `forward_url` | Para onde o bin [encaminha](#forwarding) cada requisição que registra, ou `null` quando ele não encaminha. |
 | `forward_paused_at`, `forward_paused_reason` | Quando o encaminhamento foi [pausado](/docs/product-bins/forwarding#paused) depois de envios que falharam, e por quê: `failed_in_a_row` ou `failing_for_an_hour`. `null` e vazio enquanto ele não está pausado. |
 | `forward_last_error`, `forward_last_error_at` | O último envio que falhou: o que deu errado, como `HTTP 503` ou um timeout, nunca o que a requisição continha; e quando. |
+| `forward_pipeline` | O [pipeline](#pipeline) que todo encaminhamento executa primeiro, ou `null`. Uma etapa de credencial dentro dele referencia o segredo pelo id. |
+| `forward_pipeline_version` | Muda a cada alteração do pipeline, inclusive a remoção dele; `0` antes da primeira. O `pipeline.version` de um encaminhamento é a versão que rodou. |
+| `forward_pipeline_changes_body` | `true` quando uma etapa altera o corpo, e por isso os encaminhamentos deixam de levar a assinatura do remetente. |
+| `forward_pipeline_updated_at` | Quando o pipeline mudou pela última vez, ou `null`. |
 
 ### Alterar ou excluir um bin {#change}
 
-`PATCH /v1/bins/{id}` recebe `label`, `status` (`enabled` ou `disabled`), `forward_url` ([Encaminhamento](#forwarding)) ou qualquer um deles, e responde com o bin. Desativar interrompe o registro e mantém o que o bin guarda. Um bin desativado continua contando para os bins do plano.
+`PATCH /v1/bins/{id}` recebe `label`, `status` (`enabled` ou `disabled`), `forward_url` ([Encaminhamento](#forwarding)), `forward_pipeline` com `forward_pipeline_changes_body` ([Pipelines](#pipeline)) ou qualquer um deles, e responde com o bin. Desativar interrompe o registro e mantém o que o bin guarda. Um bin desativado continua contando para os bins do plano.
 
 `status` era `active` onde agora é `enabled`, e nenhuma resposta diz mais `active`. `PATCH` ainda aceita `"status": "active"`, e o bin volta como `enabled`, mas essa grafia está descontinuada e será recusada a partir de uma data ainda a ser anunciada, então envie `enabled`.
 
@@ -271,6 +281,8 @@ Um bin no Starter, no Pro ou no Custom pode repassar cada requisição que regis
 
 Trate `reason`, `forward_paused_reason` e o `reason` de um encaminhamento como strings abertas e mantenha um caso padrão para um valor que você não conhece.
 
+Mudar a URL de encaminhamento de um bin cujo pipeline tem uma etapa de credencial exige **admin**: é ela que decide para onde o segredo é enviado. Definir a mesma URL de novo, para retomar, e removê-la continuam exigindo apenas **write**.
+
 Quando o encaminhamento é pausado, o workspace é avisado uma vez, por e-mail e por um webhook com o tipo de evento `bind.forwarding.paused`; [Quando o encaminhamento é pausado](/docs/product-bins/forwarding#paused) mostra o corpo do webhook.
 
 ### Testar uma URL de encaminhamento {#forward-test}
@@ -282,9 +294,10 @@ Quando o encaminhamento é pausado, o workspace é avisado uma vez, por e-mail e
 | `ok` | `true` quando o seu servidor respondeu `2xx` ou `3xx`. |
 | `answer` | O que ele respondeu: `status`; `headers`, objetos com um `name` e um `value`, na ordem em que foram enviados; os primeiros 8 KiB do corpo, como `body_base64`; e `truncated`, `true` quando o corpo ia além disso. `null` quando nenhuma resposta veio. |
 | `duration_ms` | Quanto tempo o envio levou. |
-| `error` | Por que nenhuma resposta veio, como um timeout ou uma conexão recusada; vazio quando uma resposta veio. |
+| `error` | Por que nenhuma resposta veio, como um timeout ou uma conexão recusada, ou o aviso de que o pipeline do bin pulou ou fez falhar o evento de teste; vazio quando uma resposta veio. |
+| `pipeline` | O que o [pipeline](#pipeline) do bin fez com o evento de teste, no mesmo formato do `pipeline` de um encaminhamento; `null` quando o bin não tem pipeline. |
 
-A chamada espera até 13 segundos pela resposta, e um servidor mais lento que isso resulta em `ok` `false`, com um `error` que informa isso. Um bin pode enviar 10 testes por minuto: acima disso, a resposta é `429` `rate_limited`, e `details.retry_after` diz quantos segundos faltam até o próximo ser permitido. `503` `unavailable`, com `details.reason` `forwarder_unavailable`, significa que o teste não foi pego para envio em até 3 segundos, então nada foi enviado: tente de novo em instantes. Uma URL que se revela não pública no momento do envio é recusada com o `422` acima.
+O pipeline do bin roda primeiro sobre o evento de teste, como em todo encaminhamento, então um teste também verifica se o seu servidor aceita a credencial que uma etapa de credencial acrescenta. A chamada espera até 13 segundos pela resposta, e um servidor mais lento que isso resulta em `ok` `false`, com um `error` que informa isso. Um bin pode enviar 10 testes por minuto: acima disso, a resposta é `429` `rate_limited`, e `details.retry_after` diz quantos segundos faltam até o próximo ser permitido. `503` `unavailable`, com `details.reason` `forwarder_unavailable`, significa que o teste não foi pego para envio em até 3 segundos, então nada foi enviado: tente de novo em instantes. Uma URL que se revela não pública no momento do envio é recusada com o `422` acima.
 
 ### Os encaminhamentos de uma requisição {#forwards}
 
@@ -298,11 +311,12 @@ A chamada espera até 13 segundos pela resposta, e um servidor mais lento que is
 | `url` | Para onde ele vai: a URL de encaminhamento como era quando a requisição chegou, com o caminho e a query da requisição acrescentados. |
 | `attempts`, `max_attempts` | As tentativas feitas até agora, e o máximo que o plano permitia quando ele entrou na fila. |
 | `next_attempt_at` | Quando a próxima tentativa está prevista, enquanto `state` é `retrying`; nos outros casos, `null`. |
-| `last_error` | O que deu errado na última tentativa, como `HTTP 503` ou um timeout, ou por que ele está esperando; vazio depois que ele é enviado. |
-| `answer` | O que o seu servidor respondeu na última tentativa, no mesmo formato de um [teste](#forward-test). `null` quando essa tentativa não teve resposta. |
+| `last_error` | O que deu errado na última tentativa, como `HTTP 503`, um timeout ou `pipeline_failed: …`, ou então por que ele está esperando ou qual etapa o pulou; vazio depois que ele é enviado. |
+| `answer` | O que o seu servidor respondeu na última tentativa, no mesmo formato de um [teste](#forward-test). `null` quando essa tentativa não teve resposta. Se a resposta devolveu uma credencial que o pipeline acrescentou, ela aparece ali como `[redacted]`. |
 | `duration_ms` | Quanto tempo a última tentativa levou; `null` antes da primeira. |
 | `created_at` | Quando ele entrou na fila. |
 | `sent_at` | Quando ele foi enviado; `null` até lá. |
+| `pipeline` | O que o pipeline do bin fez na última tentativa, ou `null` quando nenhum rodou: `version`; `step`, a etapa que o pulou ou o fez falhar, contada a partir de 0, ou `null`; `body_changed`, `true` quando uma etapa reescreveu o corpo; `headers`, todos os headers enviados, inclusive os nossos, com o valor de uma credencial mascarado como `Bearer ••••`; e `credential_query`, os nomes dos parâmetros de query que uma etapa de credencial acrescentou. |
 
 | `state` | O que significa |
 | --- | --- |
@@ -324,6 +338,63 @@ A chamada espera até 13 segundos pela resposta, e um servidor mais lento que is
 | `suspended` | O bin, ou o workspace dele, foi suspenso antes de chegar a vez da requisição. |
 | `not_entitled` | O plano deixou de incluir o encaminhamento antes de chegar a vez da requisição. |
 | `request_gone` | A requisição atingiu o fim da retenção antes de chegar a vez dela. |
+| `filtered` | Uma etapa de filtro do pipeline do bin pulou a requisição. `pipeline.step` diz qual. |
+
+### Pipelines {#pipeline}
+
+O pipeline de um bin roda em todo encaminhamento, antes do envio. [Um pipeline antes de cada encaminhamento](/docs/product-bins/forwarding#pipeline) explica as etapas, o que elas leem e o que um encaminhamento faz com elas; esta seção cobre a API. `forward_pipeline`, em `PATCH /v1/bins/{id}`, recebe o pipeline, um documento JSON `{"version": 1, "steps": [...]}`, e `null` o remove:
+
+- **Uma etapa que altera o corpo** (`drop`, `set` ou `map`) só é salva com `"forward_pipeline_changes_body": true` na mesma requisição. Sem isso, a resposta é `422` `invalid_pipeline`, com o motivo `changes_body`.
+- **Uma etapa de credencial** exige **admin**, assim como armazenar um segredo. Remover um pipeline exige **write**.
+- **O mesmo documento de novo** não muda nada, e `forward_pipeline_version` continua igual.
+- **No Free**, a resposta é `402` `not_entitled`, com `details.feature` `forwarding`. Enquanto o encaminhamento está desligado para todo o serviço, ela é `503` `unavailable`, `forwarding_disabled`.
+
+Um pipeline que nunca poderia rodar é recusado quando é salvo ou testado. A resposta é `422` `invalid_pipeline`, indicando o primeiro problema: `details.reason`; `details.path`, um JSON Pointer para dentro do documento, como `/steps/1/headers/set/Via` (ausente quando o problema é o documento inteiro); e `details.step`, o índice da etapa, contado a partir de 0.
+
+| `reason` | Por quê |
+| --- | --- |
+| `invalid_document`, `unsupported_version`, `no_steps`, `too_many_steps` | O documento não é `{"version": 1, "steps": [...]}` com 1 a 20 etapas. |
+| `invalid_step`, `unknown_step`, `invalid_value` | Uma etapa não é de nenhum dos tipos `filter`, `drop`, `set`, `map`, `headers` e `auth`, ou traz uma configuração que ela não aceita. |
+| `invalid_path`, `invalid_template`, `invalid_filter`, `invalid_header`, `not_json` | Um caminho, um template, um filtro, um nome ou valor de header, ou um valor, não é válido. |
+| `invalid_secret` | Uma etapa de credencial referencia algo que não é o id de um segredo, como um valor. A resposta nunca o repete. |
+| `auth_not_last` | Uma etapa de credencial vem antes de uma etapa de outro tipo: as etapas de credencial ficam por último, para que nenhuma etapa possa ler a credencial. |
+| `too_deep`, `too_large` | O aninhamento é profundo demais, uma etapa tem mais de 16 KiB ou o documento tem mais de 64 KiB. |
+| `managed_header` | Uma etapa define um header que nós colocamos em todo encaminhamento, como `Via` ou `X-Forwarded-For`, ou um que o nosso edge acrescenta (`CF-*`, `X-Real-IP`, `CDN-Loop`). |
+| `forbidden_header` | Uma etapa define um header hop-by-hop, `Proxy-Authorization` ou `Set-Cookie`. |
+| `credential_header` | Uma etapa de headers define `Authorization`, `Cookie` ou `X-Api-Key`, o que guardaria a credencial no pipeline. Em vez disso, acrescente-a com uma etapa de credencial. |
+| `unknown_secret` | Uma etapa de credencial referencia um segredo que o workspace não tem. |
+| `changes_body` | Uma etapa altera o corpo, e `forward_pipeline_changes_body` não era `true`. |
+
+#### Testar um pipeline {#pipeline-test}
+
+`POST /v1/bins/{id}/forward-pipeline/test` executa um pipeline uma vez e não envia nada. Ele recebe `pipeline`, um documento a executar (sem ele, roda o próprio pipeline do bin), e `request_id`, uma das requisições do bin (sem ele, a mais nova, ou o evento de teste quando o bin não guarda nenhuma). O documento passa pelas mesmas verificações de quando é salvo, só que uma etapa que altera o corpo não precisa de confirmação:
+
+| Campo | Descrição |
+| --- | --- |
+| `status` | `ok`, um encaminhamento seria enviado; `dropped`, um filtro o pula; `failed`, o pipeline o faz falhar. |
+| `request_id` | A requisição sobre a qual ele rodou, ou `test`. |
+| `step`, `reason`, `error` | A etapa que o pulou ou o fez falhar, contada a partir de 0; `no_match` ou `matched` para um filtro, ou por que ele falhou; e o mesmo por extenso. Vazios quando o resultado é `ok`. |
+| `method`, `headers` | O que um encaminhamento enviaria: todos os headers, inclusive os nossos, com o valor de uma credencial mascarado. |
+| `credential_query` | Os nomes dos parâmetros de query que uma etapa de credencial acrescentaria. |
+| `body_base64`, `body_changed` | O corpo que ele enviaria, e `true` quando uma etapa o reescreveu. |
+| `duration_ms` | Quanto tempo a execução levou. |
+
+#### Templates {#pipeline-templates}
+
+`GET /v1/pipeline-templates` lista os pipelines que servem de ponto de partida para um novo: as mensagens `slack`, `discord` e `teams`, `keep_fields` e `drop_personal`. Cada um tem um `id` que nunca muda, um `name`, uma `description`, o documento `pipeline` e `changes_body`, que hoje é `true` em todos eles. Salvar um deles cria uma cópia que passa a ser do próprio bin.
+
+### Segredos {#secrets}
+
+Um segredo é uma credencial que uma etapa de credencial acrescenta: um token Bearer, uma senha ou uma chave de API. O workspace guarda todos eles em um só lugar, e o pipeline de qualquer bin pode referenciá-los pelo id. `POST /v1/secrets` recebe `name` (com até 200 caracteres) e `value` (ASCII imprimível, com até 4.096 caracteres), e responde `201`:
+
+| Campo | Descrição |
+| --- | --- |
+| `id` | `sec_` e 24 caracteres hexadecimais: o que uma etapa de credencial referencia. |
+| `name` | O nome que você deu a ele. |
+| `bin_count` | Os bins ativos cujo pipeline o referencia. |
+| `created_at`, `updated_at` | Quando ele foi armazenado, e quando foi renomeado ou substituído pela última vez. |
+
+Nenhuma resposta traz o valor de um segredo, e uma recusa nunca o repete. `PATCH /v1/secrets/{id}` recebe `name` ou `value`, e todo encaminhamento passa a enviar um valor novo a partir da próxima tentativa. `DELETE /v1/secrets/{id}` responde `204`, ou `409` `conflict`, com `details.reason` `secret_in_use`, `details.id` e `details.bins`, enquanto o pipeline de um bin o referencia. Armazenar, substituir e excluir exigem **admin**. Armazenar exige um plano com encaminhamento; no Free, a resposta é `402` `not_entitled`, `forwarding`. Onde ainda não é possível armazenar segredos, a resposta é `503` `unavailable`, `secrets_unavailable`.
 
 ### Plano e uso {#plan}
 
@@ -377,15 +448,15 @@ A chamada espera até 13 segundos pela resposta, e um servidor mais lento que is
 
 ## Quem pode fazer o quê {#authority}
 
-| | Ler bins, plano e uso | Ler requisições capturadas | Criar, renomear, desativar e ativar bins, e configurar o encaminhamento | Excluir e esvaziar bins |
-| --- | --- | --- | --- | --- |
-| Proprietário ou admin do workspace | sim | sim | sim | sim |
-| Membro | sim | sim | sim | não |
-| Viewer, ou qualquer outra função | sim | sim | não | não |
-| Chave com **Read & write** (escopo `admin`) | sim | nos planos pagos | sim | sim |
-| Chave com **Read** (escopo `read`) | sim | nos planos pagos | não | não |
+| | Ler bins, plano e uso | Ler requisições capturadas | Criar, renomear, desativar e ativar bins, e configurar o encaminhamento | Excluir e esvaziar bins | Segredos, e pipelines que enviam um segredo |
+| --- | --- | --- | --- | --- | --- |
+| Proprietário ou admin do workspace | sim | sim | sim | sim | sim |
+| Membro | sim | sim | sim | não | não |
+| Viewer, ou qualquer outra função | sim | sim | não | não | não |
+| Chave com **Read & write** (escopo `admin`) | sim | nos planos pagos | sim | sim | sim |
+| Chave com **Read** (escopo `read`) | sim | nos planos pagos | não | não | não |
 
-Uma ação recusada responde `403` `forbidden` com `details.reason` `role`, e `details.required` indica a função necessária: `member` para criar ou alterar um bin, `admin` para excluir ou esvaziar um. Para uma chave, as duas significam **Read & write** (o escopo `admin`). O console da conta cria chaves **Read** e **Read & write**, e uma chave com qualquer outro escopo, como `write`, é tratada como **Read**.
+Uma ação recusada responde `403` `forbidden` com `details.reason` `role`, e `details.required` indica a função necessária: `member` para criar ou alterar um bin, `admin` para excluir ou esvaziar um, para armazenar, substituir ou excluir um [segredo](#secrets) ou para decidir para onde vai um segredo, ou seja, salvar um pipeline cuja etapa de credencial referencia um segredo e mudar a URL de encaminhamento de um bin cujo pipeline referencia um. Para uma chave, as duas significam **Read & write** (o escopo `admin`). O console da conta cria chaves **Read** e **Read & write**, e uma chave com qualquer outro escopo, como `write`, é tratada como **Read**.
 
 O Request Bins atende workspaces inteiros. Um assento de convidado, ou uma chave restrita a um projeto, é recusado em todas as rotas com `403` `project_confined`.
 
@@ -438,18 +509,20 @@ Os erros da API usam o formato descrito em [Erros](/docs/errors), com os código
 | `401` | `unauthorized` | Nenhuma credencial, uma credencial revogada ou uma sessão de login do console que terminou; `details.reason` diz qual. |
 | `401` | `invalid_credential` | Uma chave que não passa na verificação, expirou ou foi criada para outro produto. |
 | `402` | `quota_exceeded` | Criar um bin quando todos os bins do plano estão em uso. |
-| `402` | `not_entitled` | No Free: ler requisições capturadas com uma chave (`details.feature` `read_api`), ou definir uma URL de encaminhamento ou enviar um teste (`forwarding`). |
+| `402` | `not_entitled` | No Free: ler requisições capturadas com uma chave (`details.feature` `read_api`), ou definir uma URL de encaminhamento ou um pipeline, enviar um teste ou armazenar um segredo (`forwarding`). |
 | `402` | `workspace_frozen`, `workspace_suspended` | Criar ou alterar um bin enquanto um pagamento está atrasado, ou depois que o serviço foi interrompido. |
 | `403` | `forbidden` | `details.reason` é `role`, `project_confined`, `product_not_enabled`, `csrf` ou `no_workspace`. |
-| `404` | `not_found` | Não há esse bin nem essa requisição no seu workspace, ou o recurso foi excluído ou expirou; `details.reason` é `bin` ou `request`. |
+| `404` | `not_found` | Não há esse bin, essa requisição nem esse segredo no seu workspace, ou o recurso foi excluído ou expirou; `details.reason` é `bin`, `request` ou `secret`. |
 | `405` | `method_not_allowed` | O caminho existe, mas não para este método. |
+| `409` | `conflict` | Excluir um segredo que o pipeline de um bin referencia: `details.reason` `secret_in_use` ([Segredos](#secrets)). |
 | `413` | `payload_too_large` | Um corpo de requisição acima de 2 MiB. |
+| `422` | `invalid_pipeline` | Um pipeline que nunca poderia rodar, ao ser salvo ou testado; `details.reason`, `details.path` e `details.step` indicam o problema ([Pipelines](#pipeline)). |
 | `422` | `validation_error` | Um parâmetro ou campo falhou na validação. Um caractere NUL no caminho, na query ou em um corpo JSON aparece como uma entrada do tipo `bins.nul_character`, uma URL de encaminhamento para a qual um bin não encaminha aparece como `bins.forward_target` ([Encaminhamento](#forwarding)), e uma busca cujas partes se contradizem aparece como `bins.search_conflict` ([Requisições capturadas](#requests)). |
 | `429` | `rate_limited` | Mais de 10 envios de teste para um bin em um minuto; `details.retry_after` diz quando tentar de novo. |
 | `500` | `internal_error` | Algo quebrou do nosso lado. |
-| `503` | `unavailable` | Definir uma URL de encaminhamento ou enviar um teste enquanto o encaminhamento está desligado para todo o serviço (`details.reason` `forwarding_disabled`), ou um teste que não foi pego para envio em até 3 segundos, então nada foi enviado (`forwarder_unavailable`). |
+| `503` | `unavailable` | Definir uma URL de encaminhamento ou um pipeline, ou enviar um teste, enquanto o encaminhamento está desligado para todo o serviço (`details.reason` `forwarding_disabled`); um teste que não foi pego para envio em até 3 segundos, então nada foi enviado (`forwarder_unavailable`); ou armazenar um segredo onde ainda não é possível armazenar segredos (`secrets_unavailable`). |
 
-A API não envia `409`, e envia `429` só para envios de teste.
+A API envia `409` só para um segredo em uso, e `429` só para envios de teste.
 
 ## Próximos passos {#next-steps}
 
