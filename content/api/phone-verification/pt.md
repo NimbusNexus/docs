@@ -1,19 +1,21 @@
 ---
 title: "Verificação de telefone"
-description: "Verifique um número de telefone para 2FA por SMS e recuperação de conta."
+description: "Adicione um número de telefone ao seu usuário e verifique-o com um código enviado por SMS."
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: phone-verification
 ---
 
 # Verificação de telefone
 
-Um número de telefone verificado pode funcionar como segundo fator de reserva e como canal de recuperação no caso raro em que um usuário perdeu tanto a senha quanto o dispositivo TOTP/WebAuthn. A verificação é o fluxo padrão "enviamos um código por SMS, você o digita".
+A verificação de telefone adiciona um número de telefone ao seu usuário e confere se ele chega até você. A verificação é o fluxo padrão "enviamos um código por SMS, você o digita".
 
-SMS como fator principal de 2FA é mais fraco que TOTP ou WebAuthn (ataques de SIM swap, problemas com o SS7). A NimbusNexus suporta 2FA por SMS, mas usa TOTP por padrão nos novos cadastros; o SMS é oferecido como caminho exclusivo de recuperação para contas do nível production. Contas Enterprise podem desativar o SMS completamente se o modelo de ameaças delas o excluir.
+`POST /api/v1/phone/` recebe um `phone_code` (o código de discagem do país, só dígitos) e um `phone_number`, e envia por SMS um código de seis dígitos para esse número. O código vale por 10 minutos. `POST /api/v1/phone/phone_passcode_validation` com esse `passcode` marca o número como verificado. `GET /api/v1/phone/` mostra o número verificado, e `DELETE /api/v1/phone/` o remove. Para trocar o número, comece de novo com `POST /api/v1/phone/`.
+
+Um número verificado não é um segundo fator nem um canal de recuperação. A [autenticação de dois fatores](/docs/api/two-factor-auth) usa um código TOTP, e uma senha perdida é redefinida por e-mail (veja [Visão geral da conta](/docs/api/account-overview)).
 
 ## Próximos passos {#next-steps}
 
-- [Autenticação de dois fatores](/docs/api/two-factor-auth) — a configuração principal de 2FA.
+- [Autenticação de dois fatores](/docs/api/two-factor-auth) — o segundo fator TOTP.
 - [Usuários](/docs/api/users) — o recurso ao qual os números de telefone são vinculados.

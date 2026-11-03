@@ -1,21 +1,22 @@
 ---
 title: "Notifications"
-description: "Préférences de notification par compte — ce que nous vous envoyons par e-mail et ce que vous faites passer par des webhooks."
+description: "Vos notifications dans l’application — listez-les, marquez-les comme lues, supprimez-les et recevez-les en direct par un WebSocket."
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: notifications
 ---
 
 # Notifications
 
-Les préférences de notification déterminent quels événements déclenchent un e-mail vers quel contact, et lesquels déclenchent à la place une livraison de webhook (ou en plus). Les catégories comprennent les alertes de facturation, les événements de sécurité, les avertissements de quota, les annonces de maintenance planifiée et les sorties de nouvelles fonctionnalités.
+Une notification est un message dans l’application adressé à un seul utilisateur, par exemple une invitation à rejoindre un espace de travail ou la réponse à une demande de quota. Chacune a un `title` et un `message`, un `delivery_status` (`pending`, `unread` ou `read`), un `visual_type` (`info`, `system`, `invite`, `payment`, `billing`, `warning`, `critical` ou `resize`) et, en option, des `meta_data` sur l’objet qu’elle concerne.
 
-Les valeurs par défaut sont raisonnables — la facturation et la sécurité vont toujours au contact de facturation / de sécurité, quelles que soient les préférences. Les catégories configurables sont les catégories opérationnelles : fenêtres de maintenance, seuils de quota, annonces de fonctionnalités en bêta, etc.
+`GET /api/v1/notifications/list` renvoie les notifications de l’appelant, de la plus récente à la plus ancienne, avec un `total` et un `unread_count`. Filtrez avec `statuses`, `workspace_id`, `meta_data_key` et `meta_data_value`, et paginez avec `offset` et `limit` (jusqu’à 200). Marquez-en une comme lue avec `PATCH /api/v1/notifications/`, ou plusieurs à la fois avec `PATCH /api/v1/notifications/bulk`. `DELETE` sur ces deux mêmes chemins les supprime.
 
-Pour les équipes plus grandes, le schéma habituel consiste à acheminer les notifications opérationnelles par webhooks vers votre système de gestion des incidents (PagerDuty, Opsgenie) plutôt que par e-mail vers un seul contact. L’acheminement par webhook utilise ici la même sémantique de livraison que celle décrite dans la page [Webhooks de la plateforme](/docs/webhooks).
+Pour une livraison en direct, ouvrez un WebSocket vers `/api/v1/ws` avec votre token de session dans les headers du handshake. `GET /api/v1/notifications/websocket-info` décrit la connexion.
 
 ## Étapes suivantes {#next-steps}
 
-- [Webhooks de la plateforme](/docs/webhooks) — le canal de livraison pour l’acheminement autre que par e-mail.
-- [Vue d’ensemble du compte](/docs/api/account-overview) — là où se trouvent les contacts de facturation et de sécurité.
+- [Espaces de travail](/docs/api/workspaces) — les invitations à rejoindre un espace de travail arrivent sous forme de notifications.
+- [Quotas](/docs/api/quotas) — tout comme les réponses aux demandes de quota.
+- [Facturation](/docs/api/invoices) — les adresses e-mail qui reçoivent les relevés et les reçus.

@@ -2,7 +2,7 @@
 title: "Cotas"
 description: "Limites por projeto para VMs, vCPU, RAM, armazenamento, IPs flutuantes e outros recursos."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -12,51 +12,40 @@ Cotas são limites por projeto que restringem quanto de cada recurso um projeto 
 
 ## O que tem cota {#what}
 
-Todo projeto tem uma cota para cada um destes itens:
+Os endpoints de cota cobrem quatro serviços. Cada um responde com os seus próprios nomes de cota, por exemplo:
 
-| Recurso                       | Cota padrão | Observações                                                                    |
-| ------------------- | ------------- | --------------------------------------------------------------- |
-| VMs                           | 50          | Por região; "VM" conta todos os estados, exceto `terminated`                   |
-| vCPU                          | 200         | Total de todas as VMs em execução                                              |
-| RAM (GB)                      | 800         | Total de todas as VMs em execução                                              |
-| Armazenamento em blocos (GB)  | 5.000       | Soma de todos os volumes (anexados + desanexados)                              |
-| Armazenamento de objetos (GB) | ilimitado   | Só um limite flexível: entramos em contato acima de ~50 TB para alinhar expectativas |
-| Snapshots                     | 200         | Por região; snapshots excluídos não contam                                     |
-| Backups                       | 500         | Por região                                                                     |
-| IPs flutuantes                | 20          | Por região                                                                     |
-| Redes                         | 10          | Por região                                                                     |
-| Grupos de segurança           | 50          | Por região                                                                     |
-| Balanceadores de carga        | 10          | Por região                                                                     |
-| Zonas DNS                     | 50          | Para o projeto inteiro                                                         |
-| Usuários                      | 25          | Para o projeto inteiro                                                         |
+| Serviço    | O que ele limita          | Exemplos de nomes de cota                                             |
+| ---------- | ------------------------- | --------------------------------------------------------------------- |
+| `nova`     | VMs                       | `instances`, `cores`, `ram` (em MB)                                   |
+| `cinder`   | Armazenamento em blocos   | `volumes`, `gigabytes`, `snapshots`, `backups`                        |
+| `neutron`  | Rede                      | `network`, `subnet`, `port`, `router`, `floatingip`, `security_group` |
+| `projects` | Projetos no seu workspace | `max_projects`                                                        |
 
-Os padrões são conservadores. A maioria dos projetos de produção tem as cotas aumentadas para 5–10× nos eixos mais usados (vCPU, RAM, armazenamento) logo após o lançamento.
+Leia os padrões com `GET /api/v1/quota/{service}?defaults=true`. `max_projects` é `-1`, o que significa sem limite, a menos que um limite tenha sido definido para o seu workspace.
 
 ## Cota vs. uso {#quota-vs-usage}
 
 Os endpoints expõem os dois:
 
-- `GET /v1/quotas` — os **limites** (50 VMs, 200 vCPU, etc.)
-- `GET /v1/quotas/usage` — o **consumo atual** (12 de 50 VMs usadas, 48 de 200 vCPU, etc.)
+- `GET /api/v1/quota/{service}` — os **limites**, como um mapa de nome de cota para número.
+- `GET /api/v1/quota/{service}/usage` — o **consumo atual**: `used`, `reserved` e `limit` para cada nome de cota.
 
-Sempre verifique o uso antes de criar recursos em massa; uma requisição que faria você ultrapassar a cota retorna 429 com `Retry-After` vazio (como a cota não é limitada no tempo, tentar de novo não ajuda — você precisa excluir algo ou aumentar a cota).
+`{service}` é `nova`, `cinder`, `neutron` ou `projects`.
+
+Sempre verifique o uso antes de criar recursos em massa; uma requisição que faria você ultrapassar a cota falha (como a cota não é limitada no tempo, tentar de novo não ajuda — você precisa excluir algo ou aumentar a cota).
 
 ## Aumentar uma cota {#raising}
 
-Os aumentos de cota passam pelo formulário de contato do suporte, não pela API. Três motivos:
+Peça um aumento com `POST /api/v1/quota-request/`: informe o `service_name`, o `quota_name` e o `new_value`, e diga o motivo em `reason`. A solicitação vale para o seu projeto atual, ou para o seu workspace quando o serviço é `projects`. Ela exige a função `manager` ou `admin`, e cada cota só pode ter uma solicitação aberta por vez.
 
-1. **Planejamento de capacidade.** Aumentos grandes (10× ou mais) precisam reservar hardware na região de destino.
-2. **Conformidade.** Alguns aumentos de cota exigem uma conversa rápida sobre o formato da carga de trabalho.
-3. **Prevenção de abuso.** Um endpoint self-service de aumento de cota seria a primeira coisa que uma conta comprometida chamaria.
-
-A maioria dos aumentos é aprovada em menos de um dia útil. Migrações de produção têm resposta no mesmo dia se você as sinalizar na solicitação.
+Um admin da NimbusNexus analisa cada solicitação manualmente. Aprová-la aplica o novo limite; uma solicitação também pode ser rejeitada ou devolvida para você fazer alterações. De qualquer forma, a resposta chega como uma [notificação](/docs/api/notifications). `GET /api/v1/quota-request/list` lista as suas solicitações, e `PATCH` ou `DELETE /api/v1/quota-request/` altera ou retira uma solicitação aberta.
 
 ## Cotas nas diferentes regiões {#regions}
 
-A maioria das cotas é **por região** (VMs, snapshots, redes). Algumas valem **para o projeto inteiro** (zonas DNS, usuários). A resposta do endpoint deixa isso explícito — cada entrada de cota traz um campo `scope` (`region: us-east-1` ou `project`).
+Os números de `nova`, `cinder` e `neutron` são da região em que a sua sessão está; mude de região com `GET /api/v1/account/rescope?region=<region_name>`. A cota de `projects` conta os projetos do seu workspace inteiro. As respostas são mapas simples de nomes de cota para números, sem campo de região nem de escopo.
 
 ## Próximos passos {#next-steps}
 
 - [Projetos](/docs/api/projects) — o contêiner ao qual as cotas se aplicam.
 - [Autenticação](/docs/authentication) — como chamar estes endpoints.
-- O **formulário de contato do suporte**, em [/contact/support]({{BASE_URL}}/contact/support) — por onde passam os aumentos de cota.
+- [Notificações](/docs/api/notifications) — onde chega a resposta a uma solicitação de cota.

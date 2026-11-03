@@ -1,19 +1,21 @@
 ---
 title: "Vérification du téléphone"
-description: "Vérifiez un numéro de téléphone pour la 2FA par SMS et la récupération du compte."
+description: "Ajoutez un numéro de téléphone à votre utilisateur et vérifiez-le avec un code envoyé par SMS."
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: phone-verification
 ---
 
 # Vérification du téléphone
 
-Un numéro de téléphone vérifié peut servir de second facteur de secours et de canal de récupération dans le cas rare où un utilisateur a perdu à la fois son mot de passe et son appareil TOTP/WebAuthn. La vérification suit le processus classique « nous envoyons un code par SMS, vous le saisissez ».
+La vérification du téléphone ajoute un numéro de téléphone à votre utilisateur et s’assure qu’il permet bien de vous joindre. La vérification suit le processus classique « nous envoyons un code par SMS, vous le saisissez ».
 
-Le SMS comme facteur 2FA principal est plus faible que TOTP ou WebAuthn (attaques par SIM swap, failles de SS7). NimbusNexus prend en charge la 2FA par SMS mais utilise TOTP par défaut pour tout nouvel enrôlement ; pour les comptes de niveau Production, le SMS n’est proposé que comme voie de récupération. Les comptes Enterprise peuvent désactiver complètement le SMS si leur modèle de menace l’exclut.
+`POST /api/v1/phone/` prend un `phone_code` (l’indicatif téléphonique du pays, en chiffres uniquement) et un `phone_number`, et envoie par SMS un code à six chiffres à ce numéro. Le code est valable 10 minutes. `POST /api/v1/phone/phone_passcode_validation` avec ce `passcode` marque le numéro comme vérifié. `GET /api/v1/phone/` affiche le numéro vérifié, et `DELETE /api/v1/phone/` le supprime. Pour changer de numéro, recommencez avec `POST /api/v1/phone/`.
+
+Un numéro vérifié n’est ni un second facteur ni un canal de récupération. [L’authentification à deux facteurs](/docs/api/two-factor-auth) utilise un code TOTP, et un mot de passe perdu se réinitialise par e-mail (voir [Vue d’ensemble du compte](/docs/api/account-overview)).
 
 ## Étapes suivantes {#next-steps}
 
-- [Authentification à deux facteurs](/docs/api/two-factor-auth) — la configuration principale de la 2FA.
+- [Authentification à deux facteurs](/docs/api/two-factor-auth) — le second facteur TOTP.
 - [Utilisateurs](/docs/api/users) — la ressource à laquelle sont rattachés les numéros de téléphone.

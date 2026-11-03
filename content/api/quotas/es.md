@@ -2,7 +2,7 @@
 title: "Cuotas"
 description: "Límites por proyecto de VMs, vCPU, RAM, almacenamiento, IPs flotantes y otros recursos."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -12,51 +12,40 @@ Las cuotas son límites por proyecto que acotan cuánto de cada recurso puede te
 
 ## Qué tiene cuota {#what}
 
-Cada proyecto tiene una cuota para cada uno de estos recursos:
+Los endpoints de cuotas cubren cuatro servicios. Cada uno responde con sus propios nombres de cuota, por ejemplo:
 
-| Recurso                        | Cuota por defecto | Notas                                                                                  |
-| ------------------------------ | ----------------- | -------------------------------------------------------------------------------------- |
-| VMs                            | 50                | Por región; "VM" cuenta todos los estados salvo `terminated`                           |
-| vCPU                           | 200               | Total entre todas las VMs en ejecución                                                 |
-| RAM (GB)                       | 800               | Total entre todas las VMs en ejecución                                                 |
-| Almacenamiento en bloques (GB) | 5.000             | Suma de todos los volúmenes (conectados + desconectados)                               |
-| Almacenamiento de objetos (GB) | ilimitado         | Solo es un límite flexible: te contactaremos por encima de ~50 TB para alinear expectativas |
-| Snapshots                      | 200               | Por región; los snapshots borrados no cuentan                                          |
-| Backups                        | 500               | Por región                                                                             |
-| IPs flotantes                  | 20                | Por región                                                                             |
-| Redes                          | 10                | Por región                                                                             |
-| Grupos de seguridad            | 50                | Por región                                                                             |
-| Balanceadores de carga         | 10                | Por región                                                                             |
-| Zonas DNS                      | 50                | A nivel de proyecto                                                                    |
-| Usuarios                       | 25                | A nivel de proyecto                                                                    |
+| Servicio   | Qué limita                | Ejemplos de nombres de cuota                                          |
+| ---------- | ------------------------- | --------------------------------------------------------------------- |
+| `nova`     | VMs                       | `instances`, `cores`, `ram` (en MB)                                   |
+| `cinder`   | Almacenamiento en bloques | `volumes`, `gigabytes`, `snapshots`, `backups`                        |
+| `neutron`  | Redes                     | `network`, `subnet`, `port`, `router`, `floatingip`, `security_group` |
+| `projects` | Proyectos de tu workspace | `max_projects`                                                        |
 
-Los valores por defecto son conservadores. A la mayoría de los proyectos de producción se les sube a 5–10× en los ejes más usados (vCPU, RAM, almacenamiento) poco después del lanzamiento.
+Lee los valores por defecto con `GET /api/v1/quota/{service}?defaults=true`. `max_projects` es `-1`, que significa sin límite, salvo que se haya fijado un límite para tu workspace.
 
 ## Cuota frente a consumo {#quota-vs-usage}
 
 Los endpoints exponen ambas cosas:
 
-- `GET /v1/quotas` — los **límites** (50 VMs, 200 vCPU, etc.)
-- `GET /v1/quotas/usage` — el **consumo actual** (12 VMs usadas de 50, 48 vCPU de 200, etc.)
+- `GET /api/v1/quota/{service}` — los **límites**, como un mapa de nombre de cuota a número.
+- `GET /api/v1/quota/{service}/usage` — el **consumo actual**: `used`, `reserved` y `limit` para cada nombre de cuota.
 
-Comprueba siempre el consumo antes de crear recursos en bloque; una petición que te haría superar la cuota devuelve un 429 con `Retry-After` vacío (como la cuota no tiene límite temporal, reintentar no sirve de nada — tienes que borrar algo o aumentar la cuota).
+`{service}` es `nova`, `cinder`, `neutron` o `projects`.
+
+Comprueba siempre el consumo antes de crear recursos en bloque; una petición que te haría superar la cuota falla (como la cuota no tiene límite temporal, reintentar no sirve de nada — tienes que borrar algo o aumentar la cuota).
 
 ## Aumento de cuota {#raising}
 
-Los aumentos de cuota se tramitan con el formulario de contacto de soporte, no con la API. Tres motivos:
+Pide un aumento con `POST /api/v1/quota-request/`: indica el `service_name`, el `quota_name` y el `new_value`, y explica el motivo en `reason`. La solicitud es para tu proyecto actual, o para tu workspace cuando el servicio es `projects`. Necesita el rol `manager` o `admin`, y cada cuota solo puede tener una solicitud abierta a la vez.
 
-1. **Planificación de capacidad.** Los aumentos grandes (10× o más) requieren reservar hardware en la región de destino.
-2. **Cumplimiento normativo.** Algunos aumentos de cuota requieren una breve conversación sobre la forma de la carga de trabajo.
-3. **Prevención de abusos.** Un endpoint de autoservicio para aumentar cuotas sería lo primero a lo que llamaría una cuenta comprometida.
-
-La mayoría de los aumentos se resuelven en menos de un día laborable. Las migraciones de producción se resuelven el mismo día si lo indicas en la solicitud.
+Un administrador de NimbusNexus revisa cada solicitud a mano. Al aprobarla se aplica el límite nuevo; una solicitud también se puede rechazar o devolverte para que hagas cambios. En cualquier caso, la respuesta llega como una [notificación](/docs/api/notifications). `GET /api/v1/quota-request/list` lista tus solicitudes, y `PATCH` o `DELETE /api/v1/quota-request/` modifica o retira una que esté abierta.
 
 ## Cuotas en varias regiones {#regions}
 
-La mayoría de las cuotas son **por región** (VMs, snapshots, redes). Unas pocas son **a nivel de proyecto** (zonas DNS, usuarios). La respuesta del endpoint lo indica explícitamente — cada entrada de cuota lleva un campo `scope` (`region: us-east-1` o `project`).
+Las cifras de `nova`, `cinder` y `neutron` son de la región en la que está tu sesión; cambia de región con `GET /api/v1/account/rescope?region=<region_name>`. La cuota de `projects` cuenta los proyectos de todo tu workspace. Las respuestas son mapas simples de nombres de cuota a números, sin campo de región ni de alcance.
 
 ## Próximos pasos {#next-steps}
 
 - [Proyectos](/docs/api/projects) — el contenedor al que se aplican las cuotas.
 - [Autenticación](/docs/authentication) — cómo llamar a estos endpoints.
-- El **formulario de contacto de soporte** en [/contact/support]({{BASE_URL}}/contact/support) — donde se tramitan los aumentos de cuota.
+- [Notificaciones](/docs/api/notifications) — donde llega la respuesta a una solicitud de cuota.

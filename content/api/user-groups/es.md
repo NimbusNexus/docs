@@ -2,14 +2,14 @@
 title: "Grupos de usuarios"
 description: "Grupos de usuarios para asignar roles en común. Útiles cuando los equipos crecen más allá de las concesiones por usuario."
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: user-groups
 ---
 
 # Grupos de usuarios
 
-Un grupo de usuarios es una colección de usuarios con nombre a la que se pueden conceder roles en conjunto. En lugar de conceder `vms:read` a quince ingenieros uno por uno, se lo concedes al grupo `backend-team` y añades a los nuevos ingenieros al grupo.
+Un grupo de usuarios es una colección de usuarios con nombre a la que se pueden conceder roles en conjunto. En lugar de conceder `reader` en un proyecto a quince ingenieros uno por uno, se lo concedes al grupo `backend-team` y añades a los nuevos ingenieros al grupo. Concede el rol con `POST /api/v1/roles/grant`, indicando el `group` y el `project`, y añade miembros con `POST /api/v1/groups/grant`.
 
 Los grupos tienen el alcance de un workspace. Un usuario puede pertenecer a varios grupos; un grupo puede tener roles en varios proyectos dentro de su workspace. Las asignaciones de rol son aditivas — un usuario obtiene la unión de todos los roles que se le han concedido directamente más todos los roles concedidos a cualquier grupo al que pertenezca.
 

@@ -2,14 +2,14 @@
 title: "Groupes d’utilisateurs"
 description: "Des groupes d’utilisateurs pour attribuer des rôles en commun. Utile quand les équipes deviennent trop grandes pour des attributions individuelles."
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: user-groups
 ---
 
 # Groupes d’utilisateurs
 
-Un groupe d’utilisateurs est un ensemble nommé d’utilisateurs à qui vous pouvez accorder des rôles collectivement. Au lieu d’accorder `vms:read` à quinze ingénieurs un par un, vous l’accordez au groupe `backend-team` et vous ajoutez les nouveaux ingénieurs au groupe.
+Un groupe d’utilisateurs est un ensemble nommé d’utilisateurs à qui vous pouvez accorder des rôles collectivement. Au lieu d’accorder `reader` sur un projet à quinze ingénieurs un par un, vous l’accordez au groupe `backend-team` et vous ajoutez les nouveaux ingénieurs au groupe. Accordez le rôle avec `POST /api/v1/roles/grant`, en indiquant le `group` et le `project`, et ajoutez des membres avec `POST /api/v1/groups/grant`.
 
 La portée d’un groupe est un espace de travail. Un utilisateur peut appartenir à plusieurs groupes ; un groupe peut détenir des rôles dans plusieurs projets de son espace de travail. Les attributions de rôles sont additives — un utilisateur obtient l’union de tous les rôles qui lui sont accordés directement et de tous les rôles accordés aux groupes dont il fait partie.
 

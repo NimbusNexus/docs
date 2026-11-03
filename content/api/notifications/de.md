@@ -1,21 +1,22 @@
 ---
 title: "Benachrichtigungen"
-description: "Benachrichtigungseinstellungen pro Konto — worüber wir Sie per E-Mail informieren und was über Webhooks geleitet wird."
+description: "Ihre In-App-Benachrichtigungen — auflisten, als gelesen markieren, löschen und live über einen WebSocket empfangen."
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: notifications
 ---
 
 # Benachrichtigungen
 
-Benachrichtigungseinstellungen legen fest, welche Events eine E-Mail an welchen Kontakt auslösen und welche stattdessen (oder zusätzlich) eine Webhook-Zustellung auslösen. Zu den Kategorien gehören Abrechnungs-Alerts, Sicherheits-Events, Kontingentwarnungen, Ankündigungen geplanter Wartungen und Veröffentlichungen neuer Funktionen.
+Eine Benachrichtigung ist eine In-App-Nachricht an einen einzelnen Benutzer, zum Beispiel eine Einladung in einen Workspace oder die Antwort auf eine Kontingentanfrage. Jede hat einen `title` und eine `message`, einen `delivery_status` (`pending`, `unread` oder `read`), einen `visual_type` (`info`, `system`, `invite`, `payment`, `billing`, `warning`, `critical` oder `resize`) und optional `meta_data` zu dem Objekt, das sie betrifft.
 
-Die Standardeinstellungen sind vernünftig — Abrechnung und Sicherheit gehen unabhängig von den Einstellungen immer an den Abrechnungs- bzw. Sicherheitskontakt. Konfigurierbar sind die betrieblichen Kategorien: Wartungsfenster, Kontingent-Schwellenwerte, Ankündigungen von Beta-Funktionen usw.
+`GET /api/v1/notifications/list` gibt die Benachrichtigungen des Aufrufers zurück, die neuesten zuerst, mit einem `total` und einem `unread_count`. Filtern Sie mit `statuses`, `workspace_id`, `meta_data_key` und `meta_data_value`, und blättern Sie mit `offset` und `limit` (bis zu 200). Markieren Sie eine mit `PATCH /api/v1/notifications/` als gelesen oder viele auf einmal mit `PATCH /api/v1/notifications/bulk`. `DELETE` auf denselben beiden Pfaden entfernt sie.
 
-Für größere Teams ist das typische Muster, betriebliche Benachrichtigungen per Webhook in Ihr Incident-Management-System (PagerDuty, Opsgenie) zu leiten statt per E-Mail an einen einzelnen Kontakt. Der Webhook-Weg hier verwendet dieselbe Zustellsemantik wie auf der Seite [Plattform-Webhooks](/docs/webhooks) beschrieben.
+Für die Live-Zustellung öffnen Sie einen WebSocket zu `/api/v1/ws`, mit Ihrem Sitzungstoken in den Headern des Handshakes. `GET /api/v1/notifications/websocket-info` beschreibt die Verbindung.
 
 ## Nächste Schritte {#next-steps}
 
-- [Plattform-Webhooks](/docs/webhooks) — der Zustellkanal für alles, was nicht per E-Mail geht.
-- [Kontoübersicht](/docs/api/account-overview) — wo die Abrechnungs- und Sicherheitskontakte hinterlegt sind.
+- [Workspaces](/docs/api/workspaces) — Einladungen in einen Workspace kommen als Benachrichtigungen an.
+- [Kontingente](/docs/api/quotas) — ebenso die Antworten auf Kontingentanfragen.
+- [Abrechnung](/docs/api/invoices) — die E-Mail-Adressen, die Kontoauszüge und Zahlungsbelege erhalten.
