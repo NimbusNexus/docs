@@ -1,68 +1,62 @@
 ---
 title: "Stockage en bloc"
-description: "Volumes NVMe persistants attachés aux VM. Trois tiers, redimensionnement à chaud, snapshots."
+description: "Volumes persistants pour les VM — créez, attachez, détachez, agrandissez et supprimez."
 publishedAt: 2026-05-19
-updatedAt: 2026-05-19
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Stockage en bloc
 
-Les volumes block sont des disques NVMe persistants que vous attachez à des VM. Chaque volume vit dans une seule région ; il survit à la VM à laquelle il est attaché (vous pouvez le détacher puis le rattacher à une nouvelle VM) ; il peut être redimensionné sans interruption ; et il peut faire l’objet d’un snapshot à la demande, stocké dans le stockage objet.
+Les volumes block sont des disques persistants que vous attachez à des VM. Chaque volume vit dans la région de votre session ; un volume de données survit à la VM à laquelle il est attaché (vous pouvez le détacher puis le rattacher à une nouvelle VM) ; les volumes peuvent être agrandis ; et vous pouvez en prendre un snapshot ou une sauvegarde via [Sauvegardes](/docs/api/backups).
 
-## Tiers {#tiers}
+## Types de volume {#tiers}
 
-| Tier | Par GB-mois | Débit | IOPS (pic) | Quand l’utiliser |
-| --- | --- | --- | --- | --- |
-| `standard` | \$0.11 | 250 MB/s | 3,000 | Disques racine, bases de données de dev, tout ce que vous voulez garder bon marché. |
-| `performance` | \$0.18 | 1,000 MB/s | 16,000 | Disques de bases de données de production, caches de build, données chaudes. **Par défaut pour les bases de données managées.** |
-| `extreme` | \$0.30 | 4,000 MB/s | 64,000 | Charges de travail sensibles à la latence — diffusion publicitaire, espace temporaire pour l’analytique, tout ce qui est limité par le disque. |
+`GET /api/v1/storage/artifacts` liste ce que vous pouvez créer dans la région de votre session : les types de volume dans `types`, et les options de stockage tarifées dans `volume_options`. `POST /api/v1/storage/` prend la `size` en GB et le `volume_type`, l’un des libellés de `volume_options`, qui fixe le prix. Les champs facultatifs sont un `type` issu de `types`, un `name`, une `description`, une `image` à partir de laquelle construire le volume, et `subscription`, le plan de facturation (`Hourly` par défaut).
 
-Les trois tiers utilisent le même matériel NVMe ; les différences tiennent à la QoS au niveau de l’ordonnancement, pas au support physique. Vous pouvez redimensionner **et** changer de tier sans interruption — commencez en Standard, passez en Performance quand vous dépassez le budget d’IOPS, redescendez si la consommation se stabilise.
+Un volume conserve son type toute sa vie : aucun appel ne permet de le changer. Les prix par `volume_type` se trouvent dans [Données tarifaires](/docs/api/pricing-data).
 
 ## Cycle de vie {#lifecycle}
 
-Les volumes passent par quatre états :
+`POST /api/v1/storage/` met le travail en file d’attente et répond sans identifiant ; le nouveau volume apparaît dans `GET /api/v1/storage/`. Son `status` provient du service de stockage en bloc. Les valeurs que vous rencontrerez le plus souvent :
 
 - `available` — créé mais pas attaché. Facturé comme un volume attaché (le stockage ne fait pas la différence).
-- `attached` — lié à une VM. Visible dans la VM comme périphérique bloc (`/dev/sdb`, `/dev/sdc`, …).
-- `detaching` → `available` — en cours de libération d’une VM. Le démontage a lieu côté serveur ; assurez-vous d’abord que les tampons de votre système de fichiers ont été vidés.
-- `deleted` — détruit. **Impossible à récupérer.** Prenez d’abord un snapshot si vous voulez une sauvegarde récupérable.
+- `in-use` — lié à une VM. Visible dans la VM comme périphérique bloc (`/dev/vdb`, `/dev/vdc`, …).
+- `detaching` → `available` — en cours de libération d’une VM. Démontez le système de fichiers dans la VM avant de détacher le volume.
 
-Le détachement est un appel distinct de la suppression. C’est délibéré : nous ne supprimons pas automatiquement un volume quand la VM à laquelle il est attaché est détruite — perdre un disque de base de données parce qu’un collègue a détruit la mauvaise VM est exactement le genre de catastrophe que l’API doit rendre difficile à provoquer par accident.
+Le détachement est un appel distinct de la suppression. Supprimer une VM supprime le volume de démarrage créé à partir de son image ; les volumes que vous avez attachés, ou passés dans `volumes` lors de la création de la VM, restent `available`.
+
+`DELETE /api/v1/storage/` détruit les volumes dont vous listez les identifiants dans `ids`. Un volume supprimé est **impossible à récupérer** : sauvegardez-le donc d’abord si vous voulez une copie récupérable. Avec `cascade: true`, les snapshots du volume sont supprimés en même temps que lui.
 
 ## Redimensionner {#resize}
 
-`POST /v1/volumes/{id}/resize` avec `{ "size_gb": 500 }` agrandit un volume. Le disque s’agrandit à chaud ; le système de fichiers de la VM a besoin d’un appel séparé à `resize2fs` / `xfs_growfs` pour occuper le nouvel espace. Nous documentons cette étape dans les [guides VM](/docs/api/vms) propres à chaque OS.
+`POST /api/v1/storage/resize` avec `{"volume_id": "…", "new_size": 500}` agrandit un volume à 500 GB. `new_size` doit être supérieur à la taille actuelle ; pour toute autre valeur, l’API répond `400`. Le système de fichiers de la VM a besoin d’un appel séparé à `resize2fs` / `xfs_growfs` pour occuper le nouvel espace.
 
-La réduction n’est pas possible à chaud. Pour réduire la taille : prenez un snapshot, créez un nouveau volume plus petit à partir du snapshot, attachez le nouveau, copiez les données, détachez l’ancien. Facile à scripter ; nous ne le proposons pas en natif parce que le risque de perte de données est trop grand.
+La réduction n’est pas possible. Pour réduire la taille : créez un nouveau volume plus petit, attachez-le, copiez les données et détachez l’ancien.
 
 ## Snapshots {#snapshots}
 
-Les snapshots sont des copies à un instant T stockées dans le stockage objet (la classe `cold` — bon marché, récupérée à la demande quand vous restaurez).
+Les snapshots et sauvegardes d’un volume se font via [Sauvegardes](/docs/api/backups) : `POST /api/v1/backup_restore/volume_backups/create_backup` avec le `volume_id` et `type: snapshot` (une copie à un instant T conservée avec le volume) ou `type: backup` (une copie complète distincte).
 
-- Déclenchés par `POST /v1/volumes/{id}/snapshots`.
-- Prennent ~10 secondes pour établir le point de cohérence, puis poursuivent la copie en arrière-plan.
-- Stockés à \$0.04/GB-mois.
-- Restaurables vers un nouveau volume de taille **identique ou supérieure**, dans n’importe quelle région (une restauration inter-région compte comme de l’egress inter-région, à \$0.005/GB).
+Le snapshot est cohérent au niveau de la couche bloc, pas de la couche applicative. Pour une base de données, suspendez d’abord les écritures ou utilisez l’outil de sauvegarde propre à la base. Les snapshots de la couche bloc conviennent aux volumes de système de fichiers qui ne font pas tourner de moteur transactionnel.
 
-Le snapshot est cohérent au niveau de la couche bloc, pas de la couche applicative. Pour les bases de données, préférez l’API de snapshot de la base elle-même (voir [Bases de données managées](/docs/api/managed-databases)) — elle suspend les écritures au niveau du moteur. Les snapshots de la couche bloc conviennent aux volumes de système de fichiers qui ne font pas tourner de moteur transactionnel.
+Une restauration remet la copie à la place du volume, à la même taille ; voir [Sauvegardes](/docs/api/backups#restore).
 
 ## Sémantique d’attachement {#attach}
 
-Un volume ne peut être attaché qu’à **une seule VM à la fois**. Le multi-attachement (sémantique de disque partagé) n’est pas pris en charge — coordonner des applications sur un volume NVMe partagé est plus difficile que l’API ne le laisse paraître, et nous préférons ne pas fabriquer ce piège.
+Un volume ne peut être attaché qu’à **une seule VM à la fois**. Le multi-attachement (sémantique de disque partagé) n’est pas pris en charge.
 
-L’attachement est propre à une région : un volume de `us-east-1` ne peut pas être attaché à une VM de `eu-central-1`. Pour déplacer des données entre régions, la bonne méthode est snapshot + restauration.
+`POST /api/v1/storage/attach` prend le `volume_id`, l’`instance_id` et un `mountpoint` facultatif ; sans `mountpoint`, le volume reçoit le premier périphérique libre à partir de `/dev/vdb`. `POST /api/v1/storage/detach` prend l’`instance_id`, le `volume_id` et l’`attachment_id`, que `GET /api/v1/storage/detach_artifacts` liste pour une VM.
+
+Un volume et la VM à laquelle il s’attache se trouvent tous deux dans la région de votre session.
 
 ## Notes sur les tarifs {#pricing}
 
-- Stockage : au GB-mois, facturé à la seconde. La classe de stockage (Standard/Performance/Extreme) détermine le tarif ; la taille détermine le multiplicateur.
-- Snapshots : \$0.04/GB-mois, facturés sur la taille du contenu du snapshot (dédupliqué entre les snapshots d’un même volume).
-- Réplication inter-région : \$0.005/GB-mois pour la copie répliquée, plus l’egress inter-région standard pour la synchronisation initiale.
+- Stockage : facturé au GB au prix du `volume_type` du volume, selon le plan indiqué dans `subscription`. Les prix se trouvent dans [Données tarifaires](/docs/api/pricing-data).
 - Pas de facturation à l’IOPS. Pas de frais par attachement. Pas de supplément lié au débit.
 
 ## Étapes suivantes {#next-steps}
 
 - [Machines virtuelles](/docs/api/vms) — ce à quoi vous attachez les volumes.
-- [Stockage objet](/docs/api/object-storage) — pour les données non structurées qui n’ont pas besoin d’un accès au niveau bloc (logs, sauvegardes, fichiers téléversés par les utilisateurs). Moins cher à grande échelle.
-- [Conventions](/docs/conventions) pour le polling des opérations, l’idempotence, les formats d’erreur.
+- [Stockage objet](/docs/api/object-storage) — pour les données non structurées qui n’ont pas besoin d’un accès au niveau bloc (logs, sauvegardes, fichiers téléversés par les utilisateurs).
+- [Sauvegardes](/docs/api/backups) — les snapshots et sauvegardes d’un volume, et leur restauration.

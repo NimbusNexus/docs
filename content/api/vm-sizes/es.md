@@ -1,39 +1,28 @@
 ---
 title: "Tamaños de VM"
-description: "Catálogo de configuraciones de cómputo de las familias gp, co, mo y gx."
+description: "Flavors de cómputo — vCPUs, RAM y swap — y cómo obtiene uno una VM."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Tamaños de VM
 
-Un tamaño de VM es una configuración de cómputo con nombre — número de vCPU, RAM, tamaño del disco raíz y familia. Cada VM se crea con un código de tamaño (p. ej. `gp-4-16`); redimensionar una VM cambia el código en tiempo de ejecución.
+Un tamaño de VM es un flavor: un número de vCPUs (`vcpus`), la RAM en MB (`ram`) y el swap en MB (`swap`). No eliges un flavor al crear una VM: fijas `spec.cpu` y `spec.ram`, y la API usa un flavor con exactamente esos números, y crea uno si no existe ninguno. El disco de arranque no forma parte del flavor; es un volumen aparte.
 
-## Las cuatro familias {#families}
+## Arquitectura y clase de VM {#families}
 
-| Familia                     | Prefijo del código | Para qué está optimizada                                                                                                          |
-| --------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Uso general**             | `gp-*`             | CPU + RAM equilibradas. La opción por defecto para la mayoría de las cargas de trabajo.                                           |
-| **Optimizada para cómputo** | `co-*`             | 2× la CPU por dólar de `gp`, la mitad de RAM por dólar. Adecuada para servicios limitados por CPU, jobs por lotes, codificación de vídeo. |
-| **Optimizada para memoria** | `mo-*`             | El compromiso inverso. Adecuada para cachés en memoria, heaps de la JVM, espacio temporal de analítica.                           |
-| **GPU**                     | `gx-*`             | Aceleradores NVIDIA L4 / H100. Inferencia y entrenamiento de ML, transcodificación.                                               |
+Además de `cpu` y `ram`, el `spec` de una VM indica una `architecture` y una `vm_class`. Juntas determinan el producto con el que se factura la VM. Las que se ofrecen en la región de tu sesión están en `vm_options` de `GET /api/v1/instance/artifacts`.
 
 ## Convención de nombres {#naming}
 
-Los códigos de tamaño siguen el formato `<family>-<vCPU>-<RAM_GB>`. Así:
+Lee la configuración de un flavor en `vcpus`, `ram` y `swap`, no en su nombre. Un flavor que la API crea para una VM lleva como nombre su `id`, un UUID, y lo mismo ocurre con uno creado con `POST /api/v1/flavor/` sin `name`. `GET /api/v1/flavor/` filtra por la configuración con `min_vcpus`, `max_vcpus`, `min_ram`, `max_ram`, `min_swap` y `max_swap`.
 
-- `gp-1-2` — 1 vCPU, 2 GB de RAM, uso general (el tamaño útil más pequeño, ~\$0.0145/vCPU-hora)
-- `gp-4-16` — 4 vCPU, 16 GB de RAM, uso general
-- `co-16-32` — 16 vCPU, 32 GB de RAM, optimizada para cómputo
-- `mo-8-64` — 8 vCPU, 64 GB de RAM, optimizada para memoria
-- `gx-4-32-l4` — 4 vCPU, 32 GB de RAM, 1× GPU L4 (los tamaños con GPU añaden al final el código del acelerador)
-
-El endpoint del catálogo devuelve la lista completa con el precio actual de cada tamaño. Los precios varían ligeramente entre regiones; la respuesta incluye una tabla de precios por región.
+Los precios dependen de la `architecture`, la `vm_class`, la `cpu` y la `ram`; consulta [Datos de precios](/docs/api/pricing-data).
 
 ## Redimensionado {#resizing}
 
-Una VM puede cambiar de tamaño sin volver a provisionarse. Redimensionar dentro de la misma familia se hace en caliente (sin downtime). Redimensionar a otra familia requiere un ciclo de detener / arrancar. Redimensionar entre arquitecturas (p. ej. de `gp` a `gx`) implica destruir / volver a crear — la API rechaza la llamada directa de redimensionado para que la pérdida de datos implícita sea explícita.
+Una VM puede cambiar de tamaño sin volver a provisionarse. Envía `POST /api/v1/instance/{instance_id}/resize` con un `spec` nuevo (`architecture`, `vm_class`, `cpu`, `ram`). La VM se reinicia en el flavor nuevo y espera en `VERIFY_RESIZE`: `POST /api/v1/instance/{instance_id}/confirm_resize` conserva el tamaño nuevo, y `POST /api/v1/instance/{instance_id}/revert_resize` vuelve al anterior. Ambas responden `400` si la VM no está en `VERIFY_RESIZE`.
 
 ## Próximos pasos {#next-steps}
 

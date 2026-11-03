@@ -1,66 +1,58 @@
 ---
 title: "Backups"
-description: "Backups programados y bajo demanda, con deduplicación, políticas de retención y restauración entre regiones."
+description: "Snapshots y backups de volúmenes de bloques, bajo demanda o programados, restaurados en su sitio."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Backups
 
-Los backups son copias gestionadas de VMs, volúmenes y bases de datos, que se guardan en el tier de almacenamiento en frío con deduplicación y retención configurable. Los endpoints admiten tanto backups **bajo demanda** (puntuales: llamas tú a POST) como backups **programados** (recurrentes, controlados por una política asociada al recurso de origen).
+Un backup es una copia en un momento dado de un [volumen de bloques](/docs/api/block-storage), de uno de dos tipos: un `snapshot`, que el servicio de almacenamiento en bloques guarda junto al volumen, o un `backup`, una copia completa aparte. Los haces **bajo demanda**, o una [programación](/docs/api/scheduled-backups) los hace por ti.
 
 ## Backups frente a snapshots {#backups-vs-snapshots}
 
 Ambos son copias en un momento dado; se diferencian en cómo funcionan en la práctica:
 
-|                                 | Snapshot                               | Backup                                                                        |
-| ------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------- |
-| Creado por                      | Solo una llamada directa a la API      | Una llamada directa O una política recurrente                                 |
-| Retención                       | 7 días por defecto, ampliable a mano   | La fija una política de retención explícita (niveles diario/semanal/mensual)  |
-| Precios                         | \$0.04/GB·mes (tier frío, deduplicado) | \$0.04/GB·mes + cargos de recuperación por cada restauración                  |
-| Replicación entre regiones      | Manual: restaurar y después copiar     | Integrada en la política                                                      |
-| Restaurar como recurso nuevo    | Sí                                     | Sí                                                                            |
-| Registro de auditoría           | Estándar                               | Estándar + metadatos que lo atribuyen a la política                           |
+|                 | `type: snapshot`                                              | `type: backup`                                                             |
+| --------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Qué es          | Un snapshot que se guarda con el volumen                      | Una copia completa aparte, que también puede ir a tu propio almacenamiento |
+| Creado por      | Una llamada directa o una programación                        | Una llamada directa o una programación                                     |
+| Se restaura con | `POST /api/v1/backup_restore/volume_backups/snapshot_restore` | `POST /api/v1/backup_restore/volume_backups/backup_restore`                |
 
-Usa snapshots para copias puntuales que vas a consumir tú mismo. Usa backups para el patrón recurrente de "siempre tenemos una copia de hace 7 días, otra de hace 30 y otra de hace 365" — esa es la forma basada en políticas.
+Un snapshot pertenece a su volumen: borrar el volumen con `cascade: true` (`DELETE /api/v1/storage/`) borra también sus snapshots.
 
-## Backups basados en políticas {#policies}
+## Hacer una copia {#create}
 
-Asocia una política de backup a una VM / un volumen / una base de datos con:
+`POST /api/v1/backup_restore/volume_backups/create_backup` copia un volumen en ese momento. Indica el `volume_id` y el `type`, `snapshot` o `backup`, y de forma opcional un `name`, una `description` y `permanent`. Para un `backup`, `storage_ids` envía además la copia a las conexiones de almacenamiento externo que hayas configurado con `POST /api/v1/external/connections/`.
 
-```json
-{
-  "source_id": "vm_01H...",
-  "source_kind": "vm",
-  "schedule": "daily",
-  "retention": {
-    "daily": 7,
-    "weekly": 4,
-    "monthly": 12,
-    "yearly": 5
-  }
-}
-```
+La llamada pone el trabajo en cola y responde enseguida, o responde `409` si la copia no cabe en tu cuota de backups. `GET /api/v1/backup_restore/volume_backups/` lista tus copias, filtradas por `backup_types` y `statuses`, con `limit` (por defecto, 10) y `offset`. El `status` de una copia es `pending`, `in_progress`, `completed` o `failed`.
 
-Esa política mantiene 7 diarios + 4 semanales + 12 mensuales + 5 anuales = 28 backups activos en régimen estable. Los backups más antiguos caducan automáticamente; no tienes que hacer limpieza a mano.
+## Copias programadas {#policies}
 
-Los endpoints de políticas están en `/v1/backups/policies` (no aparecen en el ejemplo mínimo de abajo — la referencia completa está en la especificación publicada).
+Una programación hace copias por ti. Crea una con `POST /api/v1/backup_restore/backup_scheduler/`, indicando una `frequency` y una `backup_quantity`, y después vincúlala a cada volumen con `POST /api/v1/backup_restore/volume_scheduler/`, indicando el `volume_id`, el `schedule_id` y el `type`. En [Backups programados](/docs/api/scheduled-backups) están los detalles.
 
-## Bloqueos de retención {#retention}
+## Retención {#retention}
 
-Un backup sujeto a un nivel de retención activo (p. ej. "diario, conservar 7") queda **bloqueado por retención** durante ese periodo. Si intentas borrarlo antes de que caduque, se devuelve un 409. Esta es la función de cumplimiento normativo: un usuario no puede borrar un backup que sigue dentro de la ventana de retención, aunque tenga permisos de administrador.
+Una programación conserva las `backup_quantity` copias más recientes (por defecto, 5) de cada volumen vinculado a ella, y borra las más antiguas a medida que llegan copias nuevas; `outside_backup_quantity` (por defecto, 1) hace lo mismo con las copias de cada almacenamiento externo. Las copias que haces bajo demanda se quedan hasta que las borras.
 
-Para saltarte el bloqueo, tendrías que desasociar el origen de la política (con lo que el backup queda huérfano y deja de estar bloqueado por retención) y después borrarlo. Que el backup quede huérfano se anota en el registro de auditoría.
+Para dejar una copia fuera de esa rotación, ponle `permanent: true`, al hacerla o más tarde con `PATCH /api/v1/backup_restore/volume_backups/{volume_backup_id}`.
 
-## Replicación entre regiones {#cross-region}
+Borra una copia con `DELETE /api/v1/backup_restore/volume_backups/single/{volume_backup_id}`, o varias con `DELETE /api/v1/backup_restore/volume_backups/bulk` y sus ids en el parámetro de consulta `backup_ids`.
 
-Una política puede indicar una región secundaria: cada backup que crea la política se replica en la secundaria en ~10 minutos desde su creación. La copia replicada se factura como almacenamiento entre regiones (\$0.005/GB·mes por encima de la primaria).
+## Restauración {#restore}
 
-Restaurar desde la secundaria no requiere ningún paso adicional — `POST /v1/backups/{id}/restore` con el id de la copia secundaria; por defecto, la región de destino es la de la secundaria. Un simulacro de DR habitual: restaurar cada mes desde la secundaria en un proyecto sandbox, validar y destruir.
+Restaura un snapshot con `POST /api/v1/backup_restore/volume_backups/snapshot_restore`, y un backup con `POST /api/v1/backup_restore/volume_backups/backup_restore`. Ambos reciben `{"backup_id": "…"}`, ponen el trabajo en cola y responden enseguida. La copia debe estar `completed` y ser del tipo del endpoint; si no, la llamada responde `409`.
+
+Una restauración se hace en su sitio. Crea un volumen nuevo a partir de la copia, del mismo tamaño y en la misma zona de disponibilidad que el original, y lo pone donde estaba el original:
+
+- Un volumen de datos se desconecta de su VM, y el volumen restaurado se conecta en su lugar.
+- En el caso del volumen de arranque de una VM, la VM se reconstruye sobre el disco restaurado. La VM nueva asume los puertos y las IPs flotantes de la antigua, y la VM antigua se borra. La VM recibe un `id` nuevo; el disco restaurado conserva las claves SSH que tenía.
+
+Las copias y las vinculaciones a programaciones del volumen original pasan al volumen restaurado.
 
 ## Próximos pasos {#next-steps}
 
-- [Snapshots](/docs/api/snapshots) — su pariente para copias puntuales.
-- [Almacenamiento en frío](/docs/api/cold-storage) — el tier en el que se guardan los backups.
-- [Máquinas virtuales](/docs/api/vms), [Almacenamiento en bloques](/docs/api/block-storage), [Bases de datos gestionadas](/docs/api/managed-databases) — los tres tipos de recurso de origen.
+- [Backups programados](/docs/api/scheduled-backups) — haz copias según un calendario.
+- [Almacenamiento en bloques](/docs/api/block-storage) — los volúmenes de los que salen estas copias.
+- [Máquinas virtuales](/docs/api/vms) — lo que reconstruye la restauración de un volumen de arranque.
