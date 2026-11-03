@@ -2,45 +2,40 @@
 title: "Load balancers"
 description: "Répartition managée du trafic L4 / L7 sur un pool de VM backend."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Load balancers
 
-Un load balancer place une flotte de VM derrière une seule VIP (IP virtuelle) : il répartit le trafic entre les backends et retire automatiquement de la rotation ceux qui sont défaillants. Deux variantes : **L4** (TCP / UDP / proxy-protocol) et **L7** (HTTP / HTTPS avec routage par chemin + header).
+Un load balancer place une flotte de VM derrière une seule VIP (IP virtuelle) : il répartit le trafic entre les backends et retire automatiquement de la rotation ceux qui sont défaillants. Un listener parle `TCP`, `UDP`, `SCTP`, `HTTP`, `HTTPS`, `TERMINATED_HTTPS` ou `PROMETHEUS`, et envoie tout son trafic à son pool par défaut ; il n’y a pas de règles de routage par chemin ni par header.
 
 ## Les quatre sous-ressources {#sub-resources}
 
 Un load balancer est lui-même un conteneur ; la logique de routage réside dans des ressources imbriquées :
 
 - **Listener** — un par couple (protocole, port) sur lequel le LB accepte du trafic. `HTTPS:443` est un listener ; `HTTP:80` en est un autre. Un même LB peut héberger de nombreux listeners.
-- **Pool** — un groupe de VM backend, défini par listener. Chaque pool a un algorithme (`round-robin`, `least-connections`, `source-ip-hash`) et une politique de persistance de session.
-- **Membre** — un backend dans un pool. Référence une VM + un port + un poids.
+- **Pool** — un groupe de backends, attaché à un listener (`listener_id`) ou au load balancer (`loadbalancer_id`). Chaque pool a un `protocol` (`HTTP`, `HTTPS`, `TCP`, `UDP`, `SCTP`, `PROXY` ou `PROXYV2`) et un `lb_algorithm` : `ROUND_ROBIN`, `LEAST_CONNECTIONS`, `SOURCE_IP` ou `SOURCE_IP_PORT`. Il n’y a pas de paramètre de persistance de session.
+- **Membre** — un backend dans un pool : une `address` IP et un `protocol_port`, avec un `weight` (0–256, 1 par défaut).
 - **Moniteur de santé** — le contrôle de santé actif de chaque pool. Les membres en échec sont retirés de la rotation jusqu’à leur rétablissement.
 
-Les endpoints ci-dessous agissent sur le load balancer de premier niveau. Le CRUD imbriqué des listeners/pools/membres/moniteurs de santé se trouve sous `/v1/load-balancers/{id}/listeners`, etc. (absent de cet exemple minimal — couvert par la spécification en direct).
+Chacune a ses propres endpoints, listés ci-dessous : `/api/v1/loadbalancers/`, `/api/v1/listeners/`, `/api/v1/pools/`, `/api/v1/pools/{pool_id}/members/` et `/api/v1/health_monitors/`.
 
 ## Terminaison SSL {#ssl}
 
 Pour les listeners HTTPS, deux options s’offrent à vous :
 
-- **TLS terminé sur le LB.** Téléversez un certificat (ou utilisez Let’s Encrypt via le module complémentaire cert-manager) : le LB sert le TLS aux clients et communique en clair avec vos VM. Plus simple à gérer ; permet au LB d’inspecter les headers HTTP pour le routage L7.
-- **TLS passthrough.** Le LB fait uniquement du transfert TCP L4 ; vos VM gèrent le TLS. Nécessaire quand le backend doit voir le certificat client d’origine.
+- **TLS terminé sur le LB.** Utilisez un listener `TERMINATED_HTTPS` et faites pointer `default_tls_container_ref` (et `sni_container_refs`, pour d’autres certificats) vers un conteneur de certificats existant. Le LB sert le TLS aux clients et communique en clair avec vos VM. Cette API ne téléverse ni n’émet de certificats.
+- **TLS passthrough.** Le LB fait uniquement du transfert TCP L4 ; vos VM gèrent le TLS. Nécessaire quand le backend doit voir le certificat client d’origine. Utilisez un listener `HTTPS` ou `TCP`.
 
 ## Contrôles de santé {#health-checks}
 
-Un moniteur de santé sonde chaque membre périodiquement (par défaut toutes les 10 s) sur un chemin / port configuré. Trois résultats possibles :
+Un moniteur de santé sonde chaque membre toutes les `delay` secondes et attend une réponse pendant `timeout` secondes, une valeur inférieure à `delay` ; vous définissez les deux. Son `type` est `HTTP`, `HTTPS`, `PING`, `TCP`, `TLS-HELLO`, `UDP-CONNECT` ou `SCTP`. `GET /api/v1/loadbalancers/{loadbalancer_id}/status` affiche l’`operating_status` de chaque membre.
 
-- **Healthy** (sain) — les 2 dernières sondes ont réussi (par défaut ; configurable). Le membre reçoit du trafic.
-- **Unhealthy** (défaillant) — les 3 dernières sondes ont échoué (configurable). Le membre est retiré de la rotation ; les connexions en cours se terminent progressivement.
-- **Recovering** (en rétablissement) — était défaillant, réussit de nouveau les sondes. Repasse à l’état sain après 2 sondes réussies.
+- Un membre est retiré de la rotation après `max_retries_down` sondes en échec (3 si vous l’omettez).
+- Il revient dans la rotation après `max_retries` sondes réussies, une valeur que vous devez définir.
 
-Pour les contrôles de santé HTTP, le LB envoie un GET à `/healthz` (configurable) et attend un 200. Implémentez `/healthz` dans votre application pour qu’il renvoie rapidement un corps — et évitez de faire faire un vrai travail au contrôle, sinon c’est le contrôle lui-même qui devient la charge.
-
-## Tarifs {#pricing}
-
-Les load balancers sont facturés à un tarif fixe par heure et par région (\$0.024/hr pour le tier standard dans la référence tarifaire EN). La création de listeners / pools / membres / moniteurs de santé est gratuite. Le trafic entre LB de régions différentes compte comme de l’egress inter-région standard.
+Pour les contrôles HTTP et HTTPS, définissez `url_path`, `http_method` et `expected_codes`. Faites pointer `url_path` vers un élément de votre application qui renvoie rapidement un corps — et évitez de faire faire un vrai travail au contrôle, sinon c’est le contrôle lui-même qui devient la charge.
 
 ## Étapes suivantes {#next-steps}
 

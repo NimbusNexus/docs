@@ -2,7 +2,7 @@
 title: "Routeurs"
 description: "Reliez les sous-réseaux tenant à la passerelle externe du projet."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -14,22 +14,22 @@ C’est le routeur qui donne à un **réseau tenant** (et à ses sous-réseaux) 
 
 - **VM exposées au public sur un réseau tenant.** Attachez un routeur, puis allouez et attachez une [IP flottante](/docs/api/floating-ips). Le trafic sortant passe par le NAT du routeur ; le trafic entrant sur l’IP flottante est routé jusqu’à la VM.
 - **Tiers applicatifs mixtes privés/publics.** Le tier web se trouve derrière un routeur avec une IP flottante ; les tiers app + db restent privés et atteignent internet (par exemple pour les mises à jour de paquets) via le source-NAT du routeur.
-- **Routage multi-sous-réseau.** Un routeur peut desservir plusieurs sous-réseaux simultanément. Le trafic entre deux sous-réseaux d’un même routeur est intra-VPC, ne quitte jamais NimbusNexus et n’est pas facturé comme de l’egress.
+- **Routage multi-sous-réseau.** Un routeur peut desservir plusieurs sous-réseaux simultanément. Le trafic entre deux sous-réseaux d’un même routeur est intra-VPC et ne quitte jamais NimbusNexus.
 
 Si vous attachez des VM directement au réseau externe, vous n’avez pas besoin de routeur — le réseau externe EST la passerelle.
 
 ## SNAT, DNAT et IP flottantes {#nat}
 
-Un routeur a une connexion de passerelle externe (vers le réseau externe de la région) et zéro ou plusieurs connexions internes (vers des sous-réseaux tenant).
+Un routeur a une connexion de passerelle externe (vers le réseau externe de la région) et zéro ou plusieurs connexions internes (vers des sous-réseaux tenant). Définir la passerelle dans `external_gateway_info` demande aussi `bandwidth_subscription` et `bandwidth_mbps` (un multiple de 10) : la passerelle est plafonnée à cette bande passante, et la bande passante est facturée (voir [Données tarifaires](/docs/api/pricing-data)).
 
 - **Trafic sortant d’une VM privée** → le routeur fait du source-NAT vers son IP externe. Plusieurs VM privées partagent cette unique IP externe pour le trafic sortant.
 - **Trafic entrant vers une IP flottante** → le routeur fait du destination-NAT vers la VM privée à laquelle l’IP flottante est attachée. La VM privée voit l’IP source d’origine (nous préservons l’IP du client à travers le NAT pour le trafic entrant ; seul le trafic sortant subit un SNAT).
 
-Vous ne configurez pas le NAT directement ; le routeur s’en charge en fonction des sous-réseaux attachés et des IP flottantes que vous avez créées.
+Le source-NAT suit `external_gateway_info.enable_snat`, qui est un paramètre de la plateforme. Vous ne configurez pas le destination-NAT directement ; le routeur s’en charge en fonction des IP flottantes que vous avez attachées.
 
 ## Routes statiques {#static-routes}
 
-Un routeur porte une table de routes statiques que vous pouvez remplir pour des destinations autres que celle par défaut — par exemple pour faire passer le trafic d’un sous-réseau destiné à un CIDR précis par une autre VM (une appliance VPN, un proxy transparent). La plupart des utilisateurs n’y touchent jamais ; elle existe pour les architectures VPC avancées qui en ont besoin.
+Un routeur porte une table de routes statiques que vous pouvez remplir pour des destinations autres que celle par défaut. Chaque route envoie le trafic destiné à un CIDR `destination`, depuis n’importe quel sous-réseau du routeur, vers une adresse `nexthop` — une autre VM, comme une appliance VPN ou un proxy transparent. `PUT /api/v1/router/{router_id}/extraroutes` ajoute des routes de façon atomique, et `DELETE` sur le même chemin les retire de façon atomique. La plupart des utilisateurs n’y touchent jamais ; elle existe pour les architectures VPC avancées qui en ont besoin.
 
 ## Étapes suivantes {#next-steps}
 

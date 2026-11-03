@@ -2,7 +2,7 @@
 title: "Grupos de seguridad"
 description: "Conjuntos de reglas de firewall con estado aplicados a las interfaces de red de las VMs."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -21,9 +21,10 @@ Compáralo con una ACL sin estado (p. ej. las Network ACLs de AWS), en la que ne
 Cada regla tiene:
 
 - **Dirección** — `ingress` o `egress`
-- **Protocolo** — `tcp`, `udp`, `icmp` o `any`
-- **Rango de puertos** — un solo puerto (`80`), un rango (`8000-9000`) o "any"
-- **Origen / destino** — un bloque CIDR (`0.0.0.0/0`, `10.0.0.0/8`) O el id de otro grupo de seguridad
+- **Tipo Ether** — `ether`: `IPv4` o `IPv6`
+- **Protocolo** — `any`, un nombre como `tcp`, `udp`, `icmp`, `ipv6-icmp` o `sctp`, o `custom` con un número de protocolo (0–255) en `protocol_custom`
+- **Rango de puertos** — `port_min` y `port_max`, cada uno entre 0 y 65535. Indica solo `port_min` para un único puerto (`80`), los dos para un rango (de `8000` a `9000`) o ninguno para cualquier puerto
+- **Origen / destino** — un bloque CIDR en `remote_cidr` (`0.0.0.0/0`, `10.0.0.0/8`), otro grupo de seguridad en `remote_sec_grp` o un [grupo de direcciones](/docs/api/address-groups) en `remote_addr_grp`
 
 El modo "el origen es otro grupo de seguridad" es el que más vale la pena conocer. Una regla como "permitir el puerto 5432 desde `web-tier-sg`" deja que todas las VMs del grupo `web-tier-sg` lleguen a tu VM de Postgres en el 5432 — sin tener que enumerar IPs, y la regla sigue funcionando a medida que las VMs entran y salen de `web-tier-sg` al escalar.
 
