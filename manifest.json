@@ -1822,6 +1822,27 @@
           "published": true
         },
         {
+          "path": "product-webhooks/transformations",
+          "kind": "concept",
+          "title": {
+            "en": "Transformations",
+            "de": "Transformationen",
+            "es": "Transformaciones",
+            "fr": "Transformations",
+            "pt": "Transformações",
+            "uk": "Трансформації"
+          },
+          "description": {
+            "en": "Filter, reshape or add credentials to each delivery before it is signed and sent: a pipeline of steps on every plan, or a script on paid plans.",
+            "de": "Jede Zustellung filtern, umformen oder mit Credentials versehen, bevor sie signiert und gesendet wird: mit einer Pipeline aus Schritten in jedem Tarif oder einem Skript in bezahlten Tarifen.",
+            "es": "Filtra, adapta o añade credenciales a cada entrega antes de que se firme y se envíe: con una pipeline de pasos en todos los planes o con un script en los de pago.",
+            "fr": "Filtrez ou remodelez chaque livraison, ou ajoutez-y des justificatifs d’identité, avant sa signature et son envoi : un pipeline d’étapes sur tous les plans, ou un script sur les plans payants.",
+            "pt": "Filtre, remodele ou adicione credenciais a cada entrega antes que ela seja assinada e enviada: com um pipeline de etapas em todos os planos ou com um script nos planos pagos.",
+            "uk": "Фільтруйте чи перетворюйте кожну доставку або додавайте до неї облікові дані, перш ніж її буде підписано й надіслано: конвеєр кроків на кожному плані або скрипт на платних планах."
+          },
+          "published": true
+        },
+        {
           "path": "product-webhooks/endpoint-verification",
           "kind": "concept",
           "title": {
@@ -1839,27 +1860,6 @@
             "fr": "Le challenge signé qu’un endpoint doit renvoyer avant de recevoir des événements.",
             "pt": "O desafio assinado que um endpoint devolve antes de receber eventos.",
             "uk": "Підписаний challenge, який ендпоінт має повернути у відповіді, перш ніж почне отримувати події."
-          },
-          "published": true
-        },
-        {
-          "path": "product-webhooks/transformations",
-          "kind": "concept",
-          "title": {
-            "en": "Transformations",
-            "de": "Transformationen",
-            "es": "Transformaciones",
-            "fr": "Transformations",
-            "pt": "Transformações",
-            "uk": "Трансформації"
-          },
-          "description": {
-            "en": "Reshape, filter or drop each delivery with a short JavaScript function, run in a sandbox before it is signed and sent.",
-            "de": "Jede Zustellung mit einer kurzen JavaScript-Funktion, die in einer Sandbox läuft, umformen, filtern oder verwerfen, bevor sie signiert und gesendet wird.",
-            "es": "Adapta, filtra o descarta cada entrega con una función corta de JavaScript, ejecutada en un sandbox antes de que se firme y se envíe.",
-            "fr": "Remodelez, filtrez ou abandonnez chaque livraison avec une courte fonction JavaScript, exécutée dans une sandbox avant la signature et l’envoi.",
-            "pt": "Remodele, filtre ou descarte cada entrega com uma função JavaScript curta, executada em um sandbox antes que a entrega seja assinada e enviada.",
-            "uk": "Перетворюйте, фільтруйте або відкидайте кожну доставку короткою функцією на JavaScript, що виконується в пісочниці перед підписанням і надсиланням."
           },
           "published": true
         },
