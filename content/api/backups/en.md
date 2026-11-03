@@ -1,66 +1,58 @@
 ---
 title: Backups
-description: Scheduled and on-demand backups with deduplication, retention policies, and cross-region restore.
+description: Snapshots and backups of block volumes, on demand or on a schedule, restored in place.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Backups
 
-Backups are managed copies of VMs, volumes, and databases, kept on the cold-storage tier with deduplication and configurable retention. The endpoints support both **on-demand** backups (one-off, you call POST) and **scheduled** backups (recurring, driven by a policy attached to the source resource).
+A backup is a point-in-time copy of one [block volume](/docs/api/block-storage), of one of two types: a `snapshot`, kept by the block-storage service alongside the volume, or a `backup`, a separate full copy. You make them **on demand**, or a [schedule](/docs/api/scheduled-backups) makes them for you.
 
 ## Backups vs snapshots {#backups-vs-snapshots}
 
 Both are point-in-time copies; they differ in operational shape:
 
-|                          | Snapshot                             | Backup                                                              |
-| ------------------------ | ------------------------------------ | ------------------------------------------------------------------- |
-| Created by               | Direct API call only                 | Direct call OR a recurring policy                                   |
-| Retention                | Default 7 days, manual extend        | Driven by an explicit retention policy (daily/weekly/monthly tiers) |
-| Pricing                  | \$0.04/GB-month (cold tier, deduped) | \$0.04/GB-month + per-restore retrieval fees                        |
-| Cross-region replication | Manual via restore-then-copy         | Built into the policy                                               |
-| Restore-as-new-resource  | Yes                                  | Yes                                                                 |
-| Audit log                | Standard                             | Standard + policy-attribution metadata                              |
+|               | `type: snapshot`                                              | `type: backup`                                              |
+| ------------- | ------------------------------------------------------------- | ----------------------------------------------------------- |
+| What it is    | A snapshot kept with the volume                               | A separate full copy, which can also go to your own storage |
+| Created by    | A direct call or a schedule                                   | A direct call or a schedule                                 |
+| Restored with | `POST /api/v1/backup_restore/volume_backups/snapshot_restore` | `POST /api/v1/backup_restore/volume_backups/backup_restore` |
 
-Use snapshots for ad-hoc copies you'll consume yourself. Use backups for the recurring "we always have a 7-day-old, 30-day-old, and 365-day-old copy" pattern — that's the policy-driven shape.
+A snapshot belongs to its volume: deleting the volume with `cascade: true` (`DELETE /api/v1/storage/`) deletes its snapshots too.
 
-## Policy-driven backups {#policies}
+## Making a copy {#create}
 
-Attach a backup policy to a VM / volume / database with:
+`POST /api/v1/backup_restore/volume_backups/create_backup` copies a volume now. Give the `volume_id` and the `type`, `snapshot` or `backup`, plus an optional `name`, `description` and `permanent`. For a `backup`, `storage_ids` also sends the copy to external storage connections you've set up with `POST /api/v1/external/connections/`.
 
-```json
-{
-  "source_id": "vm_01H...",
-  "source_kind": "vm",
-  "schedule": "daily",
-  "retention": {
-    "daily": 7,
-    "weekly": 4,
-    "monthly": 12,
-    "yearly": 5
-  }
-}
-```
+The call queues the work and answers right away, or answers `409` if the copy wouldn't fit your backup quota. `GET /api/v1/backup_restore/volume_backups/` lists your copies, filtered by `backup_types` and `statuses`, with `limit` (default 10) and `offset`. A copy's `status` is `pending`, `in_progress`, `completed` or `failed`.
 
-That policy maintains 7 dailies + 4 weeklies + 12 monthlies + 5 yearlies = 28 active backups at steady state. Older backups age out automatically; you don't have to garbage-collect manually.
+## Scheduled copies {#policies}
 
-Policy endpoints live at `/v1/backups/policies` (not shown in the minimal sample below — full reference in the live spec).
+A schedule makes copies for you. Create one with `POST /api/v1/backup_restore/backup_scheduler/`, giving a `frequency` and a `backup_quantity`, then bind it to each volume with `POST /api/v1/backup_restore/volume_scheduler/`, giving the `volume_id`, the `schedule_id` and the `type`. [Scheduled backups](/docs/api/scheduled-backups) has the details.
 
-## Retention locks {#retention}
+## Retention {#retention}
 
-A backup under an active retention tier (e.g. "daily, retain 7") is **retention-locked** for that period. Attempting to delete it before expiry returns 409. This is the compliance feature: a user can't delete a backup that's still inside the retention window, even if they have admin rights.
+A schedule keeps the newest `backup_quantity` copies (default 5) of each volume bound to it, and deletes older ones as new copies arrive; `outside_backup_quantity` (default 1) does the same for the copies in each external storage. Copies you make on demand stay until you delete them.
 
-To override, you'd need to detach the source from the policy (which orphans the backup, no longer retention-locked), then delete. The orphaning is logged in the audit trail.
+To keep a copy out of that rotation, set `permanent: true` on it, when you make it or later with `PATCH /api/v1/backup_restore/volume_backups/{volume_backup_id}`.
 
-## Cross-region replication {#cross-region}
+Delete one copy with `DELETE /api/v1/backup_restore/volume_backups/single/{volume_backup_id}`, or several with `DELETE /api/v1/backup_restore/volume_backups/bulk` and their ids in the `backup_ids` query parameter.
 
-A policy can specify a secondary region: every backup created by the policy is replicated to the secondary within ~10 minutes of creation. The replicated copy bills as cross-region storage (\$0.005/GB-month delta over the primary).
+## Restoring {#restore}
 
-Restoring from the secondary doesn't require any extra ceremony — `POST /v1/backups/{id}/restore` with the secondary's id, target region defaults to the secondary's region. Common DR drill: monthly restore from the secondary into a sandbox project, validate, destroy.
+Restore a snapshot with `POST /api/v1/backup_restore/volume_backups/snapshot_restore`, and a backup with `POST /api/v1/backup_restore/volume_backups/backup_restore`. Both take `{"backup_id": "…"}`, queue the work and answer right away. The copy must be `completed` and of the endpoint's type; otherwise the call answers `409`.
+
+A restore works in place. It builds a new volume from the copy, the same size and in the same availability zone as the original, and puts it where the original was:
+
+- A data volume is detached from its VM, and the restored volume is attached in its place.
+- For a VM's boot volume, the VM is rebuilt on the restored disk. The new VM takes over the old one's ports and floating IPs, and the old VM is deleted. The VM gets a new `id`; the restored disk keeps the SSH keys it had.
+
+The original volume's copies and schedule bindings move over to the restored volume.
 
 ## What's next {#next-steps}
 
-- [Snapshots](/docs/api/snapshots) — the ad-hoc cousin.
-- [Cold storage](/docs/api/cold-storage) — the tier backups live on.
-- [Virtual machines](/docs/api/vms), [Block storage](/docs/api/block-storage), [Managed databases](/docs/api/managed-databases) — the three source-kind targets.
+- [Scheduled backups](/docs/api/scheduled-backups) — make copies on a timetable.
+- [Block storage](/docs/api/block-storage) — the volumes these copies come from.
+- [Virtual machines](/docs/api/vms) — what a boot-volume restore rebuilds.
