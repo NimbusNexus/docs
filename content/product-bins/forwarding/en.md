@@ -1,14 +1,14 @@
 ---
 title: Forwarding
-description: A bin can send each request it records on to your own server and keep what your server answered — what is sent, the retries, the limits, and the address forwards come from.
+description: A bin can send each request it records on to your own server and keep what your server answered — what is sent, a pipeline that adds your server's credential or reshapes the request, the retries, the limits, and the address forwards come from.
 publishedAt: 2026-10-26
-updatedAt: 2026-10-26
+updatedAt: 2026-11-03
 kind: concept
 ---
 
 # Forwarding
 
-Give a bin a forward URL and every request it records is also sent on to your own server, as it arrived. The sender still gets the bin's `200` at once. The bin sends the request on by itself, tries again when your server fails, and keeps your server's answer beside the request, so one place shows what a sender sent and what your endpoint made of it.
+Give a bin a forward URL and every request it records is also sent on to your own server, as it arrived or through a [pipeline](#pipeline) that adds your server's credential, changes headers, skips requests or reshapes the body. The sender still gets the bin's `200` at once. The bin sends the request on by itself, tries again when your server fails, and keeps your server's answer beside the request, so one place shows what a sender sent and what your endpoint made of it.
 
 ## Who can forward, and where to {#target}
 
@@ -66,7 +66,7 @@ Your server receives a `POST` whose body is `{"type":"request_bins.forward_test"
 
 ## What is sent {#sent}
 
-A forward is the request as the bin recorded it:
+A forward is the request as the bin recorded it, unless the bin's [pipeline](#pipeline) changes it:
 
 - **the method**, whichever it was;
 - **the body, byte for byte**;
@@ -74,7 +74,7 @@ A forward is the request as the bin recorded it:
 
 **Dropped**, because they belong to one connection or one hop rather than to the request: `Connection` and every header it names, `Keep-Alive`, `Proxy-Connection`, `Proxy-Authenticate`, `TE`, `Trailer`, `Transfer-Encoding` and `Upgrade`; `Host`, which becomes your server's, and `Content-Length`, which is counted again; and `X-Real-IP`, `X-Forwarded-Proto`, `X-Forwarded-Host`, `CDN-Loop` and every `CF-*` header, which describe an earlier hop; the forward sets its own `X-Forwarded-Proto` and `X-Forwarded-Host`. A sender's own `X-Request-Bins-Request` is dropped too, so the one your server reads is ours.
 
-**Not forwarded: credentials.** `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` and `X-Api-Key` never leave the bin. A bin URL is public, so a bin replaces these values with `[redacted]` before anything is stored, and nothing a sender put in them is kept, not even for the moment a forward would need it. Signature headers, such as `Stripe-Signature` or `X-Hub-Signature-256`, aren't credentials and are forwarded. The body is unchanged, so they still verify, though a retry can arrive after a timestamped signature's tolerance has run out. The cost: a server that authenticates its caller with one of the five headers refuses forwarded requests.
+**Not forwarded: credentials.** `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` and `X-Api-Key` never leave the bin. A bin URL is public, so a bin replaces these values with `[redacted]` before anything is stored, and nothing a sender put in them is kept, not even for the moment a forward would need it. Signature headers, such as `Stripe-Signature` or `X-Hub-Signature-256`, aren't credentials and are forwarded. The body is unchanged, so they still verify, though a retry can arrive after a timestamped signature's tolerance has run out. A server that authenticates its caller with one of the five headers refuses forwarded requests, unless the bin's pipeline adds your server's own credential with a [credential step](#pipeline).
 
 **Added**, after the sender's headers:
 
@@ -86,6 +86,84 @@ A forward is the request as the bin recorded it:
 | `X-Forwarded-Proto` | `https` |
 | `X-Forwarded-Host` | `nnbin.net` |
 | `X-Request-Bins-Request` | The request's `id`, such as `req_8d2e6b1f4a9c3e7d5b0f2a61`, so your server's logs lead back to it. |
+
+## A pipeline before each forward {#pipeline}
+
+A bin's pipeline is a short list of steps that every forward runs, in order, just before it is sent. They are the declarative steps of a Webhooks transformation, and none of them runs code. A pipeline comes with forwarding, on Starter, Pro and Custom.
+
+| Step | What it does |
+| --- | --- |
+| **Credential** (`auth`) | Adds your server's credential from a stored [secret](#secrets): a bearer token, basic auth, or an API key in a header, after a prefix such as `Token` and a space, or in the query string. |
+| **Headers** (`headers`) | Sets, removes or renames the sender's headers. A value can read the request, such as `{{ $meta.bin.label }}`. |
+| **Filter** (`filter`) | Forwards only the requests that match, or skips the ones that do. |
+| **Remove fields** (`drop`), **Set fields** (`set`), **Reshape the body** (`map`) | Change a JSON body. |
+
+**Credential, header and filter steps keep the sender's signature.** The body still goes byte for byte, so `Stripe-Signature` and its kind still verify. A filter only decides whether a request is forwarded.
+
+**A step that changes the body breaks it.** The forward then carries the pipeline's JSON instead of the bytes the sender signed, so a signature over the body no longer verifies. Saving such a pipeline asks you to confirm that first: in the console with a dialog, and over the API with `"forward_pipeline_changes_body": true`. A changed body is sent as `application/json`, unless the pipeline sets a `Content-Type` of its own.
+
+What the steps read:
+
+- **the body**, parsed as JSON. A body that isn't JSON, such as a form post, still runs credential and header steps, and a filter on headers or on `$meta`, but a step that reads the body fails that forward;
+- **the sender's headers**, as the forward carries them. `Authorization`, `Cookie` and `X-Api-Key` are never among them, since no bin keeps them;
+- **`$meta`**: `{"bin": {"id", "label"}, "method", "path", "query", "request_id"}`.
+
+The headers in [Added](#sent) go on after the pipeline, and a pipeline can neither set nor remove them.
+
+### Secrets {#secrets}
+
+A credential step names a secret by its id, never by its value, so a pipeline read back from the console or the API holds no credential. Store one from the credential step's **Secret** list in the console, under **New secret…**, or with `POST /v1/secrets`:
+
+```bash
+curl -X POST https://bins.nimbusnexus.net/v1/secrets \
+  -H "Authorization: Bearer $BINS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"name\": \"Orders API\", \"value\": \"$ORDERS_API_TOKEN\"}"
+```
+
+```json
+{
+  "id": "sec_4b7d2e9a1c6f3e8b0d5a7c21",
+  "name": "Orders API",
+  "bin_count": 0,
+  "created_at": "2026-11-03T10:15:00Z",
+  "updated_at": "2026-11-03T10:15:00Z"
+}
+```
+
+- **Write-only.** A secret is encrypted when it is stored, and no page or route shows its value again. You can rename it, or replace its value, which every forward sends from its next attempt on.
+- **A value** is printable ASCII, up to 4,096 characters.
+- **Never recorded.** A request's forwards show the header a credential step added with its value masked, as `Bearer ••••`. If your server's answer echoes the credential back, the answer is kept with it replaced by `[redacted]`.
+- **Kept while in use.** A secret a bin's pipeline names can't be deleted: the answer is `409` `secret_in_use`. Change the pipeline first.
+- **For owners and admins.** Storing a secret, saving a pipeline whose credential step names one, and moving the forward URL of a bin whose pipeline sends one each take the owner or admin role, or a key with **Read & write**. A member can still resume such a bin, stop its forwarding or remove its pipeline.
+
+### Setting a pipeline {#pipeline-set}
+
+On the bin's **Forwarding** card, **Add a pipeline** opens the editor. Add steps one at a time, start from a template (a Slack, Discord or Microsoft Teams message, Keep only these fields, or Drop personal data), or edit the whole pipeline as JSON. **Test on the newest request** shows what a forward of the bin's newest request would send, the credential masked, or which step skips or fails it. Nothing is sent. Over the API, set `forward_pipeline` with `PATCH /v1/bins/{id}`:
+
+```bash
+curl -X PATCH https://bins.nimbusnexus.net/v1/bins/bin_3f9a1c7e5b2d8f4a6c0e9b17 \
+  -H "Authorization: Bearer $BINS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"forward_pipeline": {"version": 1, "steps": [
+        {"headers": {"set": {"X-Source": "request-bins"}}},
+        {"auth": {"type": "bearer", "secret": "sec_4b7d2e9a1c6f3e8b0d5a7c21"}}
+      ]}}'
+```
+
+The answer is the bin. It carries `forward_pipeline`, `forward_pipeline_version`, which moves at every change, and `forward_pipeline_changes_body`. `"forward_pipeline": null` removes the pipeline. A pipeline that could never run is refused with `422` `invalid_pipeline`, naming the step, the path and the reason; the [reference](/docs/product-bins/reference#pipeline) lists every reason.
+
+`POST /v1/bins/{id}/forward-pipeline/test` runs a pipeline without saving it. **Send a test** runs the bin's own pipeline on the test event, so it also checks that your server takes the credential.
+
+### What a forward does with it {#pipeline-forwards}
+
+| The pipeline | The forward |
+| --- | --- |
+| Runs | Sent as usual, with the pipeline's headers, then ours. |
+| Skips the request with a filter | Not forwarded, with the reason `filtered`. It isn't tried again and doesn't count toward a [pause](#paused). |
+| Fails, such as a body step on a body that isn't JSON, or a secret that is gone | Failed at once. `last_error` is `pipeline_failed: step <index>: <reason>: …`, the step counted from 0 as in `steps`. It counts toward a pause, as a failed send does. |
+
+Every attempt runs the pipeline as the bin holds it then, and opens its secrets again, so a replaced secret goes out from the next attempt on. A request's forwards show the version that ran, the step that skipped or failed it, whether the body was rewritten, and the headers sent, the credential masked.
 
 ## Delivery and retries {#delivery}
 

@@ -1,14 +1,14 @@
 ---
 title: "Transfert"
-description: "Un bin peut transférer chaque requête qu’il enregistre vers votre propre serveur et conserver ce que votre serveur a répondu — ce qui est envoyé, les réessais, les limites et l’adresse d’où viennent les transferts."
+description: "Un bin peut transférer chaque requête qu’il enregistre vers votre propre serveur et conserver ce que votre serveur a répondu — ce qui est envoyé, un pipeline qui ajoute le justificatif qu’attend votre serveur ou remodèle la requête, les réessais, les limites et l’adresse d’où viennent les transferts."
 publishedAt: 2026-10-26
-updatedAt: 2026-10-26
+updatedAt: 2026-11-03
 kind: concept
 ---
 
 # Transfert
 
-Donnez une URL de transfert à un bin : chaque requête qu’il enregistre est aussi transférée vers votre propre serveur, telle qu’elle est arrivée. L’expéditeur reçoit toujours immédiatement le `200` du bin. Le bin transfère la requête de lui-même, réessaie quand votre serveur échoue et conserve la réponse de votre serveur à côté de la requête : un seul endroit montre ainsi ce qu’un expéditeur a envoyé et ce que votre endpoint en a fait.
+Donnez une URL de transfert à un bin : chaque requête qu’il enregistre est aussi transférée vers votre propre serveur, telle qu’elle est arrivée ou en passant par un [pipeline](#pipeline) qui ajoute le justificatif qu’attend votre serveur, modifie les headers, écarte des requêtes ou remodèle le corps. L’expéditeur reçoit toujours immédiatement le `200` du bin. Le bin transfère la requête de lui-même, réessaie quand votre serveur échoue et conserve la réponse de votre serveur à côté de la requête : un seul endroit montre ainsi ce qu’un expéditeur a envoyé et ce que votre endpoint en a fait.
 
 ## Qui peut transférer, et vers où {#target}
 
@@ -66,7 +66,7 @@ Votre serveur reçoit un `POST` dont le corps est `{"type":"request_bins.forward
 
 ## Ce qui est envoyé {#sent}
 
-Un transfert, c’est la requête telle que le bin l’a enregistrée :
+Un transfert, c’est la requête telle que le bin l’a enregistrée, sauf si le [pipeline](#pipeline) du bin la modifie :
 
 - **la méthode**, quelle qu’elle soit ;
 - **le corps, octet pour octet** ;
@@ -74,7 +74,7 @@ Un transfert, c’est la requête telle que le bin l’a enregistrée :
 
 **Retirés**, car ils appartiennent à une connexion ou à un saut plutôt qu’à la requête : `Connection` et chaque header qu’il nomme, `Keep-Alive`, `Proxy-Connection`, `Proxy-Authenticate`, `TE`, `Trailer`, `Transfer-Encoding` et `Upgrade` ; `Host`, qui devient celui de votre serveur, et `Content-Length`, qui est recalculé ; et `X-Real-IP`, `X-Forwarded-Proto`, `X-Forwarded-Host`, `CDN-Loop` et chaque header `CF-*`, qui décrivent un saut antérieur ; le transfert définit ses propres `X-Forwarded-Proto` et `X-Forwarded-Host`. Le `X-Request-Bins-Request` propre à un expéditeur est retiré aussi : celui que lit votre serveur est donc le nôtre.
 
-**Non transférés : les justificatifs d’identité.** `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` et `X-Api-Key` ne quittent jamais le bin. Une URL de bin est publique : un bin remplace donc ces valeurs par `[redacted]` avant tout stockage, et rien de ce qu’un expéditeur y a mis n’est conservé, pas même pour l’instant où un transfert en aurait besoin. Les headers de signature, comme `Stripe-Signature` ou `X-Hub-Signature-256`, ne sont pas des justificatifs et sont transférés. Le corps est inchangé : ils se vérifient donc toujours, même si un réessai peut arriver après l’expiration de la tolérance d’une signature horodatée. La contrepartie : un serveur qui authentifie son appelant avec l’un de ces cinq headers refuse les requêtes transférées.
+**Non transférés : les justificatifs d’identité.** `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` et `X-Api-Key` ne quittent jamais le bin. Une URL de bin est publique : un bin remplace donc ces valeurs par `[redacted]` avant tout stockage, et rien de ce qu’un expéditeur y a mis n’est conservé, pas même pour l’instant où un transfert en aurait besoin. Les headers de signature, comme `Stripe-Signature` ou `X-Hub-Signature-256`, ne sont pas des justificatifs et sont transférés. Le corps est inchangé : ils se vérifient donc toujours, même si un réessai peut arriver après l’expiration de la tolérance d’une signature horodatée. Un serveur qui authentifie son appelant avec l’un de ces cinq headers refuse les requêtes transférées, sauf si le pipeline du bin ajoute le justificatif propre à votre serveur avec une [étape de justificatif](#pipeline).
 
 **Ajoutés**, après les headers de l’expéditeur :
 
@@ -86,6 +86,84 @@ Un transfert, c’est la requête telle que le bin l’a enregistrée :
 | `X-Forwarded-Proto` | `https` |
 | `X-Forwarded-Host` | `nnbin.net` |
 | `X-Request-Bins-Request` | L’`id` de la requête, par exemple `req_8d2e6b1f4a9c3e7d5b0f2a61`, pour que les logs de votre serveur mènent jusqu’à elle. |
+
+## Un pipeline avant chaque transfert {#pipeline}
+
+Le pipeline d’un bin est une courte liste d’étapes que chaque transfert exécute, dans l’ordre, juste avant son envoi. Ce sont les étapes déclaratives d’une transformation Webhooks, et aucune n’exécute de code. Le pipeline est inclus avec le transfert, sur Starter, Pro et Custom.
+
+| Étape | Ce qu’elle fait |
+| --- | --- |
+| **Credential** (`auth`) | Ajoute le justificatif qu’attend votre serveur, tiré d’un [secret](#secrets) stocké : un token Bearer, une authentification Basic, ou une clé API dans un header, après un préfixe comme `Token` suivi d’un espace, ou dans la query string. |
+| **Headers** (`headers`) | Définit, retire ou renomme les headers de l’expéditeur. Une valeur peut lire des données de la requête, comme `{{ $meta.bin.label }}`. |
+| **Filter** (`filter`) | Ne transfère que les requêtes qui correspondent, ou au contraire écarte celles qui correspondent. |
+| **Remove fields** (`drop`), **Set fields** (`set`), **Reshape the body** (`map`) | Modifient un corps JSON. |
+
+**Les étapes de justificatif, de headers et de filtre préservent la signature de l’expéditeur.** Le corps part toujours octet pour octet : `Stripe-Signature` et ses semblables se vérifient donc toujours. Un filtre ne fait que décider si une requête est transférée.
+
+**Une étape qui modifie le corps casse la signature.** Le transfert porte alors le JSON produit par le pipeline au lieu des octets que l’expéditeur a signés : une signature calculée sur le corps ne se vérifie donc plus. Enregistrer un tel pipeline demande d’abord une confirmation : dans la console, par une boîte de dialogue, et via l’API, avec `"forward_pipeline_changes_body": true`. Un corps modifié est envoyé en `application/json`, sauf si le pipeline définit son propre `Content-Type`.
+
+Ce que lisent les étapes :
+
+- **le corps**, analysé comme du JSON. Un corps qui n’est pas du JSON, comme un envoi de formulaire, passe quand même par les étapes de justificatif et de headers, et par un filtre sur les headers ou sur `$meta`, mais une étape qui lit le corps fait échouer ce transfert ;
+- **les headers de l’expéditeur**, tels que le transfert les porte. `Authorization`, `Cookie` et `X-Api-Key` n’en font jamais partie, puisqu’aucun bin ne les conserve ;
+- **`$meta`** : `{"bin": {"id", "label"}, "method", "path", "query", "request_id"}`.
+
+Les headers listés sous [Ajoutés](#sent) viennent après le pipeline, et un pipeline ne peut ni les définir ni les retirer.
+
+### Secrets {#secrets}
+
+Une étape de justificatif désigne un secret par son identifiant, jamais par sa valeur : un pipeline relu depuis la console ou l’API ne contient donc aucun justificatif. Stockez-en un depuis la liste **Secret** de l’étape de justificatif dans la console, sous **New secret…**, ou avec `POST /v1/secrets` :
+
+```bash
+curl -X POST https://bins.nimbusnexus.net/v1/secrets \
+  -H "Authorization: Bearer $BINS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"name\": \"Orders API\", \"value\": \"$ORDERS_API_TOKEN\"}"
+```
+
+```json
+{
+  "id": "sec_4b7d2e9a1c6f3e8b0d5a7c21",
+  "name": "Orders API",
+  "bin_count": 0,
+  "created_at": "2026-11-03T10:15:00Z",
+  "updated_at": "2026-11-03T10:15:00Z"
+}
+```
+
+- **En écriture seule.** Un secret est chiffré dès son stockage, et aucune page ni aucune route n’affiche plus jamais sa valeur. Vous pouvez le renommer, ou remplacer sa valeur : chaque transfert envoie la nouvelle dès sa prochaine tentative.
+- **Une valeur** s’écrit en ASCII imprimable, jusqu’à 4,096 caractères.
+- **Jamais enregistré.** Les transferts d’une requête montrent le header ajouté par une étape de justificatif avec sa valeur masquée, sous la forme `Bearer ••••`. Si la réponse de votre serveur reprend le justificatif, elle est conservée avec celui-ci remplacé par `[redacted]`.
+- **Conservé tant qu’il est utilisé.** Un secret que désigne le pipeline d’un bin ne peut pas être supprimé : la réponse est `409` `secret_in_use`. Modifiez d’abord le pipeline.
+- **Réservé aux propriétaires et aux admins.** Stocker un secret, enregistrer un pipeline dont l’étape de justificatif en désigne un, et changer l’URL de transfert d’un bin dont le pipeline en envoie un exigent chacun le rôle de propriétaire ou d’admin, ou une clé avec **Read & write**. Un membre peut toujours relancer un tel bin, arrêter son transfert ou retirer son pipeline.
+
+### Définir un pipeline {#pipeline-set}
+
+Sur la carte **Forwarding** du bin, **Add a pipeline** ouvre l’éditeur. Ajoutez des étapes une à une, partez d’un modèle (un message Slack, Discord ou Microsoft Teams, Keep only these fields ou Drop personal data), ou modifiez le pipeline entier en JSON. **Test on the newest request** montre ce qu’enverrait un transfert de la requête la plus récente du bin, avec le justificatif masqué, ou quelle étape l’écarterait ou le ferait échouer. Rien n’est envoyé. Via l’API, définissez `forward_pipeline` avec `PATCH /v1/bins/{id}` :
+
+```bash
+curl -X PATCH https://bins.nimbusnexus.net/v1/bins/bin_3f9a1c7e5b2d8f4a6c0e9b17 \
+  -H "Authorization: Bearer $BINS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"forward_pipeline": {"version": 1, "steps": [
+        {"headers": {"set": {"X-Source": "request-bins"}}},
+        {"auth": {"type": "bearer", "secret": "sec_4b7d2e9a1c6f3e8b0d5a7c21"}}
+      ]}}'
+```
+
+La réponse est le bin. Il porte `forward_pipeline`, `forward_pipeline_version`, qui change à chaque modification, et `forward_pipeline_changes_body`. `"forward_pipeline": null` retire le pipeline. Un pipeline qui ne pourrait jamais s’exécuter est refusé avec `422` `invalid_pipeline`, qui nomme l’étape, le chemin et la raison ; la [référence](/docs/product-bins/reference#pipeline) liste chaque raison.
+
+`POST /v1/bins/{id}/forward-pipeline/test` exécute un pipeline sans l’enregistrer. **Send a test** exécute le pipeline enregistré du bin sur l’événement de test : il vérifie donc aussi que votre serveur accepte le justificatif.
+
+### Ce qu’en fait un transfert {#pipeline-forwards}
+
+| Le pipeline | Le transfert |
+| --- | --- |
+| S’exécute | Envoyé normalement, avec les headers du pipeline, puis les nôtres. |
+| Écarte la requête avec un filtre | Non transféré, avec la raison `filtered`. Il n’est pas réessayé et ne compte pas pour la [mise en pause](#paused). |
+| Échoue, par exemple quand une étape porte sur un corps qui n’est pas du JSON, ou qu’un secret n’existe plus | Échec immédiat. `last_error` vaut `pipeline_failed: step <index>: <reason>: …`, l’étape étant numérotée à partir de 0, comme dans `steps`. Il compte pour la mise en pause, comme un envoi en échec. |
+
+Chaque tentative exécute le pipeline tel que le bin le détient à ce moment-là, et relit ses secrets : la nouvelle valeur d’un secret remplacé part donc dès la tentative suivante. Les transferts d’une requête montrent la version qui s’est exécutée, l’étape qui a écarté le transfert ou l’a fait échouer, si le corps a été réécrit, et les headers envoyés, justificatif masqué.
 
 ## Livraison et réessais {#delivery}
 

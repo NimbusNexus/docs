@@ -2,7 +2,7 @@
 title: "Referenz für Request Bins"
 description: "Jede Route der Request-Bins-API, was eine Bin-URL antwortet und aufzeichnet, wer was darf und die Limits jedes Tarifs."
 publishedAt: 2026-10-22
-updatedAt: 2026-10-30
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -93,8 +93,14 @@ Die Basis-URL ist `https://bins.nimbusnexus.net/v1`. Requests und Antworten sind
 | `POST /v1/bins` | Einen Bin anlegen; `201` mit [dem Bin](#bin) | write |
 | `GET /v1/bins` | Die Bins des Workspaces, neueste zuerst; `url` oder `slug` findet einen bestimmten | read |
 | `GET /v1/bins/{id}` | Ein Bin | read |
-| `PATCH /v1/bins/{id}` | Einen Bin umbenennen, deaktivieren und aktivieren oder seine [Weiterleitungs-URL](#forwarding) festlegen | write |
+| `PATCH /v1/bins/{id}` | Einen Bin umbenennen, deaktivieren und aktivieren oder seine [Weiterleitungs-URL](#forwarding) und seine [Pipeline](#pipeline) festlegen | write; mit einem Credential-Schritt admin |
 | `POST /v1/bins/{id}/forward-test` | Einen [Test](#forward-test) an die Weiterleitungs-URL des Bins senden und zurückgeben, was sie geantwortet hat | write |
+| `POST /v1/bins/{id}/forward-pipeline/test` | Eine [Pipeline](#pipeline-test) auf einen der Requests des Bins anwenden und nichts senden | write |
+| `GET /v1/pipeline-templates` | Die [Vorlagen](#pipeline-templates), die einer Pipeline als Ausgangspunkt dienen können | read |
+| `POST /v1/secrets` | Ein [Secret](#secrets) hinterlegen; `201` mit dem Secret, nie mit seinem Wert | admin |
+| `GET /v1/secrets`, `GET /v1/secrets/{id}` | Die Secrets des Workspaces, neueste zuerst, oder ein einzelnes, mit Name und ID | read |
+| `PATCH /v1/secrets/{id}` | Ein Secret umbenennen oder seinen Wert ersetzen | admin |
+| `DELETE /v1/secrets/{id}` | Ein Secret löschen; `204` | admin |
 | `DELETE /v1/bins/{id}` | Einen Bin löschen; `204` | admin |
 | `GET /v1/bins/{id}/requests` | Die [erfassten Requests](#requests) eines Bins, neueste zuerst | read; mit einem Key ein bezahlter Tarif |
 | `GET /v1/requests` | Die [erfassten Requests](#all-requests) aller Bins in einer Liste, neueste zuerst | read; mit einem Key ein bezahlter Tarif |
@@ -146,10 +152,14 @@ Listen werden mit `limit` (1 bis 200, Standard 50) und `offset` (0 bis 10.000) p
 | `forward_url` | Wohin der Bin jeden aufgezeichneten Request [weiterleitet](#forwarding), oder `null`, wenn er nicht weiterleitet. |
 | `forward_paused_at`, `forward_paused_reason` | Wann die Weiterleitung nach fehlgeschlagenen Sendeversuchen [pausierte](/docs/product-bins/forwarding#paused), und warum: `failed_in_a_row` oder `failing_for_an_hour`. `null` und leer, solange sie nicht pausiert ist. |
 | `forward_last_error`, `forward_last_error_at` | Der letzte fehlgeschlagene Sendeversuch: was schiefging, etwa `HTTP 503` oder ein Timeout, nie, was der Request enthielt; und wann. |
+| `forward_pipeline` | Die [Pipeline](#pipeline), die jede Weiterleitung zuerst durchläuft, oder `null`. Ein Credential-Schritt darin verweist über die ID auf sein Secret. |
+| `forward_pipeline_version` | Zählt bei jeder Änderung der Pipeline weiter, auch wenn sie entfernt wird; `0` vor der ersten Änderung. `pipeline.version` einer Weiterleitung ist die Version, die gelaufen ist. |
+| `forward_pipeline_changes_body` | `true`, wenn ein Schritt den Body ändert, sodass Weiterleitungen keine gültige Signatur des Absenders mehr mitführen. |
+| `forward_pipeline_updated_at` | Wann die Pipeline zuletzt geändert wurde, oder `null`. |
 
 ### Bin ändern oder löschen {#change}
 
-`PATCH /v1/bins/{id}` erwartet `label`, `status` (`enabled` oder `disabled`), `forward_url` ([Weiterleitung](#forwarding)) oder eine beliebige Kombination davon und antwortet mit dem Bin. Deaktivieren beendet das Aufzeichnen und behält, was der Bin enthält. Ein deaktivierter Bin zählt weiterhin zu den Bins des Tarifs.
+`PATCH /v1/bins/{id}` erwartet `label`, `status` (`enabled` oder `disabled`), `forward_url` ([Weiterleitung](#forwarding)), `forward_pipeline` mit `forward_pipeline_changes_body` ([Pipelines](#pipeline)) oder eine beliebige Kombination davon und antwortet mit dem Bin. Deaktivieren beendet das Aufzeichnen und behält, was der Bin enthält. Ein deaktivierter Bin zählt weiterhin zu den Bins des Tarifs.
 
 Wo `status` jetzt `enabled` ist, war es früher `active`, und keine Antwort enthält mehr `active`. `PATCH` akzeptiert weiterhin `"status": "active"`, und der Bin kommt als `enabled` zurück, aber diese Schreibweise ist als veraltet markiert und wird ab einem Datum, das noch angekündigt wird, abgewiesen. Senden Sie daher `enabled`.
 
@@ -271,6 +281,8 @@ Ein Bin in Starter, Pro oder Custom kann jeden Request, den er aufzeichnet, an e
 
 Behandeln Sie `reason`, `forward_paused_reason` und den `reason` einer Weiterleitung als offene Strings und sehen Sie einen Standardfall für Werte vor, die Sie nicht kennen.
 
+Die Weiterleitungs-URL eines Bins zu ändern, dessen Pipeline einen Credential-Schritt hat, erfordert **admin**: Die URL entscheidet, wohin das Secret gesendet wird. Dieselbe URL erneut festzulegen, um die Weiterleitung fortzusetzen, und die URL zu entfernen, bleibt mit **write** möglich.
+
 Wenn die Weiterleitung pausiert, wird der Workspace einmal benachrichtigt, per E-Mail und über einen Webhook mit dem Event-Typ `bind.forwarding.paused`; [Wenn die Weiterleitung pausiert](/docs/product-bins/forwarding#paused) zeigt den Body des Webhooks.
 
 ### Weiterleitungs-URL testen {#forward-test}
@@ -282,9 +294,10 @@ Wenn die Weiterleitung pausiert, wird der Workspace einmal benachrichtigt, per E
 | `ok` | `true`, wenn Ihr Server mit `2xx` oder `3xx` geantwortet hat. |
 | `answer` | Was Ihr Server geantwortet hat: `status`; `headers`, Objekte mit `name` und `value`, in der Reihenfolge, in der sie gesendet wurden; die ersten 8 KiB des Bodys als `body_base64`; und `truncated`, `true`, wenn der Body darüber hinausging. `null`, wenn keine Antwort kam. |
 | `duration_ms` | Wie lange das Senden gedauert hat. |
-| `error` | Warum keine Antwort kam, etwa ein Timeout oder eine abgelehnte Verbindung; leer, wenn eine kam. |
+| `error` | Warum keine Antwort kam, etwa ein Timeout oder eine abgelehnte Verbindung, oder dass die Pipeline des Bins das Test-Event übersprungen hat oder daran fehlgeschlagen ist; leer, wenn eine Antwort kam. |
+| `pipeline` | Was die [Pipeline](#pipeline) des Bins mit dem Test-Event gemacht hat, aufgebaut wie das Feld `pipeline` einer Weiterleitung; `null`, wenn der Bin keine hat. |
 
-Der Aufruf wartet bis zu 13 Sekunden auf die Antwort; bei einem langsameren Server ist `ok` `false`, und ein `error` sagt das. Ein Bin kann 10 Tests pro Minute senden: Darüber hinaus lautet die Antwort `429` `rate_limited`, und `details.retry_after` gibt an, wie viele Sekunden es dauert, bis der nächste erlaubt ist. `503` `unavailable` mit `details.reason` `forwarder_unavailable` bedeutet, dass der Test nicht innerhalb von 3 Sekunden zum Senden übernommen wurde und daher nichts gesendet wurde: Versuchen Sie es in Kürze erneut. Eine URL, die sich beim Senden als nicht öffentlich erweist, wird mit dem `422` von oben abgewiesen.
+Die Pipeline des Bins wird zuerst auf das Test-Event angewendet, wie bei jeder Weiterleitung, sodass ein Test auch prüft, ob Ihr Server das Credential annimmt, das ein Credential-Schritt hinzufügt. Der Aufruf wartet bis zu 13 Sekunden auf die Antwort; bei einem langsameren Server ist `ok` `false`, und ein `error` sagt das. Ein Bin kann 10 Tests pro Minute senden: Darüber hinaus lautet die Antwort `429` `rate_limited`, und `details.retry_after` gibt an, wie viele Sekunden es dauert, bis der nächste erlaubt ist. `503` `unavailable` mit `details.reason` `forwarder_unavailable` bedeutet, dass der Test nicht innerhalb von 3 Sekunden zum Senden übernommen wurde und daher nichts gesendet wurde: Versuchen Sie es in Kürze erneut. Eine URL, die sich beim Senden als nicht öffentlich erweist, wird mit dem `422` von oben abgewiesen.
 
 ### Die Weiterleitungen eines Requests {#forwards}
 
@@ -298,11 +311,12 @@ Der Aufruf wartet bis zu 13 Sekunden auf die Antwort; bei einem langsameren Serv
 | `url` | Wohin sie geht: die Weiterleitungs-URL, wie sie beim Eintreffen des Requests lautete, ergänzt um Pfad und Query des Requests. |
 | `attempts`, `max_attempts` | Die bisherigen Versuche und die Höchstzahl, die der Tarif erlaubte, als sie eingereiht wurde. |
 | `next_attempt_at` | Wann der nächste Versuch fällig ist, solange `state` `retrying` ist; sonst `null`. |
-| `last_error` | Was beim letzten Versuch schiefging, etwa `HTTP 503` oder ein Timeout, oder warum sie wartet; leer, sobald sie gesendet ist. |
-| `answer` | Was Ihr Server beim letzten Versuch geantwortet hat, aufgebaut wie bei einem [Test](#forward-test). `null`, wenn dieser Versuch keine Antwort erhielt. |
+| `last_error` | Was beim letzten Versuch schiefging, etwa `HTTP 503`, ein Timeout oder `pipeline_failed: …`, oder warum sie wartet oder welcher Schritt sie übersprungen hat; leer, sobald sie gesendet ist. |
+| `answer` | Was Ihr Server beim letzten Versuch geantwortet hat, aufgebaut wie bei einem [Test](#forward-test). `null`, wenn dieser Versuch keine Antwort erhielt. Gab die Antwort ein Credential zurück, das die Pipeline hinzugefügt hat, steht dort `[redacted]`. |
 | `duration_ms` | Wie lange der letzte Versuch gedauert hat; vor dem ersten `null`. |
 | `created_at` | Wann sie eingereiht wurde. |
 | `sent_at` | Wann sie gesendet wurde; bis dahin `null`. |
+| `pipeline` | Was die Pipeline des Bins beim letzten Versuch getan hat, oder `null`, wenn keine gelaufen ist: `version`; `step`, der Schritt, an dem die Weiterleitung übersprungen wurde oder fehlschlug, ab 0 gezählt, oder `null`; `body_changed`, `true`, wenn ein Schritt den Body umgeschrieben hat; `headers`, jeder gesendete Header, unsere eingeschlossen, der Wert eines Credentials maskiert als `Bearer ••••`; und `credential_query`, die Namen der Query-Parameter, die ein Credential-Schritt hinzugefügt hat. |
 
 | `state` | Bedeutung |
 | --- | --- |
@@ -324,6 +338,63 @@ Der Aufruf wartet bis zu 13 Sekunden auf die Antwort; bei einem langsameren Serv
 | `suspended` | Der Bin oder sein Workspace wurde gesperrt, bevor der Request an der Reihe war. |
 | `not_entitled` | Der Tarif enthielt keine Weiterleitung mehr, bevor der Request an der Reihe war. |
 | `request_gone` | Die Aufbewahrung des Requests ist abgelaufen, bevor er an der Reihe war. |
+| `filtered` | Ein Filter-Schritt der Pipeline des Bins hat den Request übersprungen. `pipeline.step` gibt an, welcher. |
+
+### Pipelines {#pipeline}
+
+Die Pipeline eines Bins läuft bei jeder Weiterleitung, bevor diese gesendet wird. [Eine Pipeline vor jeder Weiterleitung](/docs/product-bins/forwarding#pipeline) erklärt die Schritte, was sie lesen und was eine Weiterleitung damit macht; dieser Abschnitt behandelt die API. `forward_pipeline` bei `PATCH /v1/bins/{id}` erwartet die Pipeline, ein JSON-Dokument `{"version": 1, "steps": [...]}`, und `null` entfernt sie:
+
+- **Ein Schritt, der den Body ändert** (`drop`, `set` oder `map`), wird nur mit `"forward_pipeline_changes_body": true` im selben Request gespeichert. Ohne diese Angabe lautet die Antwort `422` `invalid_pipeline` mit dem Grund `changes_body`.
+- **Ein Credential-Schritt** erfordert **admin**, wie das Hinterlegen eines Secrets. Das Entfernen einer Pipeline erfordert **write**.
+- **Dasselbe Dokument noch einmal** ändert nichts, und `forward_pipeline_version` bleibt gleich.
+- **In Free** lautet die Antwort `402` `not_entitled` mit `details.feature` `forwarding`. Solange die Weiterleitung für den gesamten Dienst ausgeschaltet ist, lautet sie `503` `unavailable`, `forwarding_disabled`.
+
+Eine Pipeline, die nie laufen könnte, wird beim Speichern oder Testen abgewiesen. Die Antwort lautet `422` `invalid_pipeline` und nennt das erste Problem: `details.reason`, `details.path`, einen JSON Pointer in das Dokument wie `/steps/1/headers/set/Via` (fehlt, wenn das ganze Dokument betroffen ist), und `details.step`, den Index des Schritts ab 0.
+
+| `reason` | Grund |
+| --- | --- |
+| `invalid_document`, `unsupported_version`, `no_steps`, `too_many_steps` | Das Dokument ist nicht `{"version": 1, "steps": [...]}` mit 1 bis 20 Schritten. |
+| `invalid_step`, `unknown_step`, `invalid_value` | Ein Schritt ist keiner von `filter`, `drop`, `set`, `map`, `headers` und `auth`, oder er enthält eine Einstellung, die er nicht unterstützt. |
+| `invalid_path`, `invalid_template`, `invalid_filter`, `invalid_header`, `not_json` | Ein Pfad, ein Template, ein Filter, ein Header-Name oder -Wert oder ein Wert ist ungültig. |
+| `invalid_secret` | Ein Credential-Schritt enthält statt der ID eines Secrets etwas anderes, etwa einen Wert. Die Antwort wiederholt es nie. |
+| `auth_not_last` | Ein Credential-Schritt steht vor einem Schritt anderer Art: Credential-Schritte stehen am Ende, damit kein Schritt das Credential lesen kann. |
+| `too_deep`, `too_large` | Das Dokument ist zu tief verschachtelt, ein Schritt ist größer als 16 KiB, oder das Dokument ist größer als 64 KiB. |
+| `managed_header` | Ein Schritt setzt einen Header, den jede Weiterleitung von uns mitführt, etwa `Via` oder `X-Forwarded-For`, oder einen, den unser Edge hinzufügt (`CF-*`, `X-Real-IP`, `CDN-Loop`). |
+| `forbidden_header` | Ein Schritt setzt einen Hop-by-Hop-Header, `Proxy-Authorization` oder `Set-Cookie`. |
+| `credential_header` | Ein Header-Schritt setzt `Authorization`, `Cookie` oder `X-Api-Key`, wodurch das Credential in der Pipeline gespeichert würde. Fügen Sie es stattdessen mit einem Credential-Schritt hinzu. |
+| `unknown_secret` | Ein Credential-Schritt verweist auf ein Secret, das der Workspace nicht hat. |
+| `changes_body` | Ein Schritt ändert den Body, und `forward_pipeline_changes_body` war nicht `true`. |
+
+#### Pipeline testen {#pipeline-test}
+
+`POST /v1/bins/{id}/forward-pipeline/test` führt eine Pipeline einmal aus und sendet nichts. Der Aufruf erwartet `pipeline`, ein Dokument, das ausgeführt werden soll (ohne das Feld läuft die eigene Pipeline des Bins), und `request_id`, einen der Requests des Bins (ohne das Feld der neueste oder, wenn der Bin keinen enthält, das Test-Event). Das Dokument wird so geprüft wie beim Speichern, nur braucht ein Schritt, der den Body ändert, keine Bestätigung:
+
+| Feld | Bedeutung |
+| --- | --- |
+| `status` | `ok`, eine Weiterleitung würde gesendet; `dropped`, ein Filter überspringt sie; `failed`, die Pipeline lässt sie fehlschlagen. |
+| `request_id` | Der Request, auf den die Pipeline angewendet wurde, oder `test`. |
+| `step`, `reason`, `error` | Der Schritt, an dem die Weiterleitung übersprungen wurde oder fehlschlug, ab 0 gezählt; `no_match` oder `matched` bei einem Filter oder der Grund, warum sie fehlschlug; und dasselbe in Worten. Leer bei `ok`. |
+| `method`, `headers` | Was eine Weiterleitung senden würde: jeder Header, unsere eingeschlossen, der Wert eines Credentials maskiert. |
+| `credential_query` | Die Namen der Query-Parameter, die ein Credential-Schritt hinzufügen würde. |
+| `body_base64`, `body_changed` | Der Body, den die Weiterleitung senden würde, und `true`, wenn ein Schritt ihn umgeschrieben hat. |
+| `duration_ms` | Wie lange die Ausführung gedauert hat. |
+
+#### Vorlagen {#pipeline-templates}
+
+`GET /v1/pipeline-templates` listet die Pipelines auf, die einer neuen als Ausgangspunkt dienen können: Nachrichten für `slack`, `discord` und `teams`, `keep_fields` und `drop_personal`. Jede hat eine `id`, die sich nie ändert, einen `name`, eine `description`, das Dokument `pipeline` und `changes_body`, das heute bei allen `true` ist. Wird eine davon gespeichert, entsteht eine Kopie, die allein dem Bin gehört.
+
+### Secrets {#secrets}
+
+Ein Secret ist ein Credential, das ein Credential-Schritt hinzufügt: ein Bearer-Token, ein Passwort oder ein API-Key. Der Workspace verwaltet seine Secrets an einer Stelle, und die Pipeline jedes Bins kann über die ID auf sie verweisen. `POST /v1/secrets` erwartet `name` (bis zu 200 Zeichen) und `value` (druckbares ASCII, bis zu 4.096 Zeichen) und antwortet mit `201`:
+
+| Feld | Bedeutung |
+| --- | --- |
+| `id` | `sec_` und 24 Hexadezimalzeichen: worauf ein Credential-Schritt verweist. |
+| `name` | Ihr Name für das Secret. |
+| `bin_count` | Die aktiven Bins, deren Pipeline auf das Secret verweist. |
+| `created_at`, `updated_at` | Wann es hinterlegt und wann es zuletzt umbenannt oder ersetzt wurde. |
+
+Keine Antwort enthält den Wert eines Secrets, und eine Abweisung wiederholt ihn nie. `PATCH /v1/secrets/{id}` erwartet `name` oder `value`, und jede Weiterleitung sendet einen neuen Wert ab ihrem nächsten Versuch. `DELETE /v1/secrets/{id}` antwortet mit `204` oder, solange die Pipeline eines Bins auf das Secret verweist, mit `409` `conflict` und `details.reason` `secret_in_use`, `details.id` und `details.bins`. Hinterlegen, Ersetzen und Löschen erfordern **admin**. Zum Hinterlegen braucht der Workspace einen Tarif mit Weiterleitung; in Free lautet die Antwort `402` `not_entitled`, `forwarding`. Wo sich noch keine Secrets hinterlegen lassen, lautet die Antwort `503` `unavailable`, `secrets_unavailable`.
 
 ### Tarif und Verbrauch {#plan}
 
@@ -377,15 +448,15 @@ Der Aufruf wartet bis zu 13 Sekunden auf die Antwort; bei einem langsameren Serv
 
 ## Wer was darf {#authority}
 
-| | Bins, Tarif und Verbrauch lesen | Erfasste Requests lesen | Bins anlegen, umbenennen, deaktivieren und aktivieren sowie die Weiterleitung einrichten | Bins löschen und leeren |
-| --- | --- | --- | --- | --- |
-| Owner oder Admin des Workspaces | ja | ja | ja | ja |
-| Member | ja | ja | ja | nein |
-| Viewer oder jede andere Rolle | ja | ja | nein | nein |
-| Key mit **Read & write** (Scope `admin`) | ja | in bezahlten Tarifen | ja | ja |
-| Key mit **Read** (Scope `read`) | ja | in bezahlten Tarifen | nein | nein |
+| | Bins, Tarif und Verbrauch lesen | Erfasste Requests lesen | Bins anlegen, umbenennen, deaktivieren und aktivieren sowie die Weiterleitung einrichten | Bins löschen und leeren | Secrets und Pipelines, die eines senden |
+| --- | --- | --- | --- | --- | --- |
+| Owner oder Admin des Workspaces | ja | ja | ja | ja | ja |
+| Member | ja | ja | ja | nein | nein |
+| Viewer oder jede andere Rolle | ja | ja | nein | nein | nein |
+| Key mit **Read & write** (Scope `admin`) | ja | in bezahlten Tarifen | ja | ja | ja |
+| Key mit **Read** (Scope `read`) | ja | in bezahlten Tarifen | nein | nein | nein |
 
-Eine abgewiesene Aktion antwortet mit `403` `forbidden` und `details.reason` `role`, und `details.required` nennt die nötige Rolle: `member`, um einen Bin anzulegen oder zu ändern, `admin`, um einen zu löschen oder zu leeren. Für einen Key bedeuten beide **Read & write** (den Scope `admin`). Die Kontokonsole erstellt Keys mit **Read** und **Read & write**, und ein Key mit einem anderen Scope, etwa `write`, wird wie **Read** behandelt.
+Eine abgewiesene Aktion antwortet mit `403` `forbidden` und `details.reason` `role`, und `details.required` nennt die nötige Rolle: `member`, um einen Bin anzulegen oder zu ändern, `admin`, um einen zu löschen oder zu leeren, ein [Secret](#secrets) zu hinterlegen, zu ersetzen oder zu löschen oder zu entscheiden, wohin ein Secret geht: beim Speichern einer Pipeline, deren Credential-Schritt auf eines verweist, und beim Ändern der Weiterleitungs-URL eines Bins, dessen Pipeline auf eines verweist. Für einen Key bedeuten beide **Read & write** (den Scope `admin`). Die Kontokonsole erstellt Keys mit **Read** und **Read & write**, und ein Key mit einem anderen Scope, etwa `write`, wird wie **Read** behandelt.
 
 Request Bins bedient ganze Workspaces. Ein Gastzugang oder ein Key, der auf ein Projekt beschränkt ist, wird auf jeder Route mit `403` `project_confined` abgewiesen.
 
@@ -438,18 +509,20 @@ Die Fehler der API verwenden das unter [Fehler](/docs/errors) beschriebene Forma
 | `401` | `unauthorized` | Kein Credential, ein widerrufenes oder eine beendete Anmeldung in der Konsole; `details.reason` nennt den Fall. |
 | `401` | `invalid_credential` | Ein Key, der sich nicht verifizieren lässt, abgelaufen ist oder für ein anderes Produkt erstellt wurde. |
 | `402` | `quota_exceeded` | Einen Bin anlegen, während alle Bins des Tarifs belegt sind. |
-| `402` | `not_entitled` | In Free: erfasste Requests mit einem Key lesen (`details.feature` `read_api`) oder eine Weiterleitungs-URL festlegen oder einen Test senden (`forwarding`). |
+| `402` | `not_entitled` | In Free: erfasste Requests mit einem Key lesen (`details.feature` `read_api`) oder eine Weiterleitungs-URL oder eine Pipeline festlegen, einen Test senden oder ein Secret hinterlegen (`forwarding`). |
 | `402` | `workspace_frozen`, `workspace_suspended` | Einen Bin anlegen oder ändern, während eine Zahlung überfällig ist oder nachdem der Dienst eingestellt wurde. |
 | `403` | `forbidden` | `details.reason` ist `role`, `project_confined`, `product_not_enabled`, `csrf` oder `no_workspace`. |
-| `404` | `not_found` | Kein solcher Bin oder Request in Ihrem Workspace, oder er wurde gelöscht oder ist abgelaufen; `details.reason` ist `bin` oder `request`. |
+| `404` | `not_found` | Der Bin, der Request oder das Secret existiert in Ihrem Workspace nicht, wurde gelöscht oder ist abgelaufen; `details.reason` ist `bin`, `request` oder `secret`. |
 | `405` | `method_not_allowed` | Der Pfad existiert, aber nicht für diese Methode. |
+| `409` | `conflict` | Ein Secret löschen, auf das die Pipeline eines Bins verweist: `details.reason` `secret_in_use` ([Secrets](#secrets)). |
 | `413` | `payload_too_large` | Ein Request-Body über 2 MiB. |
+| `422` | `invalid_pipeline` | Eine Pipeline, die nie laufen könnte, beim Speichern oder Testen; `details.reason`, `details.path` und `details.step` nennen das Problem ([Pipelines](#pipeline)). |
 | `422` | `validation_error` | Ein Parameter oder Feld hat die Validierung nicht bestanden. Ein NUL-Zeichen im Pfad, in der Query oder in einem JSON-Body ergibt den Eintragstyp `bins.nul_character`, eine Weiterleitungs-URL, an die ein Bin nicht weiterleitet, ergibt `bins.forward_target` ([Weiterleitung](#forwarding)), und eine Suche, deren Teile einander widersprechen, ergibt `bins.search_conflict` ([Erfasste Requests](#requests)). |
 | `429` | `rate_limited` | Mehr als 10 Tests für einen Bin innerhalb einer Minute; `details.retry_after` gibt an, wann Sie es erneut versuchen können. |
 | `500` | `internal_error` | Auf unserer Seite ist etwas kaputtgegangen. |
-| `503` | `unavailable` | Eine Weiterleitungs-URL festlegen oder einen Test senden, während die Weiterleitung für den gesamten Dienst ausgeschaltet ist (`details.reason` `forwarding_disabled`), oder ein Test, der nicht innerhalb von 3 Sekunden zum Senden übernommen wurde, sodass nichts gesendet wurde (`forwarder_unavailable`). |
+| `503` | `unavailable` | Eine Weiterleitungs-URL oder eine Pipeline festlegen oder einen Test senden, während die Weiterleitung für den gesamten Dienst ausgeschaltet ist (`details.reason` `forwarding_disabled`); ein Test, der nicht innerhalb von 3 Sekunden zum Senden übernommen wurde, sodass nichts gesendet wurde (`forwarder_unavailable`); oder ein Secret hinterlegen, wo sich noch keine Secrets hinterlegen lassen (`secrets_unavailable`). |
 
-Die API sendet kein `409` und ein `429` nur bei Tests.
+Die API sendet ein `409` nur bei einem Secret, das noch verwendet wird, und ein `429` nur bei Tests.
 
 ## Nächste Schritte {#next-steps}
 
