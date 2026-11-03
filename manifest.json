@@ -1244,12 +1244,12 @@
             "uk": "Користувачі"
           },
           "description": {
-            "en": "Identity records in a workspace — assign roles, generate API keys, assume trusts.",
-            "de": "Identitätsdatensätze in einem Workspace — Rollen zuweisen, API-Keys generieren, Trusts übernehmen.",
-            "es": "Registros de identidad dentro de un workspace — asigna roles, genera claves de API y asume relaciones de confianza.",
-            "fr": "Les identités d’un espace de travail — attribuez des rôles, générez des clés API, utilisez des délégations.",
-            "pt": "Registros de identidade dentro de um workspace — atribua funções, gere chaves de API, assuma relações de confiança.",
-            "uk": "Записи ідентичності в робочому просторі: призначайте ролі, генеруйте API-ключі, використовуйте довіри."
+            "en": "Identity records in a workspace — assign roles, generate API keys.",
+            "de": "Identitätsdatensätze in einem Workspace — Rollen zuweisen, API-Keys generieren.",
+            "es": "Registros de identidad dentro de un workspace — asigna roles y genera claves de API.",
+            "fr": "Les identités d’un espace de travail — attribuez des rôles, générez des clés API.",
+            "pt": "Registros de identidade dentro de um workspace — atribua funções, gere chaves de API.",
+            "uk": "Записи ідентичності в робочому просторі: призначайте ролі, генеруйте API-ключі."
           },
           "published": true
         },

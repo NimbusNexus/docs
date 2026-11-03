@@ -1,6 +1,6 @@
 ---
 title: "Benutzer"
-description: "Identitätsdatensätze in einem Workspace — Rollen zuweisen, API-Keys generieren, Trusts übernehmen."
+description: "Identitätsdatensätze in einem Workspace — Rollen zuweisen, API-Keys generieren."
 publishedAt: 2026-05-20
 updatedAt: 2026-11-03
 kind: reference
@@ -8,7 +8,7 @@ kind: reference
 
 # Benutzer
 
-Ein Benutzer ist eine Identität in einem [Workspace](/docs/api/workspaces). Benutzer haben Rollen in den [Projekten](/docs/api/projects) des Workspaces (die Berechtigungen erteilen), können API-Keys generieren (jeder gehört dem Benutzer und gilt für ein einzelnes Projekt) und Trusts übernehmen, um im Namen anderer Projekte zu handeln.
+Ein Benutzer ist eine Identität in einem [Workspace](/docs/api/workspaces). Benutzer haben Rollen in den [Projekten](/docs/api/projects) des Workspaces (die Berechtigungen erteilen) und können API-Keys generieren (jeder gehört dem Benutzer und gilt für ein einzelnes Projekt).
 
 ## Benutzer ≠ Login {#identity-model}
 

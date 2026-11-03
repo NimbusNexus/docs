@@ -1,6 +1,6 @@
 ---
 title: Users
-description: Identity records in a workspace — assign roles, generate API keys, assume trusts.
+description: Identity records in a workspace — assign roles, generate API keys.
 publishedAt: 2026-05-20
 updatedAt: 2026-11-03
 kind: reference
@@ -8,7 +8,7 @@ kind: reference
 
 # Users
 
-A user is an identity in a [workspace](/docs/api/workspaces). Users hold roles on the workspace's [projects](/docs/api/projects) (which grant permissions), can generate API keys (each one belongs to the user and is scoped to one project), and can assume trusts to act on behalf of other projects.
+A user is an identity in a [workspace](/docs/api/workspaces). Users hold roles on the workspace's [projects](/docs/api/projects) (which grant permissions) and can generate API keys (each one belongs to the user and is scoped to one project).
 
 ## User ≠ login {#identity-model}
 

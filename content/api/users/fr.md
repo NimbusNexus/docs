@@ -1,6 +1,6 @@
 ---
 title: "Utilisateurs"
-description: "Les identités d’un espace de travail — attribuez des rôles, générez des clés API, utilisez des délégations."
+description: "Les identités d’un espace de travail — attribuez des rôles, générez des clés API."
 publishedAt: 2026-05-20
 updatedAt: 2026-11-03
 kind: reference
@@ -8,7 +8,7 @@ kind: reference
 
 # Utilisateurs
 
-Un utilisateur est une identité à l’intérieur d’un [espace de travail](/docs/api/workspaces). Les utilisateurs détiennent des rôles sur les [projets](/docs/api/projects) de l’espace de travail (qui accordent des permissions), peuvent générer des clés API (chacune appartient à l’utilisateur et est propre à un seul projet) et peuvent utiliser des délégations pour agir au nom d’autres projets.
+Un utilisateur est une identité à l’intérieur d’un [espace de travail](/docs/api/workspaces). Les utilisateurs détiennent des rôles sur les [projets](/docs/api/projects) de l’espace de travail (qui accordent des permissions) et peuvent générer des clés API (chacune appartient à l’utilisateur et est propre à un seul projet).
 
 ## Utilisateur ≠ compte de connexion {#identity-model}
 
