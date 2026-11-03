@@ -2,7 +2,7 @@
 title: Endpoint verification
 description: Prove an endpoint wants your events before it receives any — a one-time signed challenge it must echo back.
 publishedAt: 2026-10-19
-updatedAt: 2026-10-30
+updatedAt: 2026-11-03
 kind: concept
 ---
 
@@ -83,7 +83,7 @@ Sending again is held back the same way. Redelivering one delivery to that endpo
 
 Some receivers accept any POST but never echo a body you choose — Zapier's catch hooks among them. They cannot pass verification. Where your plan lets you, leave verification off for the project that delivers to them; otherwise put a small relay of your own in front that answers the challenge.
 
-Slack's incoming webhooks are a different case, and so are Microsoft Teams' and Discord's. They accept only their own message format, such as a Slack message with a `text` or `blocks` field, so they reject the event envelope we deliver, even with verification off. Give the endpoint a [transformation](/docs/product-webhooks/transformations) and they take it: the **Slack message**, **Microsoft Teams card** and **Discord message** presets turn each event into a message, on every paid plan. They still cannot answer the challenge, so keep verification off for their project. [Slack, Teams and Discord](/docs/product-webhooks/chat-apps) walks through it.
+Slack's incoming webhooks are a different case, and so are Microsoft Teams' and Discord's. They accept only their own message format, such as a Slack message with a `text` or `blocks` field, so they reject the event envelope we deliver, even with verification off. Give the endpoint a [transformation](/docs/product-webhooks/transformations#templates) and they take it: the **Slack message**, **Microsoft Teams card** and **Discord message** templates are pipelines that turn each event into a message, on every plan. They still cannot answer the challenge, so their project needs verification off, where your plan lets you turn it off. [Slack, Teams and Discord](/docs/product-webhooks/chat-apps) walks through it.
 
 ## What's next {#next-steps}
 

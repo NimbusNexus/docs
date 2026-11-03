@@ -1875,12 +1875,12 @@
             "uk": "Slack, Teams і Discord"
           },
           "description": {
-            "en": "Send events to a Slack, Microsoft Teams or Discord channel with a preset transformation.",
-            "de": "Events mit einer vorgefertigten Transformation an einen Kanal in Slack, Microsoft Teams oder Discord senden.",
-            "es": "Envía eventos a un canal de Slack, Microsoft Teams o Discord con una transformación predefinida.",
-            "fr": "Envoyez des événements vers un canal Slack, Microsoft Teams ou Discord avec une transformation prédéfinie.",
-            "pt": "Envie eventos para um canal do Slack, do Microsoft Teams ou do Discord com um preset de transformação.",
-            "uk": "Надсилайте події в канал Slack, Microsoft Teams чи Discord за допомогою пресету трансформації."
+            "en": "Send events to a Slack, Microsoft Teams or Discord channel with a transformation template.",
+            "de": "Events mit einer Vorlage für Transformationen an einen Kanal in Slack, Microsoft Teams oder Discord senden.",
+            "es": "Envía eventos a un canal de Slack, Microsoft Teams o Discord con una plantilla de transformación.",
+            "fr": "Envoyez des événements vers un canal Slack, Microsoft Teams ou Discord avec un modèle de transformation.",
+            "pt": "Envie eventos para um canal do Slack, do Microsoft Teams ou do Discord com um template de transformação.",
+            "uk": "Надсилайте події в канал Slack, Microsoft Teams чи Discord за допомогою шаблону трансформації."
           },
           "published": true
         },

@@ -1,8 +1,8 @@
 ---
 title: "Slack, Teams et Discord"
-description: "Envoyez des événements vers un canal Slack, Microsoft Teams ou Discord, avec une transformation prédéfinie qui fait de chaque événement un message que le canal accepte."
+description: "Envoyez des événements vers un canal Slack, Microsoft Teams ou Discord, avec un modèle qui fait de chaque événement un message que le canal accepte."
 publishedAt: 2026-10-30
-updatedAt: 2026-10-30
+updatedAt: 2026-11-03
 kind: guide
 ---
 
@@ -11,16 +11,16 @@ kind: guide
 Slack, Microsoft Teams et Discord donnent chacun à un canal une URL de webhook qui publie dans le canal tout ce qu’elle reçoit — mais seulement dans leur propre format de message : ils refusent donc l’enveloppe d’événement que nous envoyons normalement. Une [transformation](/docs/product-webhooks/transformations) comble cet écart. À la fin de ce guide, vous aurez :
 
 - un endpoint dirigé vers l’URL de webhook de votre canal ;
-- le preset de cette application, qui fait de chaque événement un message qu’elle accepte ;
+- le modèle de cette application, qui fait de chaque événement un message qu’elle accepte ;
 - un événement de test affiché dans le canal.
 
 Durée totale : environ 10 minutes.
 
 ## Prérequis {#prereqs}
 
-- Un espace de travail Webhooks sur Starter, Pro ou Custom. Free n’inclut pas les transformations.
+- Un espace de travail Webhooks, sur n’importe quel plan : les modèles de chat sont des pipelines, que tous les plans incluent.
 - Le droit d’ajouter un webhook au canal : dans Slack, celui d’installer une application dans l’espace de travail ; dans Teams, celui de créer un workflow ; dans Discord, la permission **Manage Webhooks**.
-- La [vérification des endpoints](/docs/product-webhooks/endpoint-verification#cannot-echo) désactivée pour le projet où vous placez l’endpoint. Ces canaux n’acceptent que leurs propres messages : ils ne peuvent donc jamais répondre au challenge de vérification, et un endpoint qui doit le réussir ne reçoit rien. Les plans payants permettent de désactiver la vérification.
+- La [vérification des endpoints](/docs/product-webhooks/endpoint-verification#cannot-echo) désactivée pour le projet où vous placez l’endpoint. Ces canaux n’acceptent que leurs propres messages : ils ne peuvent donc jamais répondre au challenge de vérification, et un endpoint qui doit le réussir ne reçoit rien. Les plans payants permettent de désactiver la vérification ; sur un plan qui l’exige, ces canaux sont inutilisables.
 
 ## 1 · Récupérer l’URL de webhook du canal {#webhook-url}
 
@@ -52,23 +52,25 @@ curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/endpoints \
        "subscriptions": [{"match_kind": "exact", "pattern": "invoice.paid"}]}'
 ```
 
-## 3 · Choisir le preset {#preset}
+## 3 · Partir du modèle {#preset}
 
-Ouvrez le menu de l’endpoint sur la page **Endpoints** et choisissez **Transformation**. Sélectionnez **Preset**, puis celui de votre application — **Slack message**, **Microsoft Teams card** ou **Discord message** — et choisissez **Save**. Dès lors, chaque livraison vers cet endpoint est envoyée sous forme de message :
+Ouvrez le menu de l’endpoint sur la page **Endpoints** et choisissez **Transformation**. Sélectionnez **Pipeline** puis, sous **Start from a template**, le modèle de votre application — **Use Slack message**, **Use Microsoft Teams card** ou **Use Discord message** — et choisissez **Save**. Dès lors, chaque livraison vers cet endpoint est envoyée sous forme de message :
 
-| Preset | Ce qu’affiche le canal |
+| Modèle | Ce qu’affiche le canal |
 |---|---|
-| Slack message | Le type et l’identifiant de l’événement, le moment où il s’est produit, et ses données dans un bloc de code. |
-| Microsoft Teams card | Une Adaptive Card avec le type d’événement, son identifiant et son heure, et ses données. |
-| Discord message | Le type et l’identifiant de l’événement, et ses données dans un bloc de code JSON. |
+| Slack message | Le type d’événement comme en-tête, son identifiant et son heure, et ses données dans un bloc de code. |
+| Microsoft Teams card | Une Adaptive Card avec le type d’événement, son identifiant et son heure, et ses données en police à chasse fixe. |
+| Discord message | Un embed avec le type d’événement pour titre, ses données dans un bloc de code JSON et, en dessous, son identifiant et son heure. Il ne mentionne personne. |
 
-Chacun tronque les données pour tenir dans la limite propre à l’application, comme 3,000 caractères dans une section Slack ou 2,000 dans un message Discord.
+Chaque modèle coupe les données pour tenir dans les limites de l’application, et rien dans l’événement ne peut mettre en forme le message, mentionner quelqu’un ni fermer le bloc de code avant la fin. À l’enregistrement, le pipeline devient le vôtre : il ne change pas quand le modèle change.
 
-Un preset est un script comme un autre : il n’y a donc pas de preset à désigner dans l’API, [créez une transformation](/docs/product-webhooks/transformations#set-up) avec le script de votre choix. Dans la console, **Edit this script** affiche le code de chaque preset, comme point de départ.
+Via l’API, `GET /v1/transformations/templates` renvoie chaque modèle avec son `pipeline` : [créez une transformation](/docs/product-webhooks/transformations#set-up) avec ce document, puis faites-y pointer le `transformation_id` de l’endpoint.
+
+Un endpoint qui exécute déjà l’un des anciens presets, qui sont des scripts, continue de l’exécuter sans changement.
 
 ## 4 · Le tester {#test}
 
-Sous **Test**, sur la même page, choisissez **Run test**. Le preset s’exécute alors sur un événement récent tiré des livraisons de l’endpoint, ou sur un événement que vous collez, et le message qu’il enverrait s’affiche. Rien n’est envoyé.
+Sous **Test**, sur la même page, choisissez **Run test**. Le pipeline de l’éditeur s’exécute alors sur un événement récent tiré des livraisons de l’endpoint, ou sur un événement que vous collez, et le message qu’il enverrait s’affiche. Rien n’est envoyé.
 
 Envoyez ensuite un vrai événement : **Send test event** sur la page Overview de la console, ou publiez un événement auquel l’endpoint est abonné :
 
@@ -87,19 +89,16 @@ Chaque événement auquel l’endpoint est abonné publie désormais un message 
 
 ## L’adapter à vos besoins {#customize}
 
-Choisissez **Edit this script** pour changer le contenu du message ou les événements qui en publient un. Renvoyer `null` n’envoie rien : un script peut donc réserver le canal aux événements dont ses lecteurs ont besoin. Pour Slack :
+Les étapes du modèle sont désormais celles de votre pipeline : modifiez-les comme n’importe quelles autres. Pour réserver le canal aux événements dont ses lecteurs ont besoin, ajoutez une étape **Filter** avec **Send only matching events** et deux conditions, `type` **is** `invoice.paid` et `data.amount` **is at least** `100000`, puis remontez-la tout en haut, pour qu’elle teste l’événement avant que le message ne soit construit. En JSON :
 
-```js
-function transform(event) {
-  if (event.type !== "invoice.paid" || event.data.amount < 100000) return null;
-  return { body: { text: `Invoice ${event.data.id} paid: ${event.data.amount / 100} ${event.data.currency}` } };
-}
+```json
+{ "filter": { "type": "invoice.paid", "data": { "amount": { "$gte": 100000 } } } }
 ```
 
-Pour Discord, envoyez `content` là où Slack prend `text` ; pour Teams, gardez la carte du preset et changez-en le texte. Une livraison que le script abandonne n’est pas envoyée et ne compte pas comme un échec. Testez le script avant de l’enregistrer : une exécution qui échoue place la livraison dans la dead-letter queue, et l’événement non transformé n’est jamais envoyé.
+Une livraison que le filtre abandonne n’est pas envoyée et ne compte pas comme un échec. Pour changer le contenu du message, modifiez l’étape **Reshape the body**, qui le construit ; la console l’affiche en JSON : modifiez-le là, puis choisissez **Apply**. Ses valeurs lisent l’événement au moyen de [chemins et de filtres](/docs/product-webhooks/transformations#values), comme `{{ data.amount | money(data.currency) }}`. Testez avant d’enregistrer : une exécution qui échoue place la livraison dans la dead-letter queue, et l’événement non transformé n’est jamais envoyé.
 
 ## Étapes suivantes {#next-steps}
 
-- [Transformations](/docs/product-webhooks/transformations) — le contrat du script, les limites et ce qui se passe quand un script échoue.
+- [Transformations](/docs/product-webhooks/transformations#templates) — les modèles, les étapes d’un pipeline, les tests et ce qui se passe quand une exécution échoue.
 - [Vérification des endpoints](/docs/product-webhooks/endpoint-verification#cannot-echo) — les récepteurs qui ne peuvent pas répondre au challenge.
 - [Livraisons et réessais](/docs/product-webhooks/deliveries) — les états, les réessais et les renvois.
