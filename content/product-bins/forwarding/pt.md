@@ -1,14 +1,14 @@
 ---
 title: "Encaminhamento"
-description: "Um bin pode repassar cada requisição que registra para o seu próprio servidor e guardar o que o seu servidor respondeu — o que é enviado, as retentativas, os limites e o endereço de onde vêm os encaminhamentos."
+description: "Um bin pode repassar cada requisição que registra para o seu próprio servidor e guardar o que o seu servidor respondeu — o que é enviado, um pipeline que acrescenta a credencial do seu servidor ou remodela a requisição, as retentativas, os limites e o endereço de onde vêm os encaminhamentos."
 publishedAt: 2026-10-26
-updatedAt: 2026-10-26
+updatedAt: 2026-11-03
 kind: concept
 ---
 
 # Encaminhamento
 
-Dê a um bin uma URL de encaminhamento, e toda requisição que ele registra também é repassada para o seu próprio servidor, tal como chegou. O remetente continua recebendo na hora o `200` do bin. O bin repassa a requisição por conta própria, tenta de novo quando o seu servidor falha e guarda a resposta do seu servidor junto à requisição, para que um só lugar mostre o que um remetente enviou e o que o seu endpoint fez com isso.
+Dê a um bin uma URL de encaminhamento, e toda requisição que ele registra também é repassada para o seu próprio servidor, tal como chegou ou passando por um [pipeline](#pipeline) que acrescenta a credencial do seu servidor, altera headers, pula requisições ou remodela o corpo. O remetente continua recebendo na hora o `200` do bin. O bin repassa a requisição por conta própria, tenta de novo quando o seu servidor falha e guarda a resposta do seu servidor junto à requisição, para que um só lugar mostre o que um remetente enviou e o que o seu endpoint fez com isso.
 
 ## Quem pode encaminhar e para onde {#target}
 
@@ -66,7 +66,7 @@ O seu servidor recebe um `POST` cujo corpo é `{"type":"request_bins.forward_tes
 
 ## O que é enviado {#sent}
 
-Um encaminhamento é a requisição tal como o bin a registrou:
+Um encaminhamento é a requisição tal como o bin a registrou, a menos que o [pipeline](#pipeline) do bin a altere:
 
 - **o método**, qualquer que tenha sido;
 - **o corpo, byte a byte**;
@@ -74,7 +74,7 @@ Um encaminhamento é a requisição tal como o bin a registrou:
 
 **Descartados**, porque pertencem a uma conexão ou a um salto, e não à requisição: `Connection` e todo header que ele nomeia, `Keep-Alive`, `Proxy-Connection`, `Proxy-Authenticate`, `TE`, `Trailer`, `Transfer-Encoding` e `Upgrade`; `Host`, que passa a ser o do seu servidor, e `Content-Length`, que é contado de novo; e `X-Real-IP`, `X-Forwarded-Proto`, `X-Forwarded-Host`, `CDN-Loop` e todo header `CF-*`, que descrevem um salto anterior; o encaminhamento define os seus próprios `X-Forwarded-Proto` e `X-Forwarded-Host`. O `X-Request-Bins-Request` do próprio remetente também é descartado, para que o que o seu servidor lê seja o nosso.
 
-**Não encaminhadas: as credenciais.** `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` e `X-Api-Key` nunca saem do bin. A URL de um bin é pública, por isso um bin substitui esses valores por `[redacted]` antes que qualquer coisa seja armazenada, e nada do que um remetente colocou neles é guardado, nem mesmo pelo instante em que um encaminhamento precisaria disso. Os headers de assinatura, como `Stripe-Signature` ou `X-Hub-Signature-256`, não são credenciais e são encaminhados. O corpo não é alterado, então eles continuam passando na verificação, embora uma retentativa possa chegar depois que a tolerância de uma assinatura com timestamp tiver se esgotado. O custo: um servidor que autentica quem o chama com um desses cinco headers recusa as requisições encaminhadas.
+**Não encaminhadas: as credenciais.** `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` e `X-Api-Key` nunca saem do bin. A URL de um bin é pública, por isso um bin substitui esses valores por `[redacted]` antes que qualquer coisa seja armazenada, e nada do que um remetente colocou neles é guardado, nem mesmo pelo instante em que um encaminhamento precisaria disso. Os headers de assinatura, como `Stripe-Signature` ou `X-Hub-Signature-256`, não são credenciais e são encaminhados. O corpo não é alterado, então eles continuam passando na verificação, embora uma retentativa possa chegar depois que a tolerância de uma assinatura com timestamp tiver se esgotado. Um servidor que autentica quem o chama com um desses cinco headers recusa as requisições encaminhadas, a menos que o pipeline do bin acrescente a própria credencial do seu servidor com uma [etapa de credencial](#pipeline).
 
 **Acrescentados**, depois dos headers do remetente:
 
@@ -86,6 +86,84 @@ Um encaminhamento é a requisição tal como o bin a registrou:
 | `X-Forwarded-Proto` | `https` |
 | `X-Forwarded-Host` | `nnbin.net` |
 | `X-Request-Bins-Request` | O `id` da requisição, como `req_8d2e6b1f4a9c3e7d5b0f2a61`, para que os logs do seu servidor levem de volta a ela. |
+
+## Um pipeline antes de cada encaminhamento {#pipeline}
+
+O pipeline de um bin é uma lista curta de etapas que todo encaminhamento executa, em ordem, logo antes de ser enviado. São as etapas declarativas de uma transformação de Webhooks, e nenhuma delas executa código. O pipeline vem junto com o encaminhamento, no Starter, no Pro e no Custom.
+
+| Etapa | O que faz |
+| --- | --- |
+| **Credential** (`auth`) | Acrescenta a credencial do seu servidor a partir de um [segredo](#secrets) armazenado: um token Bearer, autenticação básica ou uma chave de API em um header, depois de um prefixo como `Token` e um espaço, ou na query string. |
+| **Headers** (`headers`) | Define, remove ou renomeia os headers do remetente. Um valor pode ler dados da requisição, como `{{ $meta.bin.label }}`. |
+| **Filter** (`filter`) | Encaminha só as requisições que correspondem, ou pula justamente essas. |
+| **Remove fields** (`drop`), **Set fields** (`set`), **Reshape the body** (`map`) | Alteram um corpo JSON. |
+
+**As etapas de credencial, de headers e de filtro preservam a assinatura do remetente.** O corpo continua sendo enviado byte a byte, então `Stripe-Signature` e afins continuam passando na verificação. Um filtro só decide se uma requisição é encaminhada.
+
+**Uma etapa que altera o corpo quebra essa assinatura.** O encaminhamento leva então o JSON do pipeline em vez dos bytes que o remetente assinou, e uma assinatura sobre o corpo deixa de passar na verificação. Para salvar um pipeline assim, você precisa confirmar isso antes: no console, em uma caixa de diálogo, e pela API, com `"forward_pipeline_changes_body": true`. Um corpo alterado é enviado como `application/json`, a menos que o pipeline defina um `Content-Type` próprio.
+
+O que as etapas leem:
+
+- **o corpo**, interpretado como JSON. Um corpo que não é JSON, como um envio de formulário, ainda passa pelas etapas de credencial e de headers e por um filtro sobre os headers ou sobre `$meta`, mas uma etapa que lê o corpo faz esse encaminhamento falhar;
+- **os headers do remetente**, como o encaminhamento os leva. `Authorization`, `Cookie` e `X-Api-Key` nunca estão entre eles, já que nenhum bin os guarda;
+- **`$meta`**: `{"bin": {"id", "label"}, "method", "path", "query", "request_id"}`.
+
+Os headers listados em [Acrescentados](#sent) entram depois do pipeline, e um pipeline não pode defini-los nem removê-los.
+
+### Segredos {#secrets}
+
+Uma etapa de credencial referencia um segredo pelo id dele, nunca pelo valor, então um pipeline lido de volta no console ou na API não contém nenhuma credencial. Armazene um segredo no console, pela lista **Secret** da etapa de credencial, em **New secret…**, ou com `POST /v1/secrets`:
+
+```bash
+curl -X POST https://bins.nimbusnexus.net/v1/secrets \
+  -H "Authorization: Bearer $BINS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"name\": \"Orders API\", \"value\": \"$ORDERS_API_TOKEN\"}"
+```
+
+```json
+{
+  "id": "sec_4b7d2e9a1c6f3e8b0d5a7c21",
+  "name": "Orders API",
+  "bin_count": 0,
+  "created_at": "2026-11-03T10:15:00Z",
+  "updated_at": "2026-11-03T10:15:00Z"
+}
+```
+
+- **Somente escrita.** Um segredo é criptografado quando é armazenado, e nenhuma página ou rota volta a mostrar o valor dele. Você pode renomeá-lo ou substituir o valor dele, e todo encaminhamento passa a enviar o novo valor a partir da próxima tentativa.
+- **O valor** é ASCII imprimível, com até 4.096 caracteres.
+- **Nunca registrado.** Os encaminhamentos de uma requisição mostram o header que uma etapa de credencial acrescentou com o valor mascarado, como `Bearer ••••`. Se a resposta do seu servidor devolver a credencial, a resposta é guardada com ela substituída por `[redacted]`.
+- **Mantido enquanto está em uso.** Um segredo que o pipeline de um bin referencia não pode ser excluído: a resposta é `409` `secret_in_use`. Altere o pipeline antes.
+- **Para proprietários e admins.** Armazenar um segredo, salvar um pipeline cuja etapa de credencial referencia um segredo e mudar a URL de encaminhamento de um bin cujo pipeline envia um segredo exigem, cada um, a função de proprietário ou de admin, ou uma chave com **Read & write**. Um membro ainda pode retomar um bin assim, interromper o encaminhamento dele ou remover o pipeline dele.
+
+### Definir um pipeline {#pipeline-set}
+
+No card **Forwarding** do bin, **Add a pipeline** abre o editor. Adicione as etapas uma a uma, comece por um template (uma mensagem do Slack, do Discord ou do Microsoft Teams, Keep only these fields ou Drop personal data) ou edite o pipeline inteiro como JSON. **Test on the newest request** mostra o que um encaminhamento da requisição mais nova do bin enviaria, com a credencial mascarada, ou qual etapa pula esse encaminhamento ou o faz falhar. Nada é enviado. Pela API, defina `forward_pipeline` com `PATCH /v1/bins/{id}`:
+
+```bash
+curl -X PATCH https://bins.nimbusnexus.net/v1/bins/bin_3f9a1c7e5b2d8f4a6c0e9b17 \
+  -H "Authorization: Bearer $BINS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"forward_pipeline": {"version": 1, "steps": [
+        {"headers": {"set": {"X-Source": "request-bins"}}},
+        {"auth": {"type": "bearer", "secret": "sec_4b7d2e9a1c6f3e8b0d5a7c21"}}
+      ]}}'
+```
+
+A resposta é o bin. Ele traz `forward_pipeline`, `forward_pipeline_version`, que muda a cada alteração, e `forward_pipeline_changes_body`. `"forward_pipeline": null` remove o pipeline. Um pipeline que nunca poderia rodar é recusado com `422` `invalid_pipeline`, indicando a etapa, o caminho e o motivo; a [referência](/docs/product-bins/reference#pipeline) lista todos os motivos.
+
+`POST /v1/bins/{id}/forward-pipeline/test` executa um pipeline sem salvá-lo. **Send a test** executa o próprio pipeline do bin sobre o evento de teste, então também verifica se o seu servidor aceita a credencial.
+
+### O que um encaminhamento faz com o pipeline {#pipeline-forwards}
+
+| O pipeline | O encaminhamento |
+| --- | --- |
+| Roda | Enviado normalmente, com os headers do pipeline e depois os nossos. |
+| Pula a requisição com um filtro | Não encaminhado, com o motivo `filtered`. Não é tentado de novo e não conta para uma [pausa](#paused). |
+| Falha, como quando uma etapa que lê o corpo recebe um corpo que não é JSON, ou quando um segredo não existe mais | Falha na hora. `last_error` é `pipeline_failed: step <index>: <reason>: …`, com a etapa contada a partir de 0, como em `steps`. Conta para uma pausa, como um envio que falhou. |
+
+Cada tentativa executa o pipeline tal como ele está no bin naquele momento e lê de novo os segredos dele, então um segredo substituído passa a ser enviado a partir da próxima tentativa. Os encaminhamentos de uma requisição mostram a versão que rodou, a etapa que pulou o encaminhamento ou o fez falhar, se o corpo foi reescrito e os headers enviados, com a credencial mascarada.
 
 ## Entrega e retentativas {#delivery}
 

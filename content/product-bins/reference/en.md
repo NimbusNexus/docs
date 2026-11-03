@@ -2,7 +2,7 @@
 title: Request Bins reference
 description: Every route of the Request Bins API, what a bin URL answers and records, who may do what, and each plan's limits.
 publishedAt: 2026-10-22
-updatedAt: 2026-10-30
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -93,8 +93,14 @@ The base URL is `https://bins.nimbusnexus.net/v1`. Requests and answers are JSON
 | `POST /v1/bins` | Create a bin; `201` with [the bin](#bin) | write |
 | `GET /v1/bins` | The workspace's bins, newest first; `url` or `slug` finds one | read |
 | `GET /v1/bins/{id}` | One bin | read |
-| `PATCH /v1/bins/{id}` | Rename a bin, disable and enable it, or set its [forward URL](#forwarding) | write |
+| `PATCH /v1/bins/{id}` | Rename a bin, disable and enable it, or set its [forward URL](#forwarding) and its [pipeline](#pipeline) | write; a credential step, admin |
 | `POST /v1/bins/{id}/forward-test` | Send a [test](#forward-test) to the bin's forward URL and return what it answered | write |
+| `POST /v1/bins/{id}/forward-pipeline/test` | Run a [pipeline](#pipeline-test) on one of the bin's requests and send nothing | write |
+| `GET /v1/pipeline-templates` | The [templates](#pipeline-templates) a pipeline can start from | read |
+| `POST /v1/secrets` | Store a [secret](#secrets); `201` with the secret, never its value | admin |
+| `GET /v1/secrets`, `GET /v1/secrets/{id}` | The workspace's secrets, newest first, or one, by name and id | read |
+| `PATCH /v1/secrets/{id}` | Rename a secret, or replace its value | admin |
+| `DELETE /v1/secrets/{id}` | Delete a secret; `204` | admin |
 | `DELETE /v1/bins/{id}` | Delete a bin; `204` | admin |
 | `GET /v1/bins/{id}/requests` | A bin's [captured requests](#requests), newest first | read; with a key, a paid plan |
 | `GET /v1/requests` | Every bin's [captured requests](#all-requests) in one list, newest first | read; with a key, a paid plan |
@@ -146,10 +152,14 @@ Lists are paged with `limit` (1 to 200, default 50) and `offset` (0 to 10,000). 
 | `forward_url` | Where the bin [forwards](#forwarding) each request it records, or `null` when it doesn't. |
 | `forward_paused_at`, `forward_paused_reason` | When forwarding [paused](/docs/product-bins/forwarding#paused) after failed sends, and why: `failed_in_a_row` or `failing_for_an_hour`. `null` and empty while it isn't paused. |
 | `forward_last_error`, `forward_last_error_at` | The last send that failed: what went wrong, such as `HTTP 503` or a timeout, never what the request held; and when. |
+| `forward_pipeline` | The [pipeline](#pipeline) every forward runs first, or `null`. A credential step in it names its secret by id. |
+| `forward_pipeline_version` | Moves at every change to the pipeline, its removal included; `0` before the first. A forward's `pipeline.version` is the one that ran. |
+| `forward_pipeline_changes_body` | `true` when a step changes the body, so forwards no longer carry the sender's signature. |
+| `forward_pipeline_updated_at` | When the pipeline last changed, or `null`. |
 
 ### Change or delete a bin {#change}
 
-`PATCH /v1/bins/{id}` takes `label`, `status` (`enabled` or `disabled`), `forward_url` ([Forwarding](#forwarding)), or any of them, and answers with the bin. Disabling stops recording and keeps what the bin holds. A disabled bin still counts toward the plan's bins.
+`PATCH /v1/bins/{id}` takes `label`, `status` (`enabled` or `disabled`), `forward_url` ([Forwarding](#forwarding)), `forward_pipeline` with `forward_pipeline_changes_body` ([Pipelines](#pipeline)), or any of them, and answers with the bin. Disabling stops recording and keeps what the bin holds. A disabled bin still counts toward the plan's bins.
 
 `status` used to be `active` where it is now `enabled`, and no answer says `active` any more. `PATCH` still accepts `"status": "active"` and the bin comes back `enabled`, but the spelling is deprecated and will be refused from a date still to be announced, so send `enabled`.
 
@@ -271,6 +281,8 @@ A bin on Starter, Pro or Custom can send each request it records on to one https
 
 Treat `reason`, `forward_paused_reason` and a forward's `reason` as open strings, and keep a default for a value you don't know.
 
+Moving the forward URL of a bin whose pipeline has a credential step takes **admin**: it decides where the secret is sent. Setting the same URL again, to resume, and clearing it stay open to **write**.
+
 When forwarding pauses, the workspace is told once, by email and by a webhook with the event type `bind.forwarding.paused`; [When forwarding pauses](/docs/product-bins/forwarding#paused) shows the webhook's body.
 
 ### Test a forward URL {#forward-test}
@@ -282,9 +294,10 @@ When forwarding pauses, the workspace is told once, by email and by a webhook wi
 | `ok` | `true` when your server answered `2xx` or `3xx`. |
 | `answer` | What it answered: `status`; `headers`, objects with a `name` and a `value`, in the order sent; the first 8 KiB of the body as `body_base64`; and `truncated`, `true` when the body went on past that. `null` when no answer came. |
 | `duration_ms` | How long the send took. |
-| `error` | Why no answer came, such as a timeout or a refused connection; empty when one did. |
+| `error` | Why no answer came, such as a timeout or a refused connection, or that the bin's pipeline skipped or failed the test event; empty when an answer came. |
+| `pipeline` | What the bin's [pipeline](#pipeline) did to the test event, shaped as a forward's `pipeline`; `null` when the bin has none. |
 
-The call waits up to 13 seconds for the answer, and a server slower than that gives `ok` `false` with an `error` saying so. A bin can send 10 tests a minute: past that, the answer is `429` `rate_limited`, and `details.retry_after` says how many seconds until the next is allowed. `503` `unavailable`, with `details.reason` `forwarder_unavailable`, means the test wasn't picked up for sending within 3 seconds, so nothing was sent: try again shortly. A URL found not to be public at the send is refused with the `422` above.
+The bin's pipeline runs on the test event first, as on every forward, so a test also checks that your server takes the credential a credential step adds. The call waits up to 13 seconds for the answer, and a server slower than that gives `ok` `false` with an `error` saying so. A bin can send 10 tests a minute: past that, the answer is `429` `rate_limited`, and `details.retry_after` says how many seconds until the next is allowed. `503` `unavailable`, with `details.reason` `forwarder_unavailable`, means the test wasn't picked up for sending within 3 seconds, so nothing was sent: try again shortly. A URL found not to be public at the send is refused with the `422` above.
 
 ### A request's forwards {#forwards}
 
@@ -298,11 +311,12 @@ The call waits up to 13 seconds for the answer, and a server slower than that gi
 | `url` | Where it goes: the forward URL as it was when the request arrived, with the request's path and query added. |
 | `attempts`, `max_attempts` | The attempts made so far, and the most the plan allowed when it was queued. |
 | `next_attempt_at` | When the next attempt is due, while `state` is `retrying`; otherwise `null`. |
-| `last_error` | What went wrong on the last attempt, such as `HTTP 503` or a timeout, or why it is waiting; empty once it is sent. |
-| `answer` | What your server answered on the last attempt, shaped as in a [test](#forward-test). `null` when that attempt got no answer. |
+| `last_error` | What went wrong on the last attempt, such as `HTTP 503`, a timeout or `pipeline_failed: …`, or why it is waiting, or which step skipped it; empty once it is sent. |
+| `answer` | What your server answered on the last attempt, shaped as in a [test](#forward-test). `null` when that attempt got no answer. If the answer echoed a credential the pipeline added, it reads `[redacted]` there. |
 | `duration_ms` | How long the last attempt took; `null` before the first. |
 | `created_at` | When it was queued. |
 | `sent_at` | When it was sent; `null` until then. |
+| `pipeline` | What the bin's pipeline did on the last attempt, or `null` when none ran: `version`; `step`, the step that skipped or failed it, counted from 0, or `null`; `body_changed`, `true` when a step rewrote the body; `headers`, every header sent, ours included, a credential's value masked as `Bearer ••••`; and `credential_query`, the names of query parameters a credential step added. |
 
 | `state` | What it means |
 | --- | --- |
@@ -324,6 +338,63 @@ The call waits up to 13 seconds for the answer, and a server slower than that gi
 | `suspended` | The bin or its workspace was suspended before its turn. |
 | `not_entitled` | The plan stopped including forwarding before its turn. |
 | `request_gone` | The request reached the end of its retention before its turn. |
+| `filtered` | A filter step of the bin's pipeline skipped it. `pipeline.step` says which. |
+
+### Pipelines {#pipeline}
+
+A bin's pipeline runs on every forward before it is sent. [A pipeline before each forward](/docs/product-bins/forwarding#pipeline) explains the steps, what they read and what a forward does with them; this section covers the API. `forward_pipeline` on `PATCH /v1/bins/{id}` takes the pipeline, a JSON document `{"version": 1, "steps": [...]}`, and `null` removes it:
+
+- **A step that changes the body** (`drop`, `set` or `map`) is saved only with `"forward_pipeline_changes_body": true` in the same request. Without it, the answer is `422` `invalid_pipeline` with the reason `changes_body`.
+- **A credential step** takes **admin**, as storing a secret does. Removing a pipeline takes **write**.
+- **The same document again** changes nothing, and `forward_pipeline_version` stays.
+- **On Free**, the answer is `402` `not_entitled` with `details.feature` `forwarding`. While forwarding is switched off for the whole service, it is `503` `unavailable`, `forwarding_disabled`.
+
+A pipeline that could never run is refused when it is saved or tested. The answer is `422` `invalid_pipeline` naming the first problem: `details.reason`, `details.path`, a JSON Pointer into the document such as `/steps/1/headers/set/Via` (absent for the whole document), and `details.step`, its index from 0.
+
+| `reason` | Why |
+| --- | --- |
+| `invalid_document`, `unsupported_version`, `no_steps`, `too_many_steps` | The document isn't `{"version": 1, "steps": [...]}` with 1 to 20 steps. |
+| `invalid_step`, `unknown_step`, `invalid_value` | A step isn't one of `filter`, `drop`, `set`, `map`, `headers` and `auth`, or holds a setting it doesn't take. |
+| `invalid_path`, `invalid_template`, `invalid_filter`, `invalid_header`, `not_json` | A path, a template, a filter, a header name or value, or a value isn't valid. |
+| `invalid_secret` | A credential step names something that isn't a secret's id, such as a value. The answer never repeats it. |
+| `auth_not_last` | A credential step comes before another kind of step: they go last, so no step can read the credential. |
+| `too_deep`, `too_large` | It nests too deeply, a step is over 16 KiB, or the document is over 64 KiB. |
+| `managed_header` | A step sets a header every forward carries from us, such as `Via` or `X-Forwarded-For`, or one our edge adds (`CF-*`, `X-Real-IP`, `CDN-Loop`). |
+| `forbidden_header` | A step sets a hop-by-hop header, `Proxy-Authorization` or `Set-Cookie`. |
+| `credential_header` | A headers step sets `Authorization`, `Cookie` or `X-Api-Key`, which would store the credential in the pipeline. Add it with a credential step instead. |
+| `unknown_secret` | A credential step names a secret the workspace doesn't hold. |
+| `changes_body` | A step changes the body, and `forward_pipeline_changes_body` wasn't `true`. |
+
+#### Test a pipeline {#pipeline-test}
+
+`POST /v1/bins/{id}/forward-pipeline/test` runs a pipeline once and sends nothing. It takes `pipeline`, a document to run (without it, the bin's own runs), and `request_id`, one of the bin's requests (without it, the newest, or the test event when the bin holds none). The document is checked as a save checks it, except that a step changing the body needs no confirmation:
+
+| Field | What |
+| --- | --- |
+| `status` | `ok`, a forward would be sent; `dropped`, a filter skips it; `failed`, the pipeline fails it. |
+| `request_id` | The request it ran on, or `test`. |
+| `step`, `reason`, `error` | The step that skipped or failed it, counted from 0; `no_match` or `matched` for a filter, or why it failed; and the same in words. Empty when `ok`. |
+| `method`, `headers` | What a forward would send: every header, ours included, a credential's value masked. |
+| `credential_query` | Names of query parameters a credential step would add. |
+| `body_base64`, `body_changed` | The body it would send, and `true` when a step rewrote it. |
+| `duration_ms` | How long the run took. |
+
+#### Templates {#pipeline-templates}
+
+`GET /v1/pipeline-templates` lists the pipelines a new one can start from: `slack`, `discord` and `teams` messages, `keep_fields` and `drop_personal`. Each has an `id` that never changes, a `name`, a `description`, the `pipeline` document and `changes_body`, `true` for each of them today. Saving one makes a copy that is the bin's own.
+
+### Secrets {#secrets}
+
+A secret is a credential a credential step adds: a bearer token, a password or an API key. The workspace keeps one store of them, which any bin's pipeline can name by id. `POST /v1/secrets` takes `name` (up to 200 characters) and `value` (printable ASCII, up to 4,096 characters), and answers `201`:
+
+| Field | What |
+| --- | --- |
+| `id` | `sec_` and 24 hex characters: what a credential step names. |
+| `name` | Your name for it. |
+| `bin_count` | The live bins whose pipeline names it. |
+| `created_at`, `updated_at` | When it was stored, and last renamed or replaced. |
+
+No answer carries a secret's value, and a refusal never repeats it. `PATCH /v1/secrets/{id}` takes `name` or `value`, and every forward sends a new value from its next attempt on. `DELETE /v1/secrets/{id}` answers `204`, or `409` `conflict` with `details.reason` `secret_in_use`, `details.id` and `details.bins` while a bin's pipeline names it. Storing, replacing and deleting take **admin**. Storing takes a plan with forwarding; on Free the answer is `402` `not_entitled`, `forwarding`. Where secrets can't be stored yet, the answer is `503` `unavailable`, `secrets_unavailable`.
 
 ### Plan and usage {#plan}
 
@@ -377,15 +448,15 @@ The call waits up to 13 seconds for the answer, and a server slower than that gi
 
 ## Who can do what {#authority}
 
-| | Read bins, plan and usage | Read captured requests | Create, rename, disable and enable bins, and set up forwarding | Delete and empty bins |
-| --- | --- | --- | --- | --- |
-| Workspace owner or admin | yes | yes | yes | yes |
-| Member | yes | yes | yes | no |
-| Viewer, or any other role | yes | yes | no | no |
-| Key with **Read & write** (`admin` scope) | yes | on paid plans | yes | yes |
-| Key with **Read** (`read` scope) | yes | on paid plans | no | no |
+| | Read bins, plan and usage | Read captured requests | Create, rename, disable and enable bins, and set up forwarding | Delete and empty bins | Secrets, and pipelines that send one |
+| --- | --- | --- | --- | --- | --- |
+| Workspace owner or admin | yes | yes | yes | yes | yes |
+| Member | yes | yes | yes | no | no |
+| Viewer, or any other role | yes | yes | no | no | no |
+| Key with **Read & write** (`admin` scope) | yes | on paid plans | yes | yes | yes |
+| Key with **Read** (`read` scope) | yes | on paid plans | no | no | no |
 
-A refused action answers `403` `forbidden` with `details.reason` `role`, and `details.required` names the role it needs: `member` to create or change a bin, `admin` to delete or empty one. For a key, both mean **Read & write** (the `admin` scope). The account console creates **Read** and **Read & write** keys, and a key with any other scope, such as `write`, is treated as **Read**.
+A refused action answers `403` `forbidden` with `details.reason` `role`, and `details.required` names the role it needs: `member` to create or change a bin, `admin` to delete or empty one, to store, replace or delete a [secret](#secrets), or to decide where a secret goes: saving a pipeline whose credential step names one, and moving the forward URL of a bin whose pipeline does. For a key, both mean **Read & write** (the `admin` scope). The account console creates **Read** and **Read & write** keys, and a key with any other scope, such as `write`, is treated as **Read**.
 
 Request Bins serves whole workspaces. A guest seat, or a key limited to one project, is refused on every route with `403` `project_confined`.
 
@@ -438,18 +509,20 @@ The API's errors use the shape described in [Errors](/docs/errors), with the cod
 | `401` | `unauthorized` | No credential, a revoked one, or a console sign-in that has ended; `details.reason` says which. |
 | `401` | `invalid_credential` | A key that doesn't verify, has expired, or was created for another product. |
 | `402` | `quota_exceeded` | Creating a bin while the plan's bins are all in use. |
-| `402` | `not_entitled` | On Free: reading captured requests with a key (`details.feature` `read_api`), or setting a forward URL or sending a test (`forwarding`). |
+| `402` | `not_entitled` | On Free: reading captured requests with a key (`details.feature` `read_api`), or setting a forward URL or a pipeline, sending a test or storing a secret (`forwarding`). |
 | `402` | `workspace_frozen`, `workspace_suspended` | Creating or changing a bin while a payment is overdue, or after service has stopped. |
 | `403` | `forbidden` | `details.reason` is `role`, `project_confined`, `product_not_enabled`, `csrf` or `no_workspace`. |
-| `404` | `not_found` | No such bin or request in your workspace, or it has been deleted or has expired; `details.reason` is `bin` or `request`. |
+| `404` | `not_found` | No such bin, request or secret in your workspace, or it has been deleted or has expired; `details.reason` is `bin`, `request` or `secret`. |
 | `405` | `method_not_allowed` | The path exists, but not for this method. |
+| `409` | `conflict` | Deleting a secret a bin's pipeline names: `details.reason` `secret_in_use` ([Secrets](#secrets)). |
 | `413` | `payload_too_large` | A request body over 2 MiB. |
+| `422` | `invalid_pipeline` | A pipeline that could never run, when it is saved or tested; `details.reason`, `details.path` and `details.step` name the problem ([Pipelines](#pipeline)). |
 | `422` | `validation_error` | A parameter or field failed validation. A NUL character in the path, the query or a JSON body is the entry type `bins.nul_character`, a forward URL a bin won't forward to is `bins.forward_target` ([Forwarding](#forwarding)), and a search whose parts contradict each other is `bins.search_conflict` ([Captured requests](#requests)). |
 | `429` | `rate_limited` | More than 10 test sends to one bin in a minute; `details.retry_after` says when to try again. |
 | `500` | `internal_error` | Something broke on our side. |
-| `503` | `unavailable` | Setting a forward URL or sending a test while forwarding is switched off for the whole service (`details.reason` `forwarding_disabled`), or a test that wasn't picked up for sending within 3 seconds, so nothing was sent (`forwarder_unavailable`). |
+| `503` | `unavailable` | Setting a forward URL or a pipeline, or sending a test, while forwarding is switched off for the whole service (`details.reason` `forwarding_disabled`); a test that wasn't picked up for sending within 3 seconds, so nothing was sent (`forwarder_unavailable`); or storing a secret where secrets can't be stored yet (`secrets_unavailable`). |
 
-The API sends no `409`, and `429` only for test sends.
+The API sends `409` only for a secret in use, and `429` only for test sends.
 
 ## What's next {#next-steps}
 

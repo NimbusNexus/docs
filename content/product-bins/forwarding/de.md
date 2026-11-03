@@ -1,14 +1,14 @@
 ---
 title: "Weiterleitung"
-description: "Ein Bin kann jeden Request, den er aufzeichnet, an Ihren eigenen Server weiterleiten und behalten, was Ihr Server geantwortet hat — was gesendet wird, die Retries, die Limits und die Adresse, von der Weiterleitungen kommen."
+description: "Ein Bin kann jeden Request, den er aufzeichnet, an Ihren eigenen Server weiterleiten und behalten, was Ihr Server geantwortet hat — was gesendet wird, eine Pipeline, die das Credential Ihres Servers hinzufügt oder den Request umformt, die Retries, die Limits und die Adresse, von der Weiterleitungen kommen."
 publishedAt: 2026-10-26
-updatedAt: 2026-10-26
+updatedAt: 2026-11-03
 kind: concept
 ---
 
 # Weiterleitung
 
-Geben Sie einem Bin eine Weiterleitungs-URL, dann wird jeder Request, den er aufzeichnet, außerdem so, wie er angekommen ist, an Ihren eigenen Server weitergeleitet. Der Absender erhält weiterhin sofort die Antwort `200` des Bins. Der Bin leitet den Request selbstständig weiter, versucht es erneut, wenn Ihr Server fehlschlägt, und speichert die Antwort Ihres Servers beim Request. So sehen Sie an einer Stelle, was ein Absender gesendet hat und was Ihr Endpoint daraus gemacht hat.
+Geben Sie einem Bin eine Weiterleitungs-URL, dann wird jeder Request, den er aufzeichnet, außerdem an Ihren eigenen Server weitergeleitet: so, wie er angekommen ist, oder über eine [Pipeline](#pipeline), die das Credential Ihres Servers hinzufügt, Header ändert, Requests überspringt oder den Body umformt. Der Absender erhält weiterhin sofort die Antwort `200` des Bins. Der Bin leitet den Request selbstständig weiter, versucht es erneut, wenn Ihr Server fehlschlägt, und speichert die Antwort Ihres Servers beim Request. So sehen Sie an einer Stelle, was ein Absender gesendet hat und was Ihr Endpoint daraus gemacht hat.
 
 ## Wer weiterleiten kann und wohin {#target}
 
@@ -66,7 +66,7 @@ Ihr Server erhält einen `POST`, dessen Body `{"type":"request_bins.forward_test
 
 ## Was gesendet wird {#sent}
 
-Eine Weiterleitung ist der Request so, wie der Bin ihn aufgezeichnet hat:
+Eine Weiterleitung ist der Request so, wie der Bin ihn aufgezeichnet hat, sofern die [Pipeline](#pipeline) des Bins ihn nicht ändert:
 
 - **die Methode**, gleich welche;
 - **der Body, Byte für Byte**;
@@ -74,7 +74,7 @@ Eine Weiterleitung ist der Request so, wie der Bin ihn aufgezeichnet hat:
 
 **Entfernt**, weil sie zu einer Verbindung oder einem Hop gehören statt zum Request: `Connection` und jeder Header, den er nennt, `Keep-Alive`, `Proxy-Connection`, `Proxy-Authenticate`, `TE`, `Trailer`, `Transfer-Encoding` und `Upgrade`; `Host`, der zum Host Ihres Servers wird, und `Content-Length`, der neu berechnet wird; sowie `X-Real-IP`, `X-Forwarded-Proto`, `X-Forwarded-Host`, `CDN-Loop` und alle Header `CF-*`, die einen früheren Hop beschreiben; die Weiterleitung setzt ihre eigenen Header `X-Forwarded-Proto` und `X-Forwarded-Host`. Auch ein eigener `X-Request-Bins-Request` des Absenders wird entfernt, sodass der, den Ihr Server liest, von uns stammt.
 
-**Nicht weitergeleitet: Credentials.** `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` und `X-Api-Key` verlassen den Bin nie. Eine Bin-URL ist öffentlich, daher ersetzt ein Bin diese Werte durch `[redacted]`, bevor etwas gespeichert wird, und nichts, was ein Absender in sie geschrieben hat, wird behalten, nicht einmal für den Moment, in dem eine Weiterleitung es bräuchte. Signatur-Header wie `Stripe-Signature` oder `X-Hub-Signature-256` sind keine Credentials und werden weitergeleitet. Der Body ist unverändert, daher bestehen sie die Prüfung weiterhin, allerdings kann ein Retry ankommen, nachdem die Toleranz einer Signatur mit Timestamp abgelaufen ist. Der Preis dafür: Ein Server, der seinen Aufrufer mit einem der fünf Header authentifiziert, weist weitergeleitete Requests ab.
+**Nicht weitergeleitet: Credentials.** `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` und `X-Api-Key` verlassen den Bin nie. Eine Bin-URL ist öffentlich, daher ersetzt ein Bin diese Werte durch `[redacted]`, bevor etwas gespeichert wird, und nichts, was ein Absender in sie geschrieben hat, wird behalten, nicht einmal für den Moment, in dem eine Weiterleitung es bräuchte. Signatur-Header wie `Stripe-Signature` oder `X-Hub-Signature-256` sind keine Credentials und werden weitergeleitet. Der Body ist unverändert, daher bestehen sie die Prüfung weiterhin, allerdings kann ein Retry ankommen, nachdem die Toleranz einer Signatur mit Timestamp abgelaufen ist. Ein Server, der seinen Aufrufer mit einem der fünf Header authentifiziert, weist weitergeleitete Requests ab, es sei denn, die Pipeline des Bins fügt mit einem [Credential-Schritt](#pipeline) das eigene Credential Ihres Servers hinzu.
 
 **Hinzugefügt**, nach den Headern des Absenders:
 
@@ -86,6 +86,84 @@ Eine Weiterleitung ist der Request so, wie der Bin ihn aufgezeichnet hat:
 | `X-Forwarded-Proto` | `https` |
 | `X-Forwarded-Host` | `nnbin.net` |
 | `X-Request-Bins-Request` | Die `id` des Requests, etwa `req_8d2e6b1f4a9c3e7d5b0f2a61`, sodass die Logs Ihres Servers zu ihm zurückführen. |
+
+## Eine Pipeline vor jeder Weiterleitung {#pipeline}
+
+Die Pipeline eines Bins ist eine kurze Liste von Schritten, die jede Weiterleitung der Reihe nach durchläuft, unmittelbar bevor sie gesendet wird. Es sind die deklarativen Schritte einer Webhooks-Transformation, und keiner von ihnen führt Code aus. Eine Pipeline gehört zur Weiterleitung und ist damit in Starter, Pro und Custom enthalten.
+
+| Schritt | Was er tut |
+| --- | --- |
+| **Credential** (`auth`) | Fügt das Credential Ihres Servers aus einem hinterlegten [Secret](#secrets) hinzu: ein Bearer-Token, Basic Auth oder einen API-Key in einem Header, nach einem Präfix wie `Token` und einem Leerzeichen, oder im Query-String. |
+| **Headers** (`headers`) | Setzt die Header des Absenders, entfernt sie oder benennt sie um. Ein Wert kann auf den Request zugreifen, etwa `{{ $meta.bin.label }}`. |
+| **Filter** (`filter`) | Leitet nur die passenden Requests weiter oder überspringt genau die passenden. |
+| **Remove fields** (`drop`), **Set fields** (`set`), **Reshape the body** (`map`) | Ändern einen JSON-Body. |
+
+**Credential-, Header- und Filter-Schritte lassen die Signatur des Absenders intakt.** Der Body wird weiterhin Byte für Byte gesendet, daher bestehen `Stripe-Signature` und vergleichbare Header die Prüfung nach wie vor. Ein Filter entscheidet nur, ob ein Request weitergeleitet wird.
+
+**Ein Schritt, der den Body ändert, macht die Signatur ungültig.** Die Weiterleitung enthält dann das JSON der Pipeline statt der Bytes, die der Absender signiert hat, sodass eine Signatur über den Body die Prüfung nicht mehr besteht. Bevor Sie eine solche Pipeline speichern, müssen Sie das bestätigen: in der Konsole in einem Dialog und über die API mit `"forward_pipeline_changes_body": true`. Ein geänderter Body wird als `application/json` gesendet, sofern die Pipeline keinen eigenen `Content-Type` setzt.
+
+Was die Schritte lesen:
+
+- **den Body**, als JSON geparst. Ein Body, der kein JSON ist, etwa ein Formular-Post, durchläuft weiterhin Credential- und Header-Schritte sowie einen Filter auf Header oder auf `$meta`, aber ein Schritt, der den Body liest, lässt diese Weiterleitung fehlschlagen;
+- **die Header des Absenders**, so wie die Weiterleitung sie mitführt. `Authorization`, `Cookie` und `X-Api-Key` sind nie darunter, da kein Bin sie behält;
+- **`$meta`**: `{"bin": {"id", "label"}, "method", "path", "query", "request_id"}`.
+
+Die Header unter [Hinzugefügt](#sent) kommen nach der Pipeline hinzu, und eine Pipeline kann sie weder setzen noch entfernen.
+
+### Secrets {#secrets}
+
+Ein Credential-Schritt verweist auf ein Secret über dessen ID, nie über dessen Wert, sodass eine Pipeline, die Sie aus der Konsole oder der API zurücklesen, kein Credential enthält. Ein Secret hinterlegen Sie in der Konsole über die Liste **Secret** des Credential-Schritts unter **New secret…** oder mit `POST /v1/secrets`:
+
+```bash
+curl -X POST https://bins.nimbusnexus.net/v1/secrets \
+  -H "Authorization: Bearer $BINS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"name\": \"Orders API\", \"value\": \"$ORDERS_API_TOKEN\"}"
+```
+
+```json
+{
+  "id": "sec_4b7d2e9a1c6f3e8b0d5a7c21",
+  "name": "Orders API",
+  "bin_count": 0,
+  "created_at": "2026-11-03T10:15:00Z",
+  "updated_at": "2026-11-03T10:15:00Z"
+}
+```
+
+- **Nur schreibbar.** Ein Secret wird beim Hinterlegen verschlüsselt, und danach zeigt keine Seite und keine Route seinen Wert mehr an. Sie können es umbenennen oder seinen Wert ersetzen; den neuen Wert sendet jede Weiterleitung ab ihrem nächsten Versuch.
+- **Ein Wert** ist druckbares ASCII, bis zu 4.096 Zeichen.
+- **Nie aufgezeichnet.** Die Weiterleitungen eines Requests zeigen den Header, den ein Credential-Schritt hinzugefügt hat, mit maskiertem Wert, als `Bearer ••••`. Gibt die Antwort Ihres Servers das Credential zurück, wird die Antwort aufbewahrt, wobei das Credential durch `[redacted]` ersetzt ist.
+- **Bleibt erhalten, solange es genutzt wird.** Ein Secret, auf das die Pipeline eines Bins verweist, lässt sich nicht löschen: Die Antwort lautet `409` `secret_in_use`. Ändern Sie zuerst die Pipeline.
+- **Für Owner und Admins.** Um ein Secret zu hinterlegen, eine Pipeline zu speichern, deren Credential-Schritt auf eines verweist, oder die Weiterleitungs-URL eines Bins zu ändern, dessen Pipeline eines sendet, brauchen Sie jeweils die Rolle Owner oder Admin oder einen Key mit **Read & write**. Ein Member kann bei einem solchen Bin weiterhin die Weiterleitung fortsetzen oder beenden oder die Pipeline entfernen.
+
+### Pipeline einrichten {#pipeline-set}
+
+Auf der Karte **Forwarding** des Bins öffnet **Add a pipeline** den Editor. Fügen Sie Schritte einzeln hinzu, starten Sie mit einer Vorlage (einer Nachricht für Slack, Discord oder Microsoft Teams, Keep only these fields oder Drop personal data), oder bearbeiten Sie die ganze Pipeline als JSON. **Test on the newest request** zeigt, was eine Weiterleitung für den neuesten Request des Bins senden würde, mit maskiertem Credential, oder an welchem Schritt sie übersprungen wird oder fehlschlägt. Es wird nichts gesendet. Über die API legen Sie `forward_pipeline` mit `PATCH /v1/bins/{id}` fest:
+
+```bash
+curl -X PATCH https://bins.nimbusnexus.net/v1/bins/bin_3f9a1c7e5b2d8f4a6c0e9b17 \
+  -H "Authorization: Bearer $BINS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"forward_pipeline": {"version": 1, "steps": [
+        {"headers": {"set": {"X-Source": "request-bins"}}},
+        {"auth": {"type": "bearer", "secret": "sec_4b7d2e9a1c6f3e8b0d5a7c21"}}
+      ]}}'
+```
+
+Die Antwort ist der Bin. Er enthält `forward_pipeline`, `forward_pipeline_version`, das bei jeder Änderung weiterzählt, und `forward_pipeline_changes_body`. `"forward_pipeline": null` entfernt die Pipeline. Eine Pipeline, die nie laufen könnte, wird mit `422` `invalid_pipeline` abgewiesen, und die Antwort nennt den Schritt, den Pfad und den Grund; die [Referenz](/docs/product-bins/reference#pipeline) listet jeden Grund auf.
+
+`POST /v1/bins/{id}/forward-pipeline/test` führt eine Pipeline aus, ohne sie zu speichern. **Send a test** wendet die eigene Pipeline des Bins auf das Test-Event an und prüft so auch, ob Ihr Server das Credential annimmt.
+
+### Was eine Weiterleitung damit macht {#pipeline-forwards}
+
+| Die Pipeline | Die Weiterleitung |
+| --- | --- |
+| Läuft durch | Gesendet wie gewohnt, mit den Headern der Pipeline, danach unseren. |
+| Überspringt den Request mit einem Filter | Nicht weitergeleitet, mit dem Grund `filtered`. Sie wird nicht wiederholt und nicht auf eine [Pause](#paused) angerechnet. |
+| Schlägt fehl, etwa wenn ein Schritt für den Body auf einen Body trifft, der kein JSON ist, oder ein Secret nicht mehr existiert | Sofort fehlgeschlagen. `last_error` ist `pipeline_failed: step <index>: <reason>: …`, wobei der Schritt wie in `steps` ab 0 gezählt wird. Sie wird auf eine Pause angerechnet, wie ein fehlgeschlagener Sendeversuch. |
+
+Jeder Versuch führt die Pipeline so aus, wie der Bin sie zu diesem Zeitpunkt hat, und entschlüsselt ihre Secrets erneut, sodass ein ersetztes Secret ab dem nächsten Versuch mit seinem neuen Wert gesendet wird. Bei den Weiterleitungen eines Requests sehen Sie die Version, die gelaufen ist, den Schritt, an dem eine Weiterleitung übersprungen wurde oder fehlschlug, ob der Body umgeschrieben wurde, und die gesendeten Header, mit maskiertem Credential.
 
 ## Zustellung und Retries {#delivery}
 

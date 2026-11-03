@@ -1,14 +1,14 @@
 ---
 title: "Reenvío"
-description: "Un bin puede reenviar a tu propio servidor cada petición que registra y guardar lo que respondió tu servidor — qué se envía, los reintentos, los límites y la dirección de la que vienen los reenvíos."
+description: "Un bin puede reenviar a tu propio servidor cada petición que registra y guardar lo que respondió tu servidor — qué se envía, una pipeline que añade la credencial de tu servidor o reestructura la petición, los reintentos, los límites y la dirección de la que vienen los reenvíos."
 publishedAt: 2026-10-26
-updatedAt: 2026-10-26
+updatedAt: 2026-11-03
 kind: concept
 ---
 
 # Reenvío
 
-Dale a un bin una URL de reenvío y cada petición que registra se reenvía también a tu propio servidor, tal como llegó. El emisor sigue recibiendo al instante el `200` del bin. El bin reenvía la petición por su cuenta, vuelve a intentarlo cuando tu servidor falla y guarda la respuesta de tu servidor junto a la petición, así que un solo sitio muestra lo que envió un emisor y lo que hizo con ello tu endpoint.
+Dale a un bin una URL de reenvío y cada petición que registra se reenvía también a tu propio servidor, tal como llegó o pasando por una [pipeline](#pipeline) que añade la credencial de tu servidor, cambia cabeceras, omite peticiones o reestructura el cuerpo. El emisor sigue recibiendo al instante el `200` del bin. El bin reenvía la petición por su cuenta, vuelve a intentarlo cuando tu servidor falla y guarda la respuesta de tu servidor junto a la petición, así que un solo sitio muestra lo que envió un emisor y lo que hizo con ello tu endpoint.
 
 ## Quién puede reenviar y adónde {#target}
 
@@ -66,7 +66,7 @@ Tu servidor recibe un `POST` cuyo cuerpo es `{"type":"request_bins.forward_test"
 
 ## Qué se envía {#sent}
 
-Un reenvío es la petición tal como la registró el bin:
+Un reenvío es la petición tal como la registró el bin, salvo que la [pipeline](#pipeline) del bin la cambie:
 
 - **el método**, fuera cual fuera;
 - **el cuerpo, byte a byte**;
@@ -74,7 +74,7 @@ Un reenvío es la petición tal como la registró el bin:
 
 **Se eliminan**, porque pertenecen a una conexión o a un salto y no a la petición: `Connection` y todas las cabeceras que nombra, `Keep-Alive`, `Proxy-Connection`, `Proxy-Authenticate`, `TE`, `Trailer`, `Transfer-Encoding` y `Upgrade`; `Host`, que pasa a ser el de tu servidor, y `Content-Length`, que se vuelve a contar; y `X-Real-IP`, `X-Forwarded-Proto`, `X-Forwarded-Host`, `CDN-Loop` y todas las cabeceras `CF-*`, que describen un salto anterior; el reenvío pone sus propias `X-Forwarded-Proto` y `X-Forwarded-Host`. También se elimina la `X-Request-Bins-Request` propia de un emisor, así que la que lee tu servidor es la nuestra.
 
-**No se reenvían: las credenciales.** `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` y `X-Api-Key` nunca salen del bin. La URL de un bin es pública, así que un bin sustituye estos valores por `[redacted]` antes de guardar nada, y no se conserva nada de lo que un emisor puso en ellas, ni siquiera durante el momento en que un reenvío lo necesitaría. Las cabeceras de firma, como `Stripe-Signature` o `X-Hub-Signature-256`, no son credenciales y se reenvían. El cuerpo no cambia, así que siguen verificándose, aunque un reintento puede llegar cuando ya se ha agotado la tolerancia de una firma con timestamp. El coste: un servidor que autentica a quien lo llama con una de esas cinco cabeceras rechaza las peticiones reenviadas.
+**No se reenvían: las credenciales.** `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` y `X-Api-Key` nunca salen del bin. La URL de un bin es pública, así que un bin sustituye estos valores por `[redacted]` antes de guardar nada, y no se conserva nada de lo que un emisor puso en ellas, ni siquiera durante el momento en que un reenvío lo necesitaría. Las cabeceras de firma, como `Stripe-Signature` o `X-Hub-Signature-256`, no son credenciales y se reenvían. El cuerpo no cambia, así que siguen verificándose, aunque un reintento puede llegar cuando ya se ha agotado la tolerancia de una firma con timestamp. Un servidor que autentica a quien lo llama con una de esas cinco cabeceras rechaza las peticiones reenviadas, salvo que la pipeline del bin añada la propia credencial de tu servidor con un [paso de credencial](#pipeline).
 
 **Se añaden**, después de las cabeceras del emisor:
 
@@ -86,6 +86,84 @@ Un reenvío es la petición tal como la registró el bin:
 | `X-Forwarded-Proto` | `https` |
 | `X-Forwarded-Host` | `nnbin.net` |
 | `X-Request-Bins-Request` | El `id` de la petición, como `req_8d2e6b1f4a9c3e7d5b0f2a61`, para que los logs de tu servidor lleven de vuelta a ella. |
+
+## Una pipeline antes de cada reenvío {#pipeline}
+
+La pipeline de un bin es una lista corta de pasos que cada reenvío ejecuta, en orden, justo antes de enviarse. Son los pasos declarativos de las transformaciones de Webhooks, y ninguno de ellos ejecuta código. La pipeline viene incluida con el reenvío, en Starter, Pro y Custom.
+
+| Paso | Qué hace |
+| --- | --- |
+| **Credential** (`auth`) | Añade la credencial de tu servidor a partir de un [secreto](#secrets) guardado: un token bearer, autenticación básica o una clave de API, ya sea en una cabecera, tras un prefijo como `Token` y un espacio, o en la query. |
+| **Headers** (`headers`) | Fija, quita o renombra las cabeceras del emisor. Un valor puede leer datos de la petición, como `{{ $meta.bin.label }}`. |
+| **Filter** (`filter`) | Reenvía solo las peticiones que coinciden, o las omite y reenvía el resto. |
+| **Remove fields** (`drop`), **Set fields** (`set`), **Reshape the body** (`map`) | Cambian un cuerpo JSON. |
+
+**Los pasos de credencial, de cabeceras y de filtro conservan la firma del emisor.** El cuerpo se sigue enviando byte a byte, así que `Stripe-Signature` y las firmas de su tipo siguen verificándose. Un filtro solo decide si una petición se reenvía.
+
+**Un paso que cambia el cuerpo rompe la firma.** El reenvío lleva entonces el JSON de la pipeline en lugar de los bytes que firmó el emisor, así que una firma sobre el cuerpo deja de verificarse. Antes de guardar una pipeline así, tienes que confirmarlo: en la consola, en un diálogo, y por la API, con `"forward_pipeline_changes_body": true`. Un cuerpo modificado se envía como `application/json`, salvo que la pipeline fije su propio `Content-Type`.
+
+Lo que leen los pasos:
+
+- **el cuerpo**, analizado como JSON. Con un cuerpo que no es JSON, como el envío de un formulario, se siguen ejecutando los pasos de credencial y de cabeceras, y un filtro sobre las cabeceras o sobre `$meta`, pero un paso que lee el cuerpo hace fallar ese reenvío;
+- **las cabeceras del emisor**, tal como las lleva el reenvío. `Authorization`, `Cookie` y `X-Api-Key` nunca están entre ellas, porque ningún bin las guarda;
+- **`$meta`**: `{"bin": {"id", "label"}, "method", "path", "query", "request_id"}`.
+
+Las cabeceras que [se añaden](#sent) se ponen después de la pipeline, y una pipeline no puede fijarlas ni quitarlas.
+
+### Secretos {#secrets}
+
+Un paso de credencial hace referencia a un secreto por su id, nunca por su valor, así que una pipeline que se lee desde la consola o la API no contiene ninguna credencial. Guarda uno en la consola, con **New secret…** en la lista **Secret** del paso de credencial, o con `POST /v1/secrets`:
+
+```bash
+curl -X POST https://bins.nimbusnexus.net/v1/secrets \
+  -H "Authorization: Bearer $BINS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"name\": \"Orders API\", \"value\": \"$ORDERS_API_TOKEN\"}"
+```
+
+```json
+{
+  "id": "sec_4b7d2e9a1c6f3e8b0d5a7c21",
+  "name": "Orders API",
+  "bin_count": 0,
+  "created_at": "2026-11-03T10:15:00Z",
+  "updated_at": "2026-11-03T10:15:00Z"
+}
+```
+
+- **Solo escritura.** Un secreto se cifra al guardarse, y ninguna página ni ruta vuelve a mostrar su valor. Puedes renombrarlo o sustituir su valor, y todos los reenvíos envían el valor nuevo a partir de su siguiente intento.
+- **Un valor** es ASCII imprimible, de hasta 4.096 caracteres.
+- **Nunca se registra.** Los reenvíos de una petición muestran la cabecera que añadió un paso de credencial con su valor enmascarado, como `Bearer ••••`. Si la respuesta de tu servidor repite la credencial, se guarda con la credencial sustituida por `[redacted]`.
+- **Se conserva mientras está en uso.** No se puede borrar un secreto al que hace referencia la pipeline de un bin: la respuesta es `409` `secret_in_use`. Cambia primero la pipeline.
+- **Para propietarios y administradores.** Hace falta el rol de propietario o de administrador, o una clave con **Read & write**, para guardar un secreto, para guardar una pipeline cuyo paso de credencial hace referencia a uno y para cambiar la URL de reenvío de un bin cuya pipeline envía uno. Un miembro sí puede reanudar un bin así, detener su reenvío o quitar su pipeline.
+
+### Cómo configurar una pipeline {#pipeline-set}
+
+En la tarjeta **Forwarding** del bin, **Add a pipeline** abre el editor. Añade los pasos de uno en uno, parte de una plantilla (un mensaje de Slack, Discord o Microsoft Teams, Keep only these fields o Drop personal data) o edita toda la pipeline como JSON. **Test on the newest request** muestra lo que enviaría un reenvío de la petición más reciente del bin, con la credencial enmascarada, o qué paso la omite o la hace fallar. No se envía nada. Por la API, fija `forward_pipeline` con `PATCH /v1/bins/{id}`:
+
+```bash
+curl -X PATCH https://bins.nimbusnexus.net/v1/bins/bin_3f9a1c7e5b2d8f4a6c0e9b17 \
+  -H "Authorization: Bearer $BINS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"forward_pipeline": {"version": 1, "steps": [
+        {"headers": {"set": {"X-Source": "request-bins"}}},
+        {"auth": {"type": "bearer", "secret": "sec_4b7d2e9a1c6f3e8b0d5a7c21"}}
+      ]}}'
+```
+
+La respuesta es el bin. Lleva `forward_pipeline`, `forward_pipeline_version`, que sube con cada cambio, y `forward_pipeline_changes_body`. `"forward_pipeline": null` quita la pipeline. Una pipeline que nunca podría ejecutarse se rechaza con `422` `invalid_pipeline`, que indica el paso, la ruta y el motivo; la [referencia](/docs/product-bins/reference#pipeline) enumera todos los motivos.
+
+`POST /v1/bins/{id}/forward-pipeline/test` ejecuta una pipeline sin guardarla. **Send a test** ejecuta la propia pipeline del bin sobre el evento de prueba, así que también comprueba que tu servidor acepta la credencial.
+
+### Qué hace un reenvío con la pipeline {#pipeline-forwards}
+
+| La pipeline | El reenvío |
+| --- | --- |
+| Se ejecuta | Enviado como siempre, con las cabeceras de la pipeline y después las nuestras. |
+| Omite la petición con un filtro | No reenviado, con el motivo `filtered`. No se vuelve a intentar y no cuenta para una [pausa](#paused). |
+| Falla, por ejemplo por un paso que lee el cuerpo cuando el cuerpo no es JSON, o por un secreto que ya no existe | Fallido al instante. `last_error` es `pipeline_failed: step <index>: <reason>: …`, con el paso contado desde 0, como en `steps`. Cuenta para una pausa, igual que un envío fallido. |
+
+Cada intento ejecuta la pipeline tal como la tiene el bin en ese momento y vuelve a leer sus secretos, así que, si sustituyes un secreto, el valor nuevo se envía a partir del siguiente intento. Los reenvíos de una petición muestran la versión que se ejecutó, el paso que omitió o hizo fallar el reenvío, si se reescribió el cuerpo y las cabeceras enviadas, con la credencial enmascarada.
 
 ## Entrega y reintentos {#delivery}
 
