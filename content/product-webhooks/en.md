@@ -2,7 +2,7 @@
 title: Webhooks
 description: The managed webhook platform — publish an event once, and we sign, retry, and replay every delivery to your subscribers.
 publishedAt: 2026-08-05
-updatedAt: 2026-10-30
+updatedAt: 2026-11-03
 kind: concept
 ---
 
@@ -30,7 +30,7 @@ This product is that surrounding machinery. It also receives in the other direct
 | **Source** | A URL a provider sends webhooks to. Each signed request becomes an event. See [Sources](/docs/product-webhooks/sources). |
 | **Endpoint** | An HTTPS URL registered to receive webhooks, carrying one or more subscriptions. |
 | **Subscription** | A match rule on an endpoint: `exact`, `prefix`, `suffix`, or `all`, plus a pattern such as `order.`. |
-| **Transformation** | A short JavaScript function on an endpoint that reshapes, filters or drops each delivery before it is signed and sent. Paid plans. See [Transformations](/docs/product-webhooks/transformations). |
+| **Transformation** | What an endpoint does to each delivery before it is signed and sent: filter, trim, reshape or add credentials. A pipeline of declarative steps runs on every plan, Free included; a JavaScript script runs on Starter, Pro and Custom. See [Transformations](/docs/product-webhooks/transformations). |
 | **Delivery** | One attempt-tracked send of one event to one matching endpoint. Signed, retried, observable. See [Deliveries and retries](/docs/product-webhooks/deliveries). |
 | **Event type** | An entry in the catalog of type names, with an optional JSON Schema. See [Event types](/docs/product-webhooks/event-types). |
 | **Signing secret** | Per-endpoint secret used to HMAC-sign every delivery. Shown **once**, at creation. |
@@ -81,8 +81,8 @@ Choose the scope when you mint it. `admin` is full control; `publish` can produc
 - [Sources](/docs/product-webhooks/sources) — receive webhooks from Stripe, GitHub or any HMAC sender.
 - [Deliveries and retries](/docs/product-webhooks/deliveries) — states, the retry schedule, and sending again.
 - [Endpoint verification](/docs/product-webhooks/endpoint-verification) — the challenge an endpoint answers before it receives events.
-- [Transformations](/docs/product-webhooks/transformations) — reshape, filter or drop each delivery with a short script.
-- [Slack, Teams and Discord](/docs/product-webhooks/chat-apps) — send events to a channel with a preset.
+- [Transformations](/docs/product-webhooks/transformations#pipeline) — filter, trim, reshape or add credentials to each delivery with a pipeline, on every plan.
+- [Slack, Teams and Discord](/docs/product-webhooks/chat-apps) — send events to a channel with a template from the gallery.
 - [Event types](/docs/product-webhooks/event-types) — the catalog, the policy for unknown types, and payload schemas.
 - [Captured requests](/docs/product-webhooks/captured-requests) — the raw requests that reached a source.
 - [Signature verification](/docs/product-webhooks/signatures) — the signing contract, and the three rules for checking it.
