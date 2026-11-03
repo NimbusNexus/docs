@@ -1,6 +1,6 @@
 ---
 title: "Usuarios"
-description: "Registros de identidad dentro de un workspace — asigna roles, genera claves de API y asume relaciones de confianza."
+description: "Registros de identidad dentro de un workspace — asigna roles y genera claves de API."
 publishedAt: 2026-05-20
 updatedAt: 2026-11-03
 kind: reference
@@ -8,7 +8,7 @@ kind: reference
 
 # Usuarios
 
-Un usuario es una identidad dentro de un [workspace](/docs/api/workspaces). Los usuarios tienen roles en los [proyectos](/docs/api/projects) del workspace (que conceden permisos), pueden generar claves de API (cada una pertenece al usuario y tiene el alcance de un único proyecto) y pueden asumir relaciones de confianza para actuar en nombre de otros proyectos.
+Un usuario es una identidad dentro de un [workspace](/docs/api/workspaces). Los usuarios tienen roles en los [proyectos](/docs/api/projects) del workspace (que conceden permisos) y pueden generar claves de API (cada una pertenece al usuario y tiene el alcance de un único proyecto).
 
 ## Usuario ≠ inicio de sesión {#identity-model}
 
