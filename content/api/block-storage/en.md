@@ -1,68 +1,62 @@
 ---
 title: Block storage
-description: Persistent NVMe volumes attached to VMs. Three tiers, live resize, snapshots.
+description: Persistent volumes for VMs — create, attach, detach, grow, and delete.
 publishedAt: 2026-05-19
-updatedAt: 2026-05-19
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Block storage
 
-Block volumes are persistent NVMe disks you attach to VMs. Each volume lives in a single region; survives the VM it's attached to (you can detach + reattach to a new VM); can be resized without downtime; and can be snapshotted to object storage on demand.
+Block volumes are persistent disks you attach to VMs. Each volume lives in your session's region; a data volume survives the VM it's attached to (you can detach + reattach to a new VM); volumes can grow; and you can snapshot or back one up through [Backups](/docs/api/backups).
 
-## Tiers {#tiers}
+## Volume types {#tiers}
 
-| Tier          | Per-GB-month | Throughput | IOPS (peak) | When to use                                                                                     |
-| ------------- | ------------ | ---------- | ----------- | ----------------------------------------------------------------------------------------------- |
-| `standard`    | \$0.11       | 250 MB/s   | 3,000       | Root disks, dev databases, anything you want to keep cheap.                                     |
-| `performance` | \$0.18       | 1,000 MB/s | 16,000      | Production database disks, build caches, hot data. **Default for managed databases.**           |
-| `extreme`     | \$0.30       | 4,000 MB/s | 64,000      | Latency-sensitive workloads — ad serving, analytics scratch, anything that bottlenecks on disk. |
+`GET /api/v1/storage/artifacts` lists what you can create in your session's region: the volume types in `types`, and the priced storage options in `volume_options`. `POST /api/v1/storage/` takes the `size` in GB and the `volume_type`, one of the `volume_options` labels, which sets the price. Optional fields are a `type` from `types`, a `name`, a `description`, an `image` to build the volume from, and `subscription`, the billing plan (default `Hourly`).
 
-All three tiers use the same NVMe hardware; the differences are scheduling-tier QoS, not media-tier. You can resize **and** retier without downtime — start on Standard, bump to Performance when you outgrow the IOPS budget, drop back if usage settles.
+A volume keeps its type for life: there's no call to change it. Prices per `volume_type` are in [Pricing data](/docs/api/pricing-data).
 
 ## Lifecycle {#lifecycle}
 
-Volumes move through four states:
+`POST /api/v1/storage/` queues the work and answers without an id; the new volume shows up in `GET /api/v1/storage/`. Its `status` comes from the block-storage service. The ones you'll meet most:
 
 - `available` — created but not attached. Bills the same as attached (storage doesn't care).
-- `attached` — bound to a VM. Visible inside the VM as a block device (`/dev/sdb`, `/dev/sdc`, …).
-- `detaching` → `available` — releasing from a VM. The unmount happens server-side; make sure your filesystem is flushed first.
-- `deleted` — destroyed. **Cannot be recovered.** Snapshot first if you want a recoverable backup.
+- `in-use` — bound to a VM. Visible inside the VM as a block device (`/dev/vdb`, `/dev/vdc`, …).
+- `detaching` → `available` — releasing from a VM. Unmount the filesystem inside the VM before you detach.
 
-Detach is a separate call from delete. We deliberately don't auto-delete a volume when its attached VM is destroyed — losing a database disk because a teammate destroyed the wrong VM is exactly the kind of disaster the API should make hard to commit accidentally.
+Detach is a separate call from delete. Deleting a VM deletes the boot volume made from its image; volumes you attached, or passed in `volumes` when you created the VM, stay `available`.
+
+`DELETE /api/v1/storage/` destroys the volumes whose ids you list in `ids`. A deleted volume **cannot be recovered**, so back it up first if you want a recoverable copy. With `cascade: true`, the volume's snapshots are deleted along with it.
 
 ## Resizing {#resize}
 
-`POST /v1/volumes/{id}/resize` with `{ "size_gb": 500 }` grows a volume. The disk grows live; the filesystem inside the VM needs a separate `resize2fs` / `xfs_growfs` call to claim the new space. We document that step in the per-OS [VM guides](/docs/api/vms).
+`POST /api/v1/storage/resize` with `{"volume_id": "…", "new_size": 500}` grows a volume to 500 GB. `new_size` must be larger than the current size; anything else answers `400`. The filesystem inside the VM needs a separate `resize2fs` / `xfs_growfs` call to claim the new space.
 
-Shrinking isn't supported online. To go smaller: snapshot, create a new smaller volume from the snapshot, attach the new one, copy data, detach the old one. Easy to script; we don't ship it as a built-in because the data-loss footgun is sharp.
+Shrinking isn't supported. To go smaller: create a new, smaller volume, attach it, copy the data, and detach the old one.
 
 ## Snapshots {#snapshots}
 
-Snapshots are point-in-time copies stored in object storage (the `cold` class — cheap, retrieved on demand when you restore).
+Snapshots and backups of a volume are made through [Backups](/docs/api/backups): `POST /api/v1/backup_restore/volume_backups/create_backup` with the `volume_id` and `type: snapshot` (a point-in-time copy kept with the volume) or `type: backup` (a separate full copy).
 
-- Triggered by `POST /v1/volumes/{id}/snapshots`.
-- Take ~10 seconds for the consistency point, then continue copying in the background.
-- Stored at \$0.04/GB-month.
-- Restorable to a new volume of the **same or larger** size, in any region (cross-region restore counts as inter-region egress at \$0.005/GB).
+The snapshot is consistent at the block layer, not the application layer. For a database, pause writes first or use the database's own backup tool. Block-layer snapshots are right for filesystem volumes that aren't running a transactional engine.
 
-The snapshot is consistent at the block layer, not the application layer. For databases, prefer the database's own snapshot API (see [Managed databases](/docs/api/managed-databases)) — those quiesce writes at the engine level. Block-layer snapshots are right for filesystem volumes that aren't running a transactional engine.
+A restore puts the copy back in place of the volume, at the same size; see [Backups](/docs/api/backups#restore).
 
 ## Attach semantics {#attach}
 
-A volume can be attached to **one VM at a time**. Multi-attach (shared-disk semantics) is not supported — application-level coordination over a shared NVMe volume is harder than the API surface makes it look, and we'd rather not build the footgun.
+A volume can be attached to **one VM at a time**. Multi-attach (shared-disk semantics) is not supported.
 
-Attachment is region-scoped: a volume in `us-east-1` cannot attach to a VM in `eu-central-1`. Snapshot + restore is the right pattern for moving data between regions.
+`POST /api/v1/storage/attach` takes the `volume_id`, the `instance_id` and an optional `mountpoint`; without one, the volume gets the first free device from `/dev/vdb` on. `POST /api/v1/storage/detach` takes the `instance_id`, the `volume_id` and the `attachment_id`, which `GET /api/v1/storage/detach_artifacts` lists for a VM.
+
+A volume and the VM it attaches to are both in your session's region.
 
 ## Pricing notes {#pricing}
 
-- Storage: per GB-month, billed by the second. Storage class (Standard/Performance/Extreme) drives the rate; size drives the multiplier.
-- Snapshots: \$0.04/GB-month, billed against the snapshot's content size (deduped across snapshots from the same volume).
-- Cross-region replication: \$0.005/GB-month for the replicated copy, plus standard inter-region egress for the initial sync.
+- Storage: billed per GB at the price of the volume's `volume_type`, on the plan in `subscription`. Prices are in [Pricing data](/docs/api/pricing-data).
 - No IOPS-billed pricing. No per-attachment fee. No throughput surcharge.
 
 ## What's next {#next-steps}
 
 - [Virtual machines](/docs/api/vms) — what you attach volumes to.
-- [Object storage](/docs/api/object-storage) — for unstructured data that doesn't need block-level access (logs, backups, user uploads). Cheaper at large scale.
-- [Conventions](/docs/conventions) for operation-polling, idempotency, error shapes.
+- [Object storage](/docs/api/object-storage) — for unstructured data that doesn't need block-level access (logs, backups, user uploads).
+- [Backups](/docs/api/backups) — snapshots and backups of a volume, and restoring them.

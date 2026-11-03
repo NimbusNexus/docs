@@ -1,39 +1,28 @@
 ---
 title: VM sizes
-description: Catalog of compute shapes across the gp, co, mo, and gx families.
+description: Compute flavors — vCPUs, RAM and swap — and how a VM gets one.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # VM sizes
 
-A VM size is a named compute shape — vCPU count, RAM, root-disk size, and family. Every VM is created with a size code (e.g. `gp-4-16`); resizing a VM swaps the code at runtime.
+A VM size is a flavor: a vCPU count (`vcpus`), RAM in MB (`ram`) and swap in MB (`swap`). You don't pick a flavor when you create a VM: you set `spec.cpu` and `spec.ram`, and the API uses a flavor with exactly those numbers, creating one if none exists. The boot disk isn't part of the flavor; it's a separate volume.
 
-## The four families {#families}
+## Architecture and VM class {#families}
 
-| Family                | Code prefix | What it's optimized for                                                                                     |
-| --------------------- | ----------- | ----------------------------------------------------------------------------------------------------------- |
-| **General purpose**   | `gp-*`      | Balanced CPU + RAM. The default for most workloads.                                                         |
-| **Compute optimized** | `co-*`      | 2× CPU-per-dollar of `gp`, half the RAM-per-dollar. Right for CPU-bound services, batch jobs, video encode. |
-| **Memory optimized**  | `mo-*`      | Inverse trade. Right for in-memory caches, JVM heaps, analytics scratch.                                    |
-| **GPU**               | `gx-*`      | NVIDIA L4 / H100 accelerators. ML inference, training, transcode.                                           |
+Besides `cpu` and `ram`, a VM's `spec` names an `architecture` and a `vm_class`. Together they pick the product the VM is billed as. The ones on offer in your session's region are in `vm_options` from `GET /api/v1/instance/artifacts`.
 
 ## Naming convention {#naming}
 
-Size codes follow `<family>-<vCPU>-<RAM_GB>`. So:
+Read a flavor's shape from `vcpus`, `ram` and `swap`, not from its name. A flavor the API creates for a VM is named after its `id`, a UUID, and so is one made with `POST /api/v1/flavor/` without a `name`. `GET /api/v1/flavor/` filters on the shape with `min_vcpus`, `max_vcpus`, `min_ram`, `max_ram`, `min_swap` and `max_swap`.
 
-- `gp-1-2` — 1 vCPU, 2 GB RAM, general-purpose (the smallest useful size, ~\$0.0145/vCPU-hour)
-- `gp-4-16` — 4 vCPU, 16 GB RAM, general-purpose
-- `co-16-32` — 16 vCPU, 32 GB RAM, compute-optimized
-- `mo-8-64` — 8 vCPU, 64 GB RAM, memory-optimized
-- `gx-4-32-l4` — 4 vCPU, 32 GB RAM, 1× L4 GPU (GPU sizes append the accelerator code)
-
-The catalog endpoint returns the full list with current pricing per size. Prices vary slightly across regions; the response includes a per-region price table.
+Prices depend on the `architecture`, `vm_class`, `cpu` and `ram`; see [Pricing data](/docs/api/pricing-data).
 
 ## Resizing {#resizing}
 
-A VM can move between sizes without re-provisioning. Resize within the same family is online (no downtime). Cross-family resize requires a stop / start cycle. Resize between architectures (e.g. `gp` to `gx`) is a destroy / re-create — the API rejects the direct resize call to make the implicit data loss explicit.
+A VM can move between sizes without re-provisioning. Send `POST /api/v1/instance/{instance_id}/resize` with a new `spec` (`architecture`, `vm_class`, `cpu`, `ram`). The VM restarts on the new flavor and waits in `VERIFY_RESIZE`: `POST /api/v1/instance/{instance_id}/confirm_resize` keeps the new size, and `POST /api/v1/instance/{instance_id}/revert_resize` goes back to the old one. Both answer `400` if the VM isn't in `VERIFY_RESIZE`.
 
 ## What's next {#next-steps}
 
