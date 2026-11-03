@@ -1,66 +1,58 @@
 ---
 title: "Backups"
-description: "Geplante und On-Demand-Backups mit Deduplizierung, Aufbewahrungsrichtlinien und Cross-Region-Restore."
+description: "Snapshots und Backups von Block-Volumes, on demand oder nach Zeitplan, an Ort und Stelle wiederhergestellt."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Backups
 
-Backups sind verwaltete Kopien von VMs, Volumes und Datenbanken, die mit Deduplizierung und konfigurierbarer Aufbewahrung im Cold-Storage-Tier liegen. Die Endpoints unterstützen sowohl **On-Demand**-Backups (einmalig, Sie rufen POST auf) als auch **geplante** Backups (wiederkehrend, gesteuert durch eine Richtlinie, die an die Quellressource angehängt ist).
+Ein Backup ist eine Point-in-Time-Kopie eines [Block-Volumes](/docs/api/block-storage), in einem von zwei Typen: ein `snapshot`, den der Blockspeicher-Dienst neben dem Volume aufbewahrt, oder ein `backup`, eine separate vollständige Kopie. Sie erstellen sie **on demand**, oder ein [Zeitplan](/docs/api/scheduled-backups) erstellt sie für Sie.
 
 ## Backups vs. Snapshots {#backups-vs-snapshots}
 
 Beide sind Point-in-Time-Kopien; sie unterscheiden sich im Betrieb:
 
-| | Snapshot | Backup |
+| | `type: snapshot` | `type: backup` |
 | --- | --- | --- |
-| Erstellt durch | Nur direkten API-Aufruf | Direkten Aufruf ODER eine wiederkehrende Richtlinie |
-| Aufbewahrung | Standardmäßig 7 Tage, manuell verlängerbar | Gesteuert durch eine explizite Aufbewahrungsrichtlinie (Tiers täglich/wöchentlich/monatlich) |
-| Preise | \$0,04/GB-Monat (Cold-Storage-Tier, dedupliziert) | \$0,04/GB-Monat + Retrieval-Gebühren pro Restore |
-| Cross-Region-Replikation | Manuell per Restore und anschließender Kopie | In die Richtlinie integriert |
-| Restore als neue Ressource | Ja | Ja |
-| Audit-Log | Standard | Standard + Metadaten zur Zuordnung zur Richtlinie |
+| Was es ist | Ein Snapshot, der beim Volume bleibt | Eine separate vollständige Kopie, die auch in Ihren eigenen Speicher gehen kann |
+| Erstellt durch | Einen direkten Aufruf oder einen Zeitplan | Einen direkten Aufruf oder einen Zeitplan |
+| Wiederhergestellt mit | `POST /api/v1/backup_restore/volume_backups/snapshot_restore` | `POST /api/v1/backup_restore/volume_backups/backup_restore` |
 
-Nutzen Sie Snapshots für Ad-hoc-Kopien, die Sie selbst verwenden. Nutzen Sie Backups für das wiederkehrende Muster „wir haben immer eine 7 Tage, eine 30 Tage und eine 365 Tage alte Kopie“ — das ist die richtliniengesteuerte Variante.
+Ein Snapshot gehört zu seinem Volume: Wenn Sie das Volume mit `cascade: true` löschen (`DELETE /api/v1/storage/`), werden auch seine Snapshots gelöscht.
 
-## Richtliniengesteuerte Backups {#policies}
+## Eine Kopie erstellen {#create}
 
-So hängen Sie eine Backup-Richtlinie an eine VM / ein Volume / eine Datenbank an:
+`POST /api/v1/backup_restore/volume_backups/create_backup` kopiert ein Volume sofort. Geben Sie die `volume_id` und den `type` an, `snapshot` oder `backup`, dazu optional `name`, `description` und `permanent`. Bei einem `backup` sendet `storage_ids` die Kopie zusätzlich an externe Speicherverbindungen, die Sie mit `POST /api/v1/external/connections/` eingerichtet haben.
 
-```json
-{
-  "source_id": "vm_01H...",
-  "source_kind": "vm",
-  "schedule": "daily",
-  "retention": {
-    "daily": 7,
-    "weekly": 4,
-    "monthly": 12,
-    "yearly": 5
-  }
-}
-```
+Der Aufruf stellt die Arbeit in die Warteschlange und antwortet sofort, oder er antwortet mit `409`, wenn die Kopie nicht in Ihr Backup-Kontingent passen würde. `GET /api/v1/backup_restore/volume_backups/` listet Ihre Kopien auf, gefiltert nach `backup_types` und `statuses`, mit `limit` (Standard 10) und `offset`. Der `status` einer Kopie ist `pending`, `in_progress`, `completed` oder `failed`.
 
-Diese Richtlinie hält im eingeschwungenen Zustand 7 tägliche + 4 wöchentliche + 12 monatliche + 5 jährliche = 28 aktive Backups vor. Ältere Backups werden automatisch entfernt; Sie müssen nicht manuell aufräumen.
+## Geplante Kopien {#policies}
 
-Die Endpoints für Richtlinien liegen unter `/v1/backups/policies` (im minimalen Beispiel unten nicht enthalten — die vollständige Referenz steht in der Live-Spezifikation).
+Ein Zeitplan erstellt Kopien für Sie. Legen Sie einen mit `POST /api/v1/backup_restore/backup_scheduler/` an und geben Sie dabei eine `frequency` und eine `backup_quantity` an; binden Sie ihn dann mit `POST /api/v1/backup_restore/volume_scheduler/` an jedes Volume und geben Sie dabei die `volume_id`, die `schedule_id` und den `type` an. Die Details stehen unter [Geplante Backups](/docs/api/scheduled-backups).
 
-## Aufbewahrungssperren {#retention}
+## Aufbewahrung {#retention}
 
-Ein Backup in einem aktiven Aufbewahrungs-Tier (z. B. „täglich, 7 behalten“) unterliegt für diesen Zeitraum einer **Aufbewahrungssperre**. Versuchen Sie, es vor Ablauf zu löschen, antwortet die API mit 409. Das ist die Compliance-Funktion: Ein Benutzer kann ein Backup, das noch im Aufbewahrungsfenster liegt, nicht löschen, auch nicht mit Admin-Rechten.
+Ein Zeitplan behält von jedem daran gebundenen Volume die neuesten `backup_quantity` Kopien (Standard 5) und löscht ältere, sobald neue Kopien hinzukommen; `outside_backup_quantity` (Standard 1) tut dasselbe für die Kopien in jedem externen Speicher. Kopien, die Sie on demand erstellen, bleiben, bis Sie sie löschen.
 
-Um das zu umgehen, müssten Sie die Quelle von der Richtlinie trennen (das Backup ist dann verwaist und nicht mehr gesperrt) und es anschließend löschen. Das Verwaisen wird im Audit-Log protokolliert.
+Um eine Kopie aus dieser Rotation herauszuhalten, setzen Sie bei ihr `permanent: true`, beim Erstellen oder später mit `PATCH /api/v1/backup_restore/volume_backups/{volume_backup_id}`.
 
-## Cross-Region-Replikation {#cross-region}
+Löschen Sie eine Kopie mit `DELETE /api/v1/backup_restore/volume_backups/single/{volume_backup_id}` oder mehrere mit `DELETE /api/v1/backup_restore/volume_backups/bulk` und ihren IDs im Query-Parameter `backup_ids`.
 
-Eine Richtlinie kann eine sekundäre Region angeben: Jedes Backup, das die Richtlinie erstellt, wird innerhalb von ~10 Minuten nach der Erstellung in die sekundäre Region repliziert. Die replizierte Kopie wird als Cross-Region-Speicher abgerechnet (\$0,005/GB-Monat Aufschlag gegenüber der primären Region).
+## Wiederherstellen {#restore}
 
-Ein Restore aus der sekundären Region erfordert keinen zusätzlichen Aufwand — `POST /v1/backups/{id}/restore` mit der ID der sekundären Kopie; die Zielregion ist standardmäßig die Region der sekundären Kopie. Eine gängige DR-Übung: monatlicher Restore aus der sekundären Region in ein Sandbox-Projekt, prüfen, löschen.
+Stellen Sie einen Snapshot mit `POST /api/v1/backup_restore/volume_backups/snapshot_restore` wieder her und ein Backup mit `POST /api/v1/backup_restore/volume_backups/backup_restore`. Beide nehmen `{"backup_id": "…"}` entgegen, stellen die Arbeit in die Warteschlange und antworten sofort. Die Kopie muss `completed` sein und den Typ des Endpoints haben; sonst antwortet der Aufruf mit `409`.
+
+Ein Restore wirkt an Ort und Stelle. Er erstellt aus der Kopie ein neues Volume, in derselben Größe und in derselben Availability Zone wie das Original, und setzt es an die Stelle des Originals:
+
+- Ein Daten-Volume wird von seiner VM getrennt, und das wiederhergestellte Volume wird an seiner Stelle angehängt.
+- Beim Boot-Volume einer VM wird die VM auf der wiederhergestellten Disk neu aufgebaut. Die neue VM übernimmt die Ports und Floating-IPs der alten, und die alte VM wird gelöscht. Die VM erhält eine neue `id`; die wiederhergestellte Disk behält die SSH-Keys, die sie hatte.
+
+Die Kopien und Zeitplan-Bindungen des ursprünglichen Volumes gehen auf das wiederhergestellte Volume über.
 
 ## Nächste Schritte {#next-steps}
 
-- [Snapshots](/docs/api/snapshots) — das Ad-hoc-Gegenstück.
-- [Cold Storage](/docs/api/cold-storage) — das Tier, in dem Backups liegen.
-- [Virtuelle Maschinen](/docs/api/vms), [Blockspeicher](/docs/api/block-storage), [Verwaltete Datenbanken](/docs/api/managed-databases) — die drei Arten von Quellressourcen.
+- [Geplante Backups](/docs/api/scheduled-backups) — Kopien nach Zeitplan erstellen.
+- [Blockspeicher](/docs/api/block-storage) — die Volumes, von denen diese Kopien stammen.
+- [Virtuelle Maschinen](/docs/api/vms) — was ein Restore des Boot-Volumes neu aufbaut.

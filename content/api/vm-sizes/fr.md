@@ -1,39 +1,28 @@
 ---
 title: "Tailles de VM"
-description: "Catalogue des configurations de calcul des familles gp, co, mo et gx."
+description: "Les flavors de calcul — vCPU, RAM et swap — et comment une VM en obtient un."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Tailles de VM
 
-Une taille de VM est une configuration de calcul nommée — nombre de vCPU, RAM, taille du disque racine et famille. Chaque VM est créée avec un code de taille (par exemple `gp-4-16`) ; redimensionner une VM remplace ce code pendant son exécution.
+Une taille de VM est un flavor : un nombre de vCPU (`vcpus`), une RAM en MB (`ram`) et un swap en MB (`swap`). Vous ne choisissez pas de flavor quand vous créez une VM : vous définissez `spec.cpu` et `spec.ram`, et l’API utilise un flavor qui a exactement ces valeurs, en le créant s’il n’en existe aucun. Le disque de démarrage ne fait pas partie du flavor ; c’est un volume distinct.
 
-## Les quatre familles {#families}
+## Architecture et classe de VM {#families}
 
-| Famille | Préfixe de code | Ce pour quoi elle est optimisée |
-| --- | --- | --- |
-| **General purpose** | `gp-*` | CPU + RAM équilibrés. Le choix par défaut pour la plupart des charges de travail. |
-| **Compute optimized** | `co-*` | 2× le CPU par dollar de `gp`, la moitié de la RAM par dollar. Adapté aux services limités par le CPU, aux traitements par lots, à l’encodage vidéo. |
-| **Memory optimized** | `mo-*` | Le compromis inverse. Adapté aux caches en mémoire, aux tas JVM, aux espaces temporaires d’analytique. |
-| **GPU** | `gx-*` | Accélérateurs NVIDIA L4 / H100. Inférence ML, entraînement, transcodage. |
+Outre `cpu` et `ram`, la `spec` d’une VM indique une `architecture` et une `vm_class`. Ensemble, elles déterminent le produit sous lequel la VM est facturée. Les choix proposés dans la région de votre session figurent dans le `vm_options` que renvoie `GET /api/v1/instance/artifacts`.
 
 ## Convention de nommage {#naming}
 
-Les codes de taille suivent le format `<family>-<vCPU>-<RAM_GB>`. Ainsi :
+Lisez la forme d’un flavor dans `vcpus`, `ram` et `swap`, pas dans son nom. Un flavor que l’API crée pour une VM porte le nom de son `id`, un UUID, tout comme un flavor créé avec `POST /api/v1/flavor/` sans `name`. `GET /api/v1/flavor/` filtre sur la forme avec `min_vcpus`, `max_vcpus`, `min_ram`, `max_ram`, `min_swap` et `max_swap`.
 
-- `gp-1-2` — 1 vCPU, 2 GB de RAM, General purpose (la plus petite taille utile, ~\$0.0145/vCPU-heure)
-- `gp-4-16` — 4 vCPU, 16 GB de RAM, General purpose
-- `co-16-32` — 16 vCPU, 32 GB de RAM, Compute optimized
-- `mo-8-64` — 8 vCPU, 64 GB de RAM, Memory optimized
-- `gx-4-32-l4` — 4 vCPU, 32 GB de RAM, 1× GPU L4 (les tailles GPU ajoutent le code de l’accélérateur)
-
-L’endpoint du catalogue renvoie la liste complète, avec le tarif actuel de chaque taille. Les prix varient légèrement d’une région à l’autre ; la réponse inclut une table de prix par région.
+Les prix dépendent de l’`architecture`, de la `vm_class`, du `cpu` et de la `ram` ; voir [Données tarifaires](/docs/api/pricing-data).
 
 ## Redimensionner {#resizing}
 
-Une VM peut changer de taille sans être reprovisionnée. Un redimensionnement au sein d’une même famille se fait à chaud (sans interruption). Un redimensionnement entre familles nécessite un cycle arrêt / démarrage. Un redimensionnement entre architectures (par exemple de `gp` à `gx`) est une destruction / recréation — l’API rejette l’appel de redimensionnement direct pour rendre explicite la perte de données implicite.
+Une VM peut changer de taille sans être reprovisionnée. Envoyez `POST /api/v1/instance/{instance_id}/resize` avec une nouvelle `spec` (`architecture`, `vm_class`, `cpu`, `ram`). La VM redémarre sur le nouveau flavor et attend dans l’état `VERIFY_RESIZE` : `POST /api/v1/instance/{instance_id}/confirm_resize` conserve la nouvelle taille, et `POST /api/v1/instance/{instance_id}/revert_resize` revient à l’ancienne. Les deux répondent `400` si la VM n’est pas en `VERIFY_RESIZE`.
 
 ## Étapes suivantes {#next-steps}
 
