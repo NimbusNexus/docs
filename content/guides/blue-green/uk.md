@@ -2,13 +2,13 @@
 title: "Blue/green-розгортання з плаваючими IP"
 description: "Розгортання без даунтайму: перекидайте плаваючий IP між двома прогрітими VM."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-04
 kind: guide
 ---
 
 # Blue/green-розгортання з плаваючими IP
 
-Класичний патерн blue/green: тримайте поточний продакшн за плаваючим IP, розгорніть нову версію на окремій VM, запустіть на ній smoke-тести, поки на неї ще не йде публічний трафік, а тоді перекиньте плаваючий IP зі старої VM на нову. Трафік переходить за ~2 секунди. Якщо щось піде не так, перекиньте IP назад.
+Класичний патерн blue/green: тримайте поточний продакшн за плаваючим IP, розгорніть нову версію на окремій VM, запустіть на ній smoke-тести, поки на неї ще не йде публічний трафік, а тоді перекиньте плаваючий IP зі старої VM на нову. Трафік переходить, щойно IP підʼєднається. Якщо щось піде не так, перекиньте IP назад.
 
 Ця інструкція розрахована на навантаження з однією VM (одна продакшн-VM, одна staging-VM). Для навантажень із кількома VM за балансувальником навантаження див. сторінку [Балансувальники навантаження](/docs/api/load-balancers) — патерн той самий, але натомість ви перемикаєте цільові пули LB.
 
@@ -17,34 +17,36 @@ kind: guide
 - Дві VM в одному регіоні. Назвемо їх `blue` (зараз обслуговує трафік) і `green` (наступна версія).
 - [Плаваючий IP](/docs/api/floating-ips), зараз підʼєднаний до `blue`.
 - DNS-запис A, що вказує на плаваючий IP.
-- Встановлений CLI `nimbus` або curl із заданим $NIMBUS_KEY.
+- `curl` і `jq`, а в `$NIMBUS_KEY` — [API-ключ](/docs/authentication), який може робити ці виклики.
 
 ```bash
-export NIMBUS_KEY="nn_live_xxxxxxxxxxxxxxxx"
-export BLUE_ID="vm_01HG7Y3..."     # currently serving
-export GREEN_ID="vm_01HG7Y4..."    # new version
-export FLOATING_IP_ID="ip_01HG7..."
+export NIMBUS_KEY="<your-api-key>"
+export BLUE_ID="<blue-vm-id>"     # currently serving
+export GREEN_ID="<green-vm-id>"    # new version
+export FLOATING_IP_ID="<floating-ip-id>"
 ```
+
+`GET /api/v1/instance/` перелічує ваші VM, а `GET /api/v1/floating_ip/` — ваші плаваючі IP, разом з їхніми ідентифікаторами.
 
 ## 1 · Підготуйте VM green {#build-green}
 
-Запустіть нову версію з оновленим кодом/конфігурацією, але без підʼєднаного плаваючого IP. На цьому етапі це окрема VM із публічним IP за замовчуванням; з продакшну на неї нічого не надходить.
+Запустіть нову версію з оновленим кодом/конфігурацією, але без підʼєднаного плаваючого IP. На цьому етапі це окрема VM із власною адресою; з продакшну на неї нічого не надходить.
 
 Розгорніть на ній застосунок, виконайте міграції бази даних (якщо вони прямо сумісні — див. «міграції схеми» нижче), прогрійте кеші, виконайте всю стартову роботу, яка має відбутися до появи трафіку.
 
 ## 2 · Проведіть smoke-тести на green {#smoke}
 
-Звертайтеся безпосередньо до публічного IP, який green має за замовчуванням:
+Звертайтеся безпосередньо до власної адреси green звідти, звідки до неї можна дістатися: з іншої VM у тій самій мережі або звідки завгодно, якщо green у зовнішній мережі. `GET /api/v1/instance/{server_id}/interfaces/` перелічує інтерфейси VM, по одному на мережу; `.data[0]` нижче — це перший із них.
 
 ```bash
-GREEN_IP=$(curl -s {{API_BASE_URL}}/v1/vms/$GREEN_ID \
-  -H "Authorization: Bearer $NIMBUS_KEY" | jq -r '.ipv4')
+GREEN_IP=$(curl -s {{API_BASE_URL}}/api/v1/instance/$GREEN_ID/interfaces/ \
+  -H "X-API-Key: $NIMBUS_KEY" | jq -r '.data[0].fixed_ips[0].ip_address')
 
 curl -H "Host: app.example.com" "http://$GREEN_IP/healthz"
 curl -H "Host: app.example.com" "http://$GREEN_IP/api/critical-endpoint"
 ```
 
-Заголовок `Host` дає змогу перевірити поведінку, що залежить від канонічного імені хоста (напр., маршрутизацію, CORS, усе, що привʼязано до сертифіката), не змінюючи DNS. Якщо ваш сервіс вимагає HTTPS і ви привʼязали сертифікат до `app.example.com`, заздалегідь налаштуйте сертифікат на green (підійде Let's Encrypt із challenge HTTP-01 на IP green за замовчуванням).
+Заголовок `Host` дає змогу перевірити поведінку, що залежить від канонічного імені хоста (напр., маршрутизацію, CORS, усе, що привʼязано до сертифіката), не змінюючи DNS. Якщо ваш сервіс вимагає HTTPS і ви привʼязали сертифікат до `app.example.com`, заздалегідь налаштуйте сертифікат на green.
 
 Запустіть усі інші тести, які ви запускали б перед переведенням версії в продакшн:
 
@@ -54,23 +56,45 @@ curl -H "Host: app.example.com" "http://$GREEN_IP/api/critical-endpoint"
 
 ## 3 · Перекиньте плаваючий IP {#swing}
 
-Це і є cutover. Один виклик API:
+Це і є cutover: два виклики API, один для відʼєднання, а другий для підʼєднання. Спершу прочитайте те, що потрібно виклику підʼєднання: порт green і зовнішню мережу, до якої належить IP:
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/floating-ips/$FLOATING_IP_ID/attach \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+GREEN_PORT_ID=$(curl -s {{API_BASE_URL}}/api/v1/instance/$GREEN_ID/interfaces/ \
+  -H "X-API-Key: $NIMBUS_KEY" | jq -r '.data[0].port_id')
+
+FLOATING_NETWORK_ID=$(curl -s {{API_BASE_URL}}/api/v1/floating_ip/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq -r ".data[] | select(.id == \"$FLOATING_IP_ID\") | .network")
+```
+
+Потім перекиньте його:
+
+```bash
+# Detach the IP from blue
+curl -X POST {{API_BASE_URL}}/api/v1/floating_ip/deallocate \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d "{ \"vm_id\": \"$GREEN_ID\" }"
+  -d "{ \"id\": \"$FLOATING_IP_ID\" }"
+
+# Attach it to green
+curl -X POST {{API_BASE_URL}}/api/v1/floating_ip/allocate \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"floating_ip_id\": \"$FLOATING_IP_ID\",
+    \"floating_network_id\": \"$FLOATING_NETWORK_ID\",
+    \"vm_port_id\": \"$GREEN_PORT_ID\",
+    \"vm_ip_address\": \"$GREEN_IP\"
+  }"
 ```
 
 Що відбувається:
 
-- Плаваючий IP відʼєднується від `blue` (цей IP був однією з її публічних адрес)
-- Плаваючий IP підʼєднується до `green`
-- Зміни поширюються мережею за ~2 секунди; запити на IP починає обслуговувати green
-- TCP-зʼєднання з IP старої VM лишаються відкритими, доки не закриються через простій (для HTTP keepalive зазвичай 30–60 секунд); нові зʼєднання потрапляють на green
+- Плаваючий IP відʼєднується від `blue`. Між двома викликами за цією адресою немає жодної VM, тож виконуйте їх одразу один за одним.
+- Плаваючий IP підʼєднується до `green`, і запити на IP починає обслуговувати green.
+- Нові зʼєднання потрапляють на green. Клієнту, що має відкрите зʼєднання через плаваючий IP, можливо, доведеться перепідключитися.
 
-Для більшості HTTP-навантажень це фактично розгортання без даунтайму. Наявні зʼєднання завершують свої запити на blue; нові запити потрапляють на green. Користувачів із довготривалими зʼєднаннями (SSE, WebSocket) їхні клієнти перепідключають автоматично.
+Для більшості HTTP-навантажень це фактично розгортання без даунтайму. Користувачів із довготривалими зʼєднаннями (SSE, WebSocket) їхні клієнти перепідключають автоматично.
 
 ## 4 · Стежте за green під навантаженням {#watch}
 
@@ -83,27 +107,45 @@ curl -X POST {{API_BASE_URL}}/v1/floating-ips/$FLOATING_IP_ID/attach \
 
 ## 5 · Зупиніть blue {#stop-blue}
 
-Якщо все зелене (буквально), зупиніть blue, щоб більше за нього не платити:
+Якщо все зелене (буквально), зупиніть blue:
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/vms/$BLUE_ID/stop \
-  -H "Authorization: Bearer $NIMBUS_KEY"
+curl -X POST {{API_BASE_URL}}/api/v1/instance/action \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{ \"servers\": [\"$BLUE_ID\"], \"cmd\": \"stop\" }"
 ```
 
-Не робіть `delete` одразу. Зупинені VM коштують ~10 % від вартості запущених (лише сховище), і протягом ~24 годин їх можна знову запустити через `start` для швидкого відкату. Через 24 години видаліть їх.
+Не видаляйте blue одразу: зупинену VM можна знову запустити через `start` для швидкого відкату. Проте вона все одно тарифікується, бо VM тарифікується від створення до видалення. Коли відкат більше не потрібен, видаліть її через `"cmd": "delete"`.
 
 ## Шлях відкату {#rollback}
 
-Якщо green поводиться неправильно під навантаженням, відкат симетричний:
+Якщо green поводиться неправильно під навантаженням, відкат симетричний. Якщо ви зупинили blue, знову запустіть цю VM (`"cmd": "start"`), а потім перекиньте IP назад:
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/floating-ips/$FLOATING_IP_ID/attach \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+BLUE_PORT_ID=$(curl -s {{API_BASE_URL}}/api/v1/instance/$BLUE_ID/interfaces/ \
+  -H "X-API-Key: $NIMBUS_KEY" | jq -r '.data[0].port_id')
+
+BLUE_IP=$(curl -s {{API_BASE_URL}}/api/v1/instance/$BLUE_ID/interfaces/ \
+  -H "X-API-Key: $NIMBUS_KEY" | jq -r '.data[0].fixed_ips[0].ip_address')
+
+curl -X POST {{API_BASE_URL}}/api/v1/floating_ip/deallocate \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d "{ \"vm_id\": \"$BLUE_ID\" }"
+  -d "{ \"id\": \"$FLOATING_IP_ID\" }"
+
+curl -X POST {{API_BASE_URL}}/api/v1/floating_ip/allocate \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"floating_ip_id\": \"$FLOATING_IP_ID\",
+    \"floating_network_id\": \"$FLOATING_NETWORK_ID\",
+    \"vm_port_id\": \"$BLUE_PORT_ID\",
+    \"vm_ip_address\": \"$BLUE_IP\"
+  }"
 ```
 
-Ті самі ~2 секунди — і трафік знову на blue. Відкотитися складніше, якщо міграції бази даних не були прямо сумісними — тримайте міграції схеми окремо від розгортань коду, і можливість відкату залишиться.
+Ті самі два виклики — і трафік знову на blue. Відкотитися складніше, якщо міграції бази даних не були прямо сумісними — тримайте міграції схеми окремо від розгортань коду, і можливість відкату залишиться.
 
 ## Міграції схеми {#migrations}
 

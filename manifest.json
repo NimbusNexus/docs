@@ -160,12 +160,12 @@
             "uk": "Автентифікація"
           },
           "description": {
-            "en": "API keys, scopes, project boundaries, and how to rotate credentials safely.",
-            "de": "API-Keys, Scopes, Projektgrenzen und wie Sie Credentials sicher rotieren.",
-            "es": "Claves de API, alcances, el aislamiento entre proyectos y cómo rotar credenciales sin riesgo.",
-            "fr": "Clés API, portées, frontières entre projets et rotation des clés en toute sécurité.",
-            "pt": "Chaves de API, escopos, fronteiras de projeto e como rotacionar credenciais com segurança.",
-            "uk": "API-ключі, області дії, межі проєктів і безпечна ротація облікових даних."
+            "en": "API keys, roles and access rules, project boundaries, and how to replace a key safely.",
+            "de": "API-Keys, Rollen und Zugriffsregeln, Projektgrenzen und wie Sie einen Key sicher ersetzen.",
+            "es": "Claves de API, roles y reglas de acceso, el aislamiento entre proyectos y cómo reemplazar una clave sin riesgo.",
+            "fr": "Clés API, rôles et règles d’accès, frontières entre projets et remplacement d’une clé en toute sécurité.",
+            "pt": "Chaves de API, funções e regras de acesso, fronteiras de projeto e como substituir uma chave com segurança.",
+            "uk": "API-ключі, ролі й правила доступу, межі проєктів і безпечна заміна ключа."
           },
           "published": true
         },
@@ -181,12 +181,12 @@
             "uk": "Угоди"
           },
           "description": {
-            "en": "Patterns the API follows everywhere — resource ids, pagination, errors, idempotency, long-running operations.",
-            "de": "Muster, denen die API überall folgt — Ressourcen-IDs, Paginierung, Fehler, Idempotenz, lang laufende Operationen.",
-            "es": "Los patrones que la API sigue en todas partes — ids de recursos, paginación, errores, idempotencia y operaciones de larga duración.",
-            "fr": "Les règles que l’API suit partout — identifiants de ressource, pagination, erreurs, idempotence, opérations longues.",
-            "pt": "Padrões que a API segue em todo lugar — ids de recurso, paginação, erros, idempotência, operações de longa duração.",
-            "uk": "Правила, яких API дотримується всюди: ідентифікатори ресурсів, пагінація, помилки, ідемпотентність, тривалі операції."
+            "en": "Patterns the APIs follow — resource ids, pagination, errors, idempotency, long-running operations.",
+            "de": "Muster, denen die APIs folgen — Ressourcen-IDs, Paginierung, Fehler, Idempotenz, lang laufende Operationen.",
+            "es": "Los patrones que siguen las APIs — ids de recursos, paginación, errores, idempotencia y operaciones de larga duración.",
+            "fr": "Les règles que suivent les API — identifiants de ressource, pagination, erreurs, idempotence, opérations longues.",
+            "pt": "Padrões que as APIs seguem — ids de recurso, paginação, erros, idempotência, operações de longa duração.",
+            "uk": "Правила, яких дотримуються API: ідентифікатори ресурсів, пагінація, помилки, ідемпотентність, тривалі операції."
           },
           "published": true
         },
@@ -244,12 +244,12 @@
             "uk": "Ідемпотентність"
           },
           "description": {
-            "en": "Safe-to-retry mutating requests using the Idempotency-Key header.",
-            "de": "Ändernde Requests mit dem Header Idempotency-Key gefahrlos wiederholen.",
-            "es": "Peticiones de escritura que puedes reintentar sin riesgo con la cabecera Idempotency-Key.",
-            "fr": "Réessayez sans risque les requêtes de modification grâce au header Idempotency-Key.",
-            "pt": "Repita com segurança requisições que alteram dados, usando o header Idempotency-Key.",
-            "uk": "Безпечні повтори запитів, що змінюють дані, із заголовком Idempotency-Key."
+            "en": "Which routes take the Idempotency-Key header, and how to retry safely on the others.",
+            "de": "Welche Routen den Header Idempotency-Key annehmen und wie Sie auf den übrigen gefahrlos wiederholen.",
+            "es": "Qué rutas aceptan la cabecera Idempotency-Key y cómo reintentar sin riesgo en las demás.",
+            "fr": "Quelles routes acceptent le header Idempotency-Key, et comment réessayer sans risque sur les autres.",
+            "pt": "Quais rotas aceitam o header Idempotency-Key e como repetir com segurança nas demais.",
+            "uk": "Які маршрути приймають заголовок Idempotency-Key і як безпечно повторювати запити на решті."
           },
           "published": true
         },
@@ -342,12 +342,12 @@
             "uk": "Швидкий старт: перша VM"
           },
           "description": {
-            "en": "Generate an API key, pick a region, and create your first VM in three requests.",
-            "de": "API-Key generieren, eine Region wählen und mit drei Requests Ihre erste VM erstellen.",
-            "es": "Genera una clave de API, elige una región y crea tu primera VM en tres peticiones.",
-            "fr": "Générez une clé API, choisissez une région et créez votre première VM en trois requêtes.",
-            "pt": "Gere uma chave de API, escolha uma região e crie sua primeira VM em três requisições.",
-            "uk": "Згенеруйте API-ключ, оберіть регіон і створіть першу VM трьома запитами."
+            "en": "Generate an API key, read your options, and create your first VM.",
+            "de": "API-Key generieren, Ihre Optionen abrufen und Ihre erste VM erstellen.",
+            "es": "Genera una clave de API, consulta tus opciones y crea tu primera VM.",
+            "fr": "Générez une clé API, consultez vos options et créez votre première VM.",
+            "pt": "Gere uma chave de API, consulte suas opções e crie sua primeira VM.",
+            "uk": "Згенеруйте API-ключ, перегляньте доступні варіанти й створіть першу VM."
           },
           "published": true
         },
@@ -503,12 +503,12 @@
             "uk": "Моніторинг парку VM"
           },
           "description": {
-            "en": "Prometheus scrapes, NimbusNexus-emitted metrics, and the alerts that matter.",
-            "de": "Prometheus-Scrapes, von NimbusNexus gelieferte Metriken und die Alerts, auf die es ankommt.",
-            "es": "Scraping con Prometheus, las métricas que emite NimbusNexus y las alertas que importan.",
-            "fr": "Collecte Prometheus, métriques émises par NimbusNexus et les alertes qui comptent.",
-            "pt": "Coleta com Prometheus, métricas emitidas pela NimbusNexus e os alertas que importam.",
-            "uk": "Збір метрик у Prometheus, метрики від NimbusNexus і алерти, які мають значення."
+            "en": "Prometheus scrapes with node_exporter, and the alerts that matter.",
+            "de": "Prometheus-Scrapes mit node_exporter und die Alerts, auf die es ankommt.",
+            "es": "Scraping con Prometheus y node_exporter, y las alertas que importan.",
+            "fr": "Collecte Prometheus avec node_exporter et les alertes qui comptent.",
+            "pt": "Coleta com Prometheus e node_exporter, e os alertas que importam.",
+            "uk": "Збір метрик у Prometheus через node_exporter і алерти, які мають значення."
           },
           "published": true
         },

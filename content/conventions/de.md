@@ -1,55 +1,82 @@
 ---
 title: "Konventionen"
-description: "Muster, denen die API überall folgt — Ressourcen-IDs, Paginierung, Fehler, Idempotenz, lang laufende Operationen."
+description: "Muster, denen die APIs folgen — Ressourcen-IDs, Paginierung, Fehler, Idempotenz, lang laufende Operationen."
 publishedAt: 2026-05-19
-updatedAt: 2026-10-15
+updatedAt: 2026-11-04
 kind: concept
 ---
 
 # Konventionen
 
-Die API hat einen einzigen Aufbau, der sich bei jeder Ressource wiederholt. Wenn Sie diesen Aufbau kennen, kennen Sie jeden Endpoint — von einer Ressource zur nächsten ändern sich nur die Felder der Ressource selbst.
+NimbusNexus hat zwei Arten von APIs, und sie teilen nicht jede Konvention. Die **Infrastruktur-API** unter `{{API_HOST}}` (VMs, Netzwerke, Speicher, DNS und Ihr Konto) hat ihre Routen unter `/api/v1/` und nimmt einen API-Key im Header `X-API-Key` entgegen ([Authentifizierung](/docs/authentication)). Die **APIs der Apps** (Webhooks, Inboxes, Request Bins und die übrigen) haben jeweils eine eigene Basis-URL, mit Routen unter `/v1/`, und nehmen einen Key als Bearer-Token entgegen ([REST-API einrichten](/docs/setup/rest)). Diese Seite sagt, wo sich die beiden unterscheiden.
 
 ## Ressourcen-IDs {#resource-ids}
 
-Jede Ressource hat eine stabile, opake ID der Form `<prefix>_<26-char-base32>`:
-
-| Ressource | Präfix | Beispiel |
-| --- | --- | --- |
-| Virtuelle Maschine | `vm_` | `vm_01H8FZQ4XW9KMP4XQNR3VT7DC2` |
-| Verwaltete Datenbank | `db_` | `db_01H8FZQ4XW9KMP4XQNR3VT7DC2` |
-| Block-Volume | `vol_` | `vol_01H8FZQ4XW9KMP4XQNR3VT7DC2` |
-| Snapshot | `snap_` | `snap_01H8FZQ4XW9KMP4XQNR3VT7DC2` |
-| API-Key | `key_` | `key_01H8FZQ4XW9KMP4XQNR3VT7DC2` |
+Bei der Infrastruktur-API sind die meisten Ressourcen-IDs UUIDs, etwa `3f0c9e1a-6b7d-4c2e-9a51-7d2b8f4e1c60`; Container und Objekte im Objektspeicher werden über ihren Namen angesprochen. Bei den APIs der Apps tragen IDs ein Präfix, etwa `ep_` für einen Webhooks-Endpoint oder `evt_` für ein Event. Behandeln Sie jede ID als opaken String.
 
 IDs bleiben für die gesamte Lebensdauer der Ressource stabil — sie werden nie wiederverwendet und beim Umbenennen nie neu geschrieben. Verwenden Sie sie in URLs, Fremdschlüsseln und Audit-Logs; die lesbaren Felder `name` nur für die Anzeige.
 
 ## Paginierung {#pagination}
 
-Listen-Endpoints akzeptieren zwei Query-Parameter:
+Bei Webhooks, Inboxes und Request Bins akzeptieren Listen-Endpoints zwei Query-Parameter:
 
 - `limit` — Seitengröße. Standard 50, max. 200. Über 200 schlägt die Validierung des Requests fehl: `422` `validation_error` ([Fehler](/docs/errors#codes-validation)).
-- `cursor` — opaker Zeiger auf die nächste Seite. Der Response-Body liefert ihn als `pagination.next_cursor`, wenn es weitere Seiten gibt; geben Sie ihn als `cursor` zurück, um weiterzublättern.
-
-Cursors sind opak — versuchen Sie nicht, sie zu dekodieren oder selbst zu bauen. Sie enthalten Sortierung + Filterzustand des ursprünglichen Requests, daher führt ein Filterwechsel mitten in der Paginierung zu undefiniertem Verhalten. Beginnen Sie neu (ohne `cursor`), wenn sich Ihre Filter ändern.
+- `offset` — wie viele Einträge übersprungen werden. Der Response-Body liefert den nächsten Wert als `next_offset`; geben Sie ihn als `offset` zurück, um weiterzublättern.
 
 Das Muster im Code:
 
 ```bash
 # Page 1
-curl '{{API_BASE_URL}}/v1/vms?limit=50' \
-  -H "Authorization: Bearer $NIMBUS_KEY"
+curl '{{WEBHOOKS_BASE_URL}}/v1/endpoints?limit=50' \
+  -H "Authorization: Bearer $WEBHOOKS_API_KEY"
 
-# Page 2 (cursor from page 1's response.pagination.next_cursor)
-curl '{{API_BASE_URL}}/v1/vms?limit=50&cursor=eyJpZCI6...' \
-  -H "Authorization: Bearer $NIMBUS_KEY"
+# Page 2 (offset from page 1's response.next_offset)
+curl '{{WEBHOOKS_BASE_URL}}/v1/endpoints?limit=50&offset=50' \
+  -H "Authorization: Bearer $WEBHOOKS_API_KEY"
 ```
 
-Wenn `pagination.next_cursor` fehlt oder null ist, sind Sie auf der letzten Seite.
+Wenn `next_offset` null ist, sind Sie auf der letzten Seite.
+
+Bei der Infrastruktur-API antworten die meisten Listen-Endpoints, etwa `GET /api/v1/instance/`, mit der gesamten Liste und nehmen keine Paginierungsparameter entgegen. Diejenigen, die paginieren, tun das auf eine von zwei Arten:
+
+- `limit` und `marker` (die letzte ID oder der letzte Name, den Sie gesehen haben): VM-Images, DNS-Zonen und Record-Sets, Container und Objekte im Objektspeicher.
+- `limit` und `offset`: Volume-Backups, Backup-Zeitpläne, externe Speicherverbindungen, Benachrichtigungen.
+
+```bash
+# Page 1
+curl '{{API_BASE_URL}}/api/v1/zones/?limit=50' \
+  -H "X-API-Key: $NIMBUS_KEY"
+
+# Page 2 (marker: the id of the last zone on page 1)
+curl '{{API_BASE_URL}}/api/v1/zones/?limit=50&marker=<zone-id>' \
+  -H "X-API-Key: $NIMBUS_KEY"
+```
 
 ## Fehler {#errors}
 
-Jede Fehlerantwort verwendet dasselbe JSON-Format:
+Die beiden Arten von APIs antworten bei Fehlern unterschiedlich. Bei der Infrastruktur-API trägt ein Fehler `success: false` und eine `message`:
+
+```json
+{
+  "success": false,
+  "message": "Authentication required"
+}
+```
+
+Ein Validierungsfehler (`422`) trägt stattdessen `errors`, mit den fehlerhaften Feldern:
+
+```json
+{
+  "success": false,
+  "errors": {
+    "field": ["Invalid value"]
+  }
+}
+```
+
+Fehlercodes gibt es hier nicht: Verzweigen Sie nach dem Status, und parsen Sie `message` nicht. Jede Antwort trägt einen Header `X-Request-ID`; geben Sie ihn an, wenn Sie den Support kontaktieren.
+
+Jede Fehlerantwort von Webhooks, Inboxes und Request Bins verwendet dieses JSON-Format:
 
 ```json
 {
@@ -84,67 +111,47 @@ Wir verwenden eine kleine, vorhersehbare Menge:
 
 | Status | Wann |
 | --- | --- |
-| `200` | Erfolg mit Body. |
-| `201` | Ressource erstellt. Der Header `Location` verweist auf die neue Ressource. |
-| `202` | Operation angenommen; den Fortschritt verfolgen Sie über `operation.status`. |
+| `200` | Erfolg mit Body. Bei der Infrastruktur-API auch ein Request, dessen Arbeit in die Warteschlange gestellt wurde ([Lang laufende Operationen](#operations)). |
+| `201` | Ressource erstellt. |
+| `202` | Angenommen: Die Arbeit wird erst nach der Antwort abgeschlossen ([Lang laufende Operationen](#operations)). |
 | `204` | Erfolg, kein Body (typisch für DELETE). |
-| `400` | Der Request ließ sich so, wie er gesendet wurde, nicht lesen. `error.message` nennt den Grund. |
+| `400` | Der Request ließ sich so, wie er gesendet wurde, nicht lesen. `error.message`, oder `message` bei der Infrastruktur-API, nennt den Grund. |
 | `401` | Kein verwendbares Credential. Siehe [Authentifizierung](/docs/authentication). |
-| `402` | Ihr Tarif oder Ihr Abrechnungsstatus verhindert den Request (ein Kontingent, eine Funktion, die Ihr Tarif nicht enthält, ein eingefrorener Workspace). Ein Retry hilft nicht. |
-| `403` | Authentifiziert, aber nicht autorisiert (Scope fehlt, falsches Projekt usw.). Bei Webhooks auch ein Credential, das die API nicht akzeptiert. |
+| `402` | Bei den APIs der Apps: Ihr Tarif oder Ihr Abrechnungsstatus verhindert den Request (ein Kontingent, eine Funktion, die Ihr Tarif nicht enthält, ein eingefrorener Workspace). Ein Retry hilft nicht. |
+| `403` | Authentifiziert, aber nicht autorisiert (Scope fehlt, falsches Projekt usw.). Bei Webhooks auch ein Credential, das die API nicht akzeptiert. Bei der Infrastruktur-API auch ein Aufruf außerhalb der Zugriffsregeln eines API-Keys. |
 | `404` | Die Ressource existiert nicht, ODER der Aufrufer kann sie nicht sehen. Wir unterscheiden das absichtlich nicht — schon die Existenz preiszugeben, ist ein Zugriffsleck. |
 | `409` | Zustandskonflikt (Name bereits vergeben, ein `Idempotency-Key` mit anderem Body wiederverwendet usw.). |
 | `413` | Der Body überschreitet das Größenlimit. |
-| `422` | Validierung fehlgeschlagen. Bei einem Validierungsfehler (`validation_error`) listet `error.details.errors` die fehlerhaften Eingaben auf; bei den anderen Codes der Webhooks-API mit `422`, etwa `invalid_payload` oder `unknown_event_type`, ist es ein Objekt, das den fehlerhaften Wert oder die verletzte Regel nennt. |
+| `422` | Validierung fehlgeschlagen. Bei einem Validierungsfehler (`validation_error`) listet `error.details.errors` die fehlerhaften Eingaben auf; bei den anderen Codes der Webhooks-API mit `422`, etwa `invalid_payload` oder `unknown_event_type`, ist es ein Objekt, das den fehlerhaften Wert oder die verletzte Regel nennt. Bei der Infrastruktur-API enthält `errors` die fehlerhaften Felder. |
 | `429` | Rate-Limit erreicht. Wenn `Retry-After` gesetzt ist, gibt der Header an, wann Sie es erneut versuchen können. |
 | `500–504` | Problem auf Serverseite. Idempotente Requests können Sie immer gefahrlos wiederholen. |
 
 ## Idempotenz {#idempotency}
 
-Ändernde Endpoints (POST, PUT, PATCH, DELETE) akzeptieren einen optionalen Header `Idempotency-Key`. Übergeben Sie einen beliebigen eindeutigen Wert (üblich ist eine UUID); wir speichern die Antwort 24 Stunden lang zwischen und geben bei einer Wiederholung mit demselben Key dieselbe Antwort zurück.
+Einige wenige Routen nehmen einen Header `Idempotency-Key` an, damit ein Retry die Arbeit nicht zweimal erledigt. Bei Webhooks ist das das Veröffentlichen eines Events. Übergeben Sie einen beliebigen eindeutigen Wert (üblich ist eine UUID):
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -X POST {{WEBHOOKS_BASE_URL}}/v1/events \
+  -H "Authorization: Bearer $WEBHOOKS_API_KEY" \
   -H "Idempotency-Key: 8e1c91a4-04d0-4d77-8e6e-2f7c1a5b8e84" \
   -H "Content-Type: application/json" \
-  -d '{ "name": "web", "size": "gp-2-4", "region": "us-east-1", "image": "ubuntu-24.04" }'
+  -d '{ "event_type": "order.created", "payload": { "order_id": "1234" } }'
 ```
 
-Verwenden Sie Idempotency-Keys, wenn Ihr Client einen Request nach einem Netzwerkfehler wiederholen könnte, aber nicht erkennen kann, ob das Original erfolgreich war. Ohne Key gilt standardmäßig „Best-Effort-Retry“; mit Key sind Retries sicher.
+Jede andere Route ignoriert den Header. Bei der Infrastruktur-API ergibt das zweimalige Erstellen einer VM zwei VMs, mit oder ohne Key. [Idempotenz](/docs/idempotency) listet die Routen auf, die ihn annehmen, und sagt, was Sie auf den übrigen tun.
 
 GET-Endpoints sind immer idempotent und brauchen den Header nicht.
 
 ## Lang laufende Operationen {#operations}
 
-Manche Aktionen sind nicht innerhalb des Request-Lebenszyklus abgeschlossen:
+Manche Aktionen sind nicht innerhalb des Requests abgeschlossen. Bei der Infrastruktur-API antworten sie, sobald die Arbeit in die Warteschlange gestellt ist:
 
-- `POST` für eine VM gibt `202` zurück, während der Hypervisor die Instanz zuteilt.
-- `POST` für eine Datenbank gibt `202` zurück, während die Replikate starten.
-- Ein Resize eines Volumes und die Migration einer VM geben `202` zurück.
+- `POST /api/v1/instance/` (eine VM erstellen) antwortet mit `200` und `{"success": true}`, ohne ID.
+- `POST /api/v1/storage/` (ein Volume erstellen) antwortet mit `201`, ohne ID.
+- `POST /api/v1/instance/{instance_id}/resize` antwortet mit `200`, und die VM geht anschließend in `VERIFY_RESIZE` über.
+- `PUT` und `DELETE` auf einem DNS-Record-Set antworten mit `202`.
 
-Der Response-Body einer 202-Antwort enthält immer ein Objekt `operation`:
-
-```json
-{
-  "id": "vm_01H8FZQ4XW9KMP4XQNR3VT7DC2",
-  "state": "provisioning",
-  "operation": {
-    "id": "op_01H8FZ...",
-    "kind": "vm_create",
-    "status": "running",
-    "progress": 0.4,
-    "started_at": "2026-05-19T18:30:00Z"
-  }
-}
-```
-
-Zwei Wege, den Fortschritt zu verfolgen:
-
-1. **Polling** — `GET /v1/operations/{op_id}` einmal pro Sekunde. Günstig; zählt als regulärer API-Aufruf gegen die Rate-Limits.
-2. **Webhook** — abonnieren Sie im Dashboard eine Callback-URL. Wir senden einen POST, wenn die Operation einen Endzustand erreicht (`succeeded` oder `failed`).
-
-Die meisten Operationen sind in unter 60 Sekunden abgeschlossen. Ausnahmen sind das erstmalige Laden eines VM-Images (~90 Sekunden) und die Einrichtung eines Kafka-Clusters (~180 Sekunden).
+Es gibt kein Operationsobjekt, dem Sie folgen können. Um die Arbeit zu verfolgen, lesen Sie die Ressource und beobachten ihren `status`: `GET /api/v1/instance/` zeigt eine neue VM in `BUILD`, dann in `ACTIVE` oder `ERROR`. Eine Abfrage zählt als regulärer API-Aufruf gegen die Rate-Limits.
 
 ## Timestamps {#timestamps}
 
@@ -158,5 +165,5 @@ Nie Ortszeit, nie mit Offset, nie eine ganzzahlige Epoch (außer in den Signatur
 
 ## Nächste Schritte {#next-steps}
 
-- [Authentifizierung](/docs/authentication) behandelt den Aufbau des Auth-Headers und das Scope-Modell.
-- Die Referenzseiten — [VMs](/docs/api/vms), [Verwaltete Datenbanken](/docs/api/managed-databases), [Blockspeicher](/docs/api/block-storage), [Objektspeicher](/docs/api/object-storage), [Regionen](/docs/api/regions) — zeigen die Konventionen in der Praxis.
+- [Authentifizierung](/docs/authentication) behandelt den Auth-Header sowie die Rollen und Zugriffsregeln, die einen Key begrenzen.
+- Die Referenzseiten — [VMs](/docs/api/vms), [Blockspeicher](/docs/api/block-storage), [Objektspeicher](/docs/api/object-storage), [Regionen](/docs/api/regions) — zeigen die Konventionen in der Praxis.

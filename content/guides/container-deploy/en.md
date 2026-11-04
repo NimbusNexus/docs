@@ -2,7 +2,7 @@
 title: Container deployment patterns
 description: Single VM, systemd-managed Docker, behind a floating IP. The 80-percent pattern.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-04
 kind: guide
 ---
 
@@ -21,38 +21,78 @@ This guide walks the canonical pattern. For scaled-out services where you really
 
 ## 1 · Provision a VM {#vm}
 
-Pick a size that fits your service. For most stateless API/web workloads, `gp-1-2` (1 vCPU, 2 GB RAM) is a fine starting point — scale up if you need more.
+Pick a size that fits your service. For most stateless API/web workloads, one vCPU and 2 GB RAM is a fine starting point — scale up if you need more. [Quickstart](/docs/quickstart#region) shows where the image, the network, the security group and the `spec` values come from. The security group needs to let in SSH and your service's port ([Security groups](/docs/api/security-groups)), and `sshs` names an [SSH key](/docs/api/ssh-keys) you've registered.
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+export SSH_KEY_NAME="<ssh-key-name>"
+USER_DATA='#!/bin/bash\napt-get update && apt-get install -y docker.io'
+
+curl -X POST {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "api-prod",
-    "size": "gp-1-2",
-    "region": "us-east-1",
-    "image": "ubuntu-24.04",
-    "user_data": "#!/bin/bash\napt-get update && apt-get install -y docker.io"
-  }'
+  -d "{
+    \"name\": \"api-prod\",
+    \"image\": \"$IMAGE_ID\",
+    \"spec\": {
+      \"architecture\": \"$ARCHITECTURE\",
+      \"vm_class\": \"$VM_CLASS\",
+      \"cpu\": 1,
+      \"ram\": 2048,
+      \"volume_type\": \"$VOLUME_TYPE\"
+    },
+    \"volume_size\": 25,
+    \"network\": [\"$NETWORK_ID\"],
+    \"security_group\": [\"$SECURITY_GROUP_ID\"],
+    \"sshs\": \"$SSH_KEY_NAME\",
+    \"user_data\": \"$USER_DATA\"
+  }"
 ```
 
-`user_data` runs on first boot — here it installs Docker. By the time the VM transitions to `running`, Docker is ready.
+`user_data` runs on first boot — here it installs Docker. The VM reaches `ACTIVE` before that script finishes, so give it a minute or two.
+
+The call answers with no id. Find the VM by name, and check that its `status` has reached `ACTIVE`:
+
+```bash
+export VM_ID=$(curl -s {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq -r '.data[] | select(.name == "api-prod") | .id')
+
+curl -s {{API_BASE_URL}}/api/v1/instance/$VM_ID \
+  -H "X-API-Key: $NIMBUS_KEY" | jq -r '.data.status'
+```
 
 ## 2 · Allocate a floating IP {#floating-ip}
 
+The VM's network needs a [router](/docs/api/routers) to the external network. Read what the next call needs, the external network and the VM's port and fixed IP:
+
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/floating-ips \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -s "{{API_BASE_URL}}/api/v1/floating_ip/artifacts?resource_id=$VM_ID" \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq '{ networks: [.data.floating_networks.data[] | { id, name }], interfaces: .data.interfaces.data }'
+```
+
+```bash
+export FLOATING_NETWORK_ID="<external-network-id>"
+export PORT_ID="<port-id>"
+export FIXED_IP="<fixed-ip>"
+```
+
+Then allocate the IP. A new floating IP needs a bandwidth plan and cap: `bandwidth_mbps` is a multiple of 10, and the bandwidth is billed ([Pricing data](/docs/api/pricing-data)).
+
+```bash
+export PUBLIC_IP=$(curl -s -X POST {{API_BASE_URL}}/api/v1/floating_ip/allocate \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d "{ \"region\": \"us-east-1\", \"vm_id\": \"$VM_ID\" }"
+  -d "{
+    \"floating_network_id\": \"$FLOATING_NETWORK_ID\",
+    \"vm_port_id\": \"$PORT_ID\",
+    \"vm_ip_address\": \"$FIXED_IP\",
+    \"bandwidth_subscription\": \"Monthly\",
+    \"bandwidth_mbps\": 100
+  }" | jq -r '.data.ip_address')
 ```
 
-The IP attaches to the VM and becomes its public address. Save the IPv4:
-
-```bash
-export PUBLIC_IP=$(curl -s {{API_BASE_URL}}/v1/floating-ips/$FLOATING_IP_ID \
-  -H "Authorization: Bearer $NIMBUS_KEY" | jq -r '.ipv4')
-```
+The IP attaches to the VM and becomes its public address.
 
 Point your DNS at it ([DNS records](/docs/api/dns-records) or your existing registrar).
 
@@ -62,7 +102,7 @@ Build your container image somewhere (locally, in CI). Push it to whichever regi
 
 - **Docker Hub** — free for public images.
 - **GitHub Container Registry** (`ghcr.io`) — free for public repos, included with GitHub.
-- **NimbusNexus Object Storage** — if you'd rather self-host, push tarballs to a private bucket and pull them in the systemd unit (slightly more work to manage tags).
+- **NimbusNexus Object Storage** — if you'd rather self-host, push tarballs to a private object-storage container and pull them in the systemd unit (slightly more work to manage tags).
 
 For this guide we'll use `ghcr.io/yourorg/api:v1.4.2`.
 
@@ -116,8 +156,8 @@ A few notes:
 Put your secrets in `/etc/api/env`:
 
 ```env
-DATABASE_URL=postgresql://app:••••@{{DB_HOST_DEMO}}:6432/app?sslmode=verify-full
-NIMBUS_KEY=nn_live_xxxxxxxxxxxxxxxx
+DATABASE_URL=postgresql://app:••••@10.0.2.10:5432/app?sslmode=require
+NIMBUS_KEY=<your-api-key>
 JWT_SECRET=...
 ```
 
@@ -161,7 +201,7 @@ sudo journalctl -u api.service -f
 For longer-term log retention, ship from journald to wherever you store logs:
 
 - **systemd-journal-remote** — built-in upload to another systemd box.
-- **Vector** — multi-output, including S3-compatible object storage (push to a NimbusNexus bucket).
+- **Vector** — multi-output log shipping.
 - **Promtail + Loki** — Grafana-stack log aggregation.
 
 ## Why this pattern over Kubernetes {#why}
@@ -174,7 +214,7 @@ For longer-term log retention, ship from journald to wherever you store logs:
 
 ## What this pattern doesn't do {#limitations}
 
-- **No autoscaling.** Manual `nimbus vms create` scales out; manual `nimbus vms delete` scales in. Fine for stable workloads; bad for traffic-shaped ones.
+- **No autoscaling.** You scale out by creating a VM (`POST /api/v1/instance/`) and scale in by deleting one (`POST /api/v1/instance/action`). Fine for stable workloads; bad for traffic-shaped ones.
 - **No service discovery.** Services find each other via known public IPs or DNS — not via in-cluster lookups. For two-or-three-service setups this is fine; beyond that, you want a registry.
 - **No health-check-driven restarts beyond the container's exit code.** systemd restarts on crash; it doesn't restart on "process is running but unhealthy." Add your own watchdog (a sidecar that hits `/healthz` and `kill -1`s the container on failure) if you need this.
 

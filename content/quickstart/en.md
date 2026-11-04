@@ -1,104 +1,149 @@
 ---
 title: Quickstart
-description: Generate an API key, pick a region, and create your first VM in three requests.
+description: Generate an API key, read your options, and create your first VM.
 publishedAt: 2026-05-19
-updatedAt: 2026-05-19
+updatedAt: 2026-11-04
 kind: quickstart
 ---
 
 # Quickstart
 
-This guide takes you from a signed-in dashboard account to a running virtual machine in three API calls. Everything you do here is reversible — destroy the VM when you're done and you'll have spent a few cents at most.
+This guide takes you from a signed-in dashboard account to a running virtual machine in a few API calls. Everything you do here is reversible: delete the VM when you're done. A VM is billed from create until delete, so don't leave it running by accident; [Pricing data](/docs/api/pricing-data) has the prices.
 
 ## Before you start {#prereqs}
 
 You need three things:
 
-- A NimbusNexus account. Sign up at [{{ROOT_DOMAIN}}]({{BASE_URL}}/register) — you'll get a starter credit that covers this quickstart and then some.
-- The `curl` command-line tool, or any HTTP client of your choice. Examples on this page use `curl`; the same calls work in any language.
+- A NimbusNexus account. Sign up at [{{ROOT_DOMAIN}}]({{BASE_URL}}/register).
+- The `curl` command-line tool, or any HTTP client of your choice, and `jq` to read the answers. Examples on this page use `curl`; the same calls work in any language.
 - About five minutes.
 
-You don't need SSH set up yet. We'll create a key as part of the second call.
+You don't need SSH set up yet: this VM boots without a key. To log in to a VM later, register a key first ([SSH keys](/docs/api/ssh-keys)) and name it in `sshs` when you create the VM.
 
 ## 1 · Generate an API key {#api-key}
 
-Sign in to the dashboard and go to **Settings → API keys → New key**. Give the key a label you'll recognize later (e.g. `quickstart`) and copy the value somewhere safe — you only see it once.
+Sign in to the dashboard and go to **Security → API tokens → Create token**. Give the token a name you'll recognize later (e.g. `quickstart`) and choose the **Admin** scope, which makes an unrestricted key. The other two scopes make a key with no access rules, and that key can only read its own session. Copy the value labelled **API key**, not **Secret**, somewhere safe — you only see it once.
 
 Export it as an environment variable so the examples below can reference it:
 
 ```bash
-export NIMBUS_KEY="nn_live_xxxxxxxxxxxxxxxx"
+export NIMBUS_KEY="<your-api-key>"
 ```
 
-API keys are scoped to a single project. The default project that gets created with your account is fine for now; you can split workloads across projects later without rotating keys.
+Send it in the `X-API-Key` header on every call. API keys are scoped to a single project. The default project that gets created with your account is fine for now. [Authentication](/docs/authentication#scopes) covers keys limited to the calls they need.
 
-## 2 · Pick a region {#region}
+## 2 · Read your options {#region}
 
-NimbusNexus runs in four regions:
-
-| Region          | Code             | Status     |
-| --------------- | ---------------- | ---------- |
-| Virginia, US    | `us-east-1`      | Live       |
-| Los Angeles, US | `us-west-1`      | Live       |
-| Frankfurt, DE   | `eu-central-1`   | Live       |
-| Singapore       | `ap-southeast-1` | Pre-launch |
-
-Pick the one closest to where your users (or your existing infrastructure) live. Latency between regions inside NimbusNexus is free; egress to the public internet is the only billable transfer.
-
-You can ask the API for the canonical list at any time:
+NimbusNexus serves one region today, in Frankfurt, Germany, so there's no region to pick; [Regions](/docs/api/regions) has the details. Ask the API what you can create there:
 
 ```bash
-curl {{API_BASE_URL}}/v1/regions \
-  -H "Authorization: Bearer $NIMBUS_KEY"
+curl -s {{API_BASE_URL}}/api/v1/instance/artifacts \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq '.data | {
+      images: [.images.data[] | { id, name }],
+      vm_options: [.vm_options.data[] | { architecture: .label, vm_classes: [.children[]?.label] }],
+      networks: [.networks.data[] | { id, name, external, subnets: [.subnets[].cidr] }],
+      security_groups: [.security_groups.data[] | { id, name }]
+    }'
+```
+
+The boot disk's volume type comes from a second call:
+
+```bash
+curl -s {{API_BASE_URL}}/api/v1/storage/artifacts \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq '[.data.volume_options.data[].label]'
+```
+
+Pick one of each and export them. Images, networks and security groups go by `id`; architectures, VM classes and volume types go by label. Pick a network with `external: false` that has a subnet: joining an external network also needs `bandwidth_mbps` and `subscription.bandwidth`, and without them the call answers `400`.
+
+```bash
+export IMAGE_ID="<image-id>"
+export ARCHITECTURE="<architecture>"
+export VM_CLASS="<vm-class>"
+export VOLUME_TYPE="<volume-type>"
+export NETWORK_ID="<network-id>"
+export SECURITY_GROUP_ID="<security-group-id>"
 ```
 
 ## 3 · Create your first VM {#first-vm}
 
-The smallest VM that's useful for real work is a `gp-1-2` — one vCPU, 2 GB RAM, 25 GB SSD. It costs about a penny an hour. Boot one in Virginia with:
+A VM's shape is its `cpu` count and its `ram` in MB. Its boot disk is `volume_size` GB. Boot one with one vCPU, 2 GB RAM and a 25 GB disk:
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -X POST {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "quickstart",
-    "size": "gp-1-2",
-    "region": "us-east-1",
-    "image": "ubuntu-24.04"
-  }'
+  -d "{
+    \"name\": \"quickstart\",
+    \"image\": \"$IMAGE_ID\",
+    \"spec\": {
+      \"architecture\": \"$ARCHITECTURE\",
+      \"vm_class\": \"$VM_CLASS\",
+      \"cpu\": 1,
+      \"ram\": 2048,
+      \"volume_type\": \"$VOLUME_TYPE\"
+    },
+    \"volume_size\": 25,
+    \"network\": [\"$NETWORK_ID\"],
+    \"security_group\": [\"$SECURITY_GROUP_ID\"]
+  }"
 ```
 
-The response includes the VM's id and current state. State will be `provisioning` for the first few seconds, then `running`:
+A shape that isn't on offer for that architecture and class answers `400`; [Pricing data](/docs/api/pricing-data) lists them. Otherwise the call queues the work and answers with no id:
 
 ```json
 {
-  "id": "vm_01H...",
-  "name": "quickstart",
-  "size": "gp-1-2",
-  "region": "us-east-1",
-  "image": "ubuntu-24.04",
-  "state": "provisioning",
-  "ipv4": null,
-  "created_at": "2026-05-19T18:30:00Z"
+  "success": true
 }
 ```
 
-Poll the VM once a second until `state` is `running` and `ipv4` is populated — that takes about 28 seconds on a cached image, or 60–90 seconds on a first-time pull.
+Find the new VM by name and read its `status`:
+
+```bash
+curl -s {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq '.data[] | select(.name == "quickstart") | { id, status, nics, fault }'
+```
+
+`status` is `BUILD` at first, then `ACTIVE`, with the VM's addresses in `nics`:
+
+```json
+{
+  "id": "3f0c9e1a-6b7d-4c2e-9a51-7d2b8f4e1c60",
+  "status": "ACTIVE",
+  "nics": {
+    "my-network": [
+      { "addr": "10.0.0.12", "version": 4, "OS-EXT-IPS:type": "fixed" }
+    ]
+  },
+  "fault": null
+}
+```
+
+Poll once in a while until `status` is `ACTIVE`. If it's `ERROR`, `fault` says what went wrong. Save the id:
+
+```bash
+export VM_ID="<vm-id>"
+```
 
 ## What you've done {#summary}
 
-You've created an API key, picked a region, and provisioned a real virtual machine. The same three-call pattern works for every resource in the API: `POST` to create, `GET` to read, `DELETE` to destroy. Authentication, region codes, and resource ids are stable across resource types — the API was designed so you can learn it once and apply it to anything.
+You've created an API key, read your options, and provisioned a real virtual machine. Many resources work the same way: an `artifacts` call lists your options, `POST` creates, and `GET` reads. Deleting varies by resource, so check its reference page. The API key and the header are the same everywhere on `{{API_HOST}}`.
 
 ## Next steps {#next-steps}
 
 - Browse the **API reference** to see every endpoint with parameters, request/response schemas, and error codes.
-- Read about **authentication** to understand how API keys work alongside project scoping, expiring tokens, and webhook signing.
-- Read **conventions** to learn the patterns the API follows everywhere — idempotency, pagination, error shapes, long-running operations.
+- Attach a [floating IP](/docs/api/floating-ips) to reach the VM from the internet.
+- Read about **authentication** to understand how API keys work alongside project scoping, roles, and access rules.
+- Read **conventions** to learn the patterns the API follows — pagination, error shapes, work that finishes after the answer.
 - Try the **interactive API explorer** at [{{API_HOST}}/docs/external]({{API_BASE_URL}}/docs/external) — it's a Swagger UI wired up to the live API; "Try it out" makes real calls against your account.
 
-When you're done, destroy the VM so you stop being billed:
+When you're done, delete the VM so you stop being billed. Its boot volume goes with it:
 
 ```bash
-curl -X DELETE {{API_BASE_URL}}/v1/vms/vm_01H... \
-  -H "Authorization: Bearer $NIMBUS_KEY"
+curl -X POST {{API_BASE_URL}}/api/v1/instance/action \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{ \"servers\": [\"$VM_ID\"], \"cmd\": \"delete\" }"
 ```

@@ -1,8 +1,8 @@
 ---
 title: "Authentifizierung"
-description: "API-Keys, Scopes, Projektgrenzen und wie Sie Credentials sicher rotieren."
+description: "API-Keys, Rollen und Zugriffsregeln, Projektgrenzen und wie Sie einen Key sicher ersetzen."
 publishedAt: 2026-05-19
-updatedAt: 2026-11-03
+updatedAt: 2026-11-04
 kind: concept
 ---
 

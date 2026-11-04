@@ -1,8 +1,8 @@
 ---
 title: "Authentification"
-description: "Clés API, portées, frontières entre projets et rotation des clés en toute sécurité."
+description: "Clés API, rôles et règles d’accès, frontières entre projets et remplacement d’une clé en toute sécurité."
 publishedAt: 2026-05-19
-updatedAt: 2026-11-03
+updatedAt: 2026-11-04
 kind: concept
 ---
 

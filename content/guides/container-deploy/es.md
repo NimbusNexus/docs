@@ -2,7 +2,7 @@
 title: "Patrones de despliegue de contenedores"
 description: "Una sola VM y Docker gestionado con systemd, detrás de una IP flotante. El patrón que cubre el 80 % de los casos."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-04
 kind: guide
 ---
 
@@ -21,38 +21,78 @@ Esta guía recorre el patrón de referencia. Para servicios escalados horizontal
 
 ## 1 · Provisiona una VM {#vm}
 
-Elige un tamaño que se ajuste a tu servicio. Para la mayoría de las cargas de trabajo de API/web sin estado, `gp-1-2` (1 vCPU, 2 GB de RAM) es un buen punto de partida — redimensiónala si necesitas más.
+Elige un tamaño que se ajuste a tu servicio. Para la mayoría de las cargas de trabajo de API/web sin estado, una vCPU y 2 GB de RAM son un buen punto de partida — redimensiónala si necesitas más. [Inicio rápido](/docs/quickstart#region) muestra de dónde salen la imagen, la red, el grupo de seguridad y los valores de `spec`. El grupo de seguridad tiene que dejar entrar SSH y el puerto de tu servicio ([Grupos de seguridad](/docs/api/security-groups)), y `sshs` indica una [clave SSH](/docs/api/ssh-keys) que hayas registrado.
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+export SSH_KEY_NAME="<ssh-key-name>"
+USER_DATA='#!/bin/bash\napt-get update && apt-get install -y docker.io'
+
+curl -X POST {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "api-prod",
-    "size": "gp-1-2",
-    "region": "us-east-1",
-    "image": "ubuntu-24.04",
-    "user_data": "#!/bin/bash\napt-get update && apt-get install -y docker.io"
-  }'
+  -d "{
+    \"name\": \"api-prod\",
+    \"image\": \"$IMAGE_ID\",
+    \"spec\": {
+      \"architecture\": \"$ARCHITECTURE\",
+      \"vm_class\": \"$VM_CLASS\",
+      \"cpu\": 1,
+      \"ram\": 2048,
+      \"volume_type\": \"$VOLUME_TYPE\"
+    },
+    \"volume_size\": 25,
+    \"network\": [\"$NETWORK_ID\"],
+    \"security_group\": [\"$SECURITY_GROUP_ID\"],
+    \"sshs\": \"$SSH_KEY_NAME\",
+    \"user_data\": \"$USER_DATA\"
+  }"
 ```
 
-`user_data` se ejecuta en el primer arranque — aquí instala Docker. Cuando la VM pasa a `running`, Docker ya está listo.
+`user_data` se ejecuta en el primer arranque — aquí instala Docker. La VM llega a `ACTIVE` antes de que termine ese script, así que dale uno o dos minutos.
+
+La llamada responde sin ningún id. Busca la VM por su nombre y comprueba que su `status` ha llegado a `ACTIVE`:
+
+```bash
+export VM_ID=$(curl -s {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq -r '.data[] | select(.name == "api-prod") | .id')
+
+curl -s {{API_BASE_URL}}/api/v1/instance/$VM_ID \
+  -H "X-API-Key: $NIMBUS_KEY" | jq -r '.data.status'
+```
 
 ## 2 · Reserva una IP flotante {#floating-ip}
 
+La red de la VM necesita un [router](/docs/api/routers) hacia la red externa. Lee lo que necesita la siguiente llamada, la red externa y el puerto y la IP fija de la VM:
+
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/floating-ips \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -s "{{API_BASE_URL}}/api/v1/floating_ip/artifacts?resource_id=$VM_ID" \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq '{ networks: [.data.floating_networks.data[] | { id, name }], interfaces: .data.interfaces.data }'
+```
+
+```bash
+export FLOATING_NETWORK_ID="<external-network-id>"
+export PORT_ID="<port-id>"
+export FIXED_IP="<fixed-ip>"
+```
+
+Después, reserva la IP. Una IP flotante nueva necesita un plan y un tope de ancho de banda: `bandwidth_mbps` es un múltiplo de 10, y el ancho de banda se factura ([Datos de precios](/docs/api/pricing-data)).
+
+```bash
+export PUBLIC_IP=$(curl -s -X POST {{API_BASE_URL}}/api/v1/floating_ip/allocate \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d "{ \"region\": \"us-east-1\", \"vm_id\": \"$VM_ID\" }"
+  -d "{
+    \"floating_network_id\": \"$FLOATING_NETWORK_ID\",
+    \"vm_port_id\": \"$PORT_ID\",
+    \"vm_ip_address\": \"$FIXED_IP\",
+    \"bandwidth_subscription\": \"Monthly\",
+    \"bandwidth_mbps\": 100
+  }" | jq -r '.data.ip_address')
 ```
 
-La IP se asocia a la VM y pasa a ser su dirección pública. Guarda la IPv4:
-
-```bash
-export PUBLIC_IP=$(curl -s {{API_BASE_URL}}/v1/floating-ips/$FLOATING_IP_ID \
-  -H "Authorization: Bearer $NIMBUS_KEY" | jq -r '.ipv4')
-```
+La IP se asocia a la VM y pasa a ser su dirección pública.
 
 Apunta tu DNS a ella ([Registros DNS](/docs/api/dns-records) o tu registrador actual).
 
@@ -62,7 +102,7 @@ Construye tu imagen de contenedor en algún sitio (en local, en CI). Súbela al 
 
 - **Docker Hub** — gratis para imágenes públicas.
 - **GitHub Container Registry** (`ghcr.io`) — gratis para repositorios públicos, incluido con GitHub.
-- **Almacenamiento de objetos de NimbusNexus** — si prefieres alojarlo tú, sube archivos tar a un bucket privado y descárgalos en la unidad de systemd (gestionar las etiquetas da algo más de trabajo).
+- **Almacenamiento de objetos de NimbusNexus** — si prefieres alojarlo tú, sube archivos tar a un contenedor privado de almacenamiento de objetos y descárgalos en la unidad de systemd (gestionar las etiquetas da algo más de trabajo).
 
 En esta guía usaremos `ghcr.io/yourorg/api:v1.4.2`.
 
@@ -116,8 +156,8 @@ Algunas notas:
 Pon tus secretos en `/etc/api/env`:
 
 ```env
-DATABASE_URL=postgresql://app:••••@{{DB_HOST_DEMO}}:6432/app?sslmode=verify-full
-NIMBUS_KEY=nn_live_xxxxxxxxxxxxxxxx
+DATABASE_URL=postgresql://app:••••@10.0.2.10:5432/app?sslmode=require
+NIMBUS_KEY=<your-api-key>
 JWT_SECRET=...
 ```
 
@@ -161,7 +201,7 @@ sudo journalctl -u api.service -f
 Para conservar los logs más tiempo, envíalos desde journald adonde los guardes:
 
 - **systemd-journal-remote** — subida integrada a otra máquina con systemd.
-- **Vector** — varias salidas, incluido almacenamiento de objetos compatible con S3 (envíalos a un bucket de NimbusNexus).
+- **Vector** — envío de logs a varias salidas.
 - **Promtail + Loki** — agregación de logs con el stack de Grafana.
 
 ## Por qué este patrón y no Kubernetes {#why}
@@ -174,7 +214,7 @@ Para conservar los logs más tiempo, envíalos desde journald adonde los guardes
 
 ## Lo que no hace este patrón {#limitations}
 
-- **Sin autoescalado.** Escalas horizontalmente con `nimbus vms create` a mano y reduces con `nimbus vms delete` a mano. Vale para cargas de trabajo estables; no para las que varían con el tráfico.
+- **Sin autoescalado.** Escalas horizontalmente creando una VM (`POST /api/v1/instance/`) y reduces borrando una (`POST /api/v1/instance/action`). Vale para cargas de trabajo estables; no para las que varían con el tráfico.
 - **Sin descubrimiento de servicios.** Los servicios se encuentran entre sí por IPs públicas conocidas o por DNS — no mediante búsquedas dentro del cluster. Para configuraciones de dos o tres servicios no pasa nada; a partir de ahí, te conviene un registro de servicios.
 - **Sin reinicios por comprobación de estado más allá del código de salida del contenedor.** systemd reinicia si hay un fallo; no reinicia ante "el proceso está en ejecución pero no está sano". Si lo necesitas, añade tu propio watchdog (un sidecar que llame a `/healthz` y haga `kill -1` al contenedor si falla).
 

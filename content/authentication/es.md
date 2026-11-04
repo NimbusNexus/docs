@@ -1,8 +1,8 @@
 ---
 title: "Autenticación"
-description: "Claves de API, alcances, el aislamiento entre proyectos y cómo rotar credenciales sin riesgo."
+description: "Claves de API, roles y reglas de acceso, el aislamiento entre proyectos y cómo reemplazar una clave sin riesgo."
 publishedAt: 2026-05-19
-updatedAt: 2026-11-03
+updatedAt: 2026-11-04
 kind: concept
 ---
 

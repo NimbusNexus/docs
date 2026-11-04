@@ -1,8 +1,8 @@
 ---
 title: Authentication
-description: API keys, scopes, project boundaries, and how to rotate credentials safely.
+description: API keys, roles and access rules, project boundaries, and how to replace a key safely.
 publishedAt: 2026-05-19
-updatedAt: 2026-11-03
+updatedAt: 2026-11-04
 kind: concept
 ---
 

@@ -1,8 +1,8 @@
 ---
 title: "Monitorar uma frota de VMs"
-description: "Coleta com Prometheus, métricas emitidas pela NimbusNexus e os alertas que importam."
+description: "Coleta com Prometheus e node_exporter, e os alertas que importam."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-04
 kind: guide
 ---
 
@@ -19,20 +19,33 @@ Para frotas maiores (~50+ VMs, ou várias regiões), o Prometheus auto-hospedado
 - Uma VM com Grafana consultando o Prometheus
 - 6 alertas que cobrem "as coisas pelas quais você realmente quer ser acionado"
 
-Custo total: ~$30/mês pelas VMs do Prometheus + Grafana (duas instâncias `gp-1-2` em uma região), mais o armazenamento das métricas.
+O que isso custa: as VMs do Prometheus + Grafana (uma vCPU e 2 GB de RAM cada, nos exemplos abaixo), mais o armazenamento das métricas. Os preços estão em [Dados de preços](/docs/api/pricing-data).
 
 ## 1 · Subir a VM do Prometheus {#prometheus}
 
+[Início rápido](/docs/quickstart#region) mostra de onde vêm a imagem, a rede, o grupo de segurança e os valores de `spec`. `sshs` indica uma [chave SSH](/docs/api/ssh-keys) que você registrou.
+
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+export SSH_KEY_NAME="<ssh-key-name>"
+
+curl -X POST {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "monitoring-prometheus",
-    "size": "gp-1-2",
-    "region": "us-east-1",
-    "image": "ubuntu-24.04"
-  }'
+  -d "{
+    \"name\": \"monitoring-prometheus\",
+    \"image\": \"$IMAGE_ID\",
+    \"spec\": {
+      \"architecture\": \"$ARCHITECTURE\",
+      \"vm_class\": \"$VM_CLASS\",
+      \"cpu\": 1,
+      \"ram\": 2048,
+      \"volume_type\": \"$VOLUME_TYPE\"
+    },
+    \"volume_size\": 50,
+    \"network\": [\"$NETWORK_ID\"],
+    \"security_group\": [\"$SECURITY_GROUP_ID\"],
+    \"sshs\": \"$SSH_KEY_NAME\"
+  }"
 ```
 
 Conecte-se por SSH e instale o Prometheus:
@@ -55,6 +68,8 @@ sudo systemctl enable --now prometheus-node-exporter
 
 Para uma frota com mais do que algumas poucas VMs, use uma [imagem de VM](/docs/api/vm-images) com o node_exporter já incluído, ou rode um script único de Ansible / cloud-init no boot. Entrar por SSH manualmente em 20 VMs não é a resposta certa a longo prazo.
 
+Um grupo de segurança não deixa entrar nada até que você diga o contrário, então dê ao grupo da frota uma regra que abra a porta TCP 9100 para o grupo da VM do Prometheus ([Grupos de segurança](/docs/api/security-groups)).
+
 ## 3 · Configurar o Prometheus para coletar as métricas da frota {#scrape}
 
 ```yaml
@@ -73,19 +88,7 @@ scrape_configs:
           # … one entry per VM
 ```
 
-Para frotas dinâmicas (autoscaling, provisionamento frequente), use a descoberta de serviços por HTTP com a API da NimbusNexus:
-
-```yaml
-scrape_configs:
-  - job_name: 'fleet'
-    http_sd_configs:
-      - url: '{{API_BASE_URL}}/v1/vms/prometheus-targets'
-        authorization:
-          type: Bearer
-          credentials_file: /etc/prometheus/nimbus.key
-```
-
-Isso busca a lista atual de VMs na API a cada 60 segundos e ressincroniza a lista de alvos do Prometheus. VMs novas passam a ser monitoradas automaticamente; as excluídas deixam de gerar alertas.
+Para frotas dinâmicas (autoscaling, provisionamento frequente), gere a lista em vez de escrevê-la à mão: `GET /api/v1/instance/` retorna todas as VMs com os endereços delas em `nics`, e o `file_sd_configs` do Prometheus lê os alvos de um arquivo que você reescreve. A API não tem nenhuma rota feita para a descoberta de serviços do Prometheus.
 
 Recarregue o Prometheus:
 
@@ -96,15 +99,24 @@ sudo systemctl reload prometheus
 ## 4 · Subir o Grafana {#grafana}
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -X POST {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "monitoring-grafana",
-    "size": "gp-1-2",
-    "region": "us-east-1",
-    "image": "ubuntu-24.04"
-  }'
+  -d "{
+    \"name\": \"monitoring-grafana\",
+    \"image\": \"$IMAGE_ID\",
+    \"spec\": {
+      \"architecture\": \"$ARCHITECTURE\",
+      \"vm_class\": \"$VM_CLASS\",
+      \"cpu\": 1,
+      \"ram\": 2048,
+      \"volume_type\": \"$VOLUME_TYPE\"
+    },
+    \"volume_size\": 25,
+    \"network\": [\"$NETWORK_ID\"],
+    \"security_group\": [\"$SECURITY_GROUP_ID\"],
+    \"sshs\": \"$SSH_KEY_NAME\"
+  }"
 ```
 
 ```bash
@@ -115,7 +127,7 @@ sudo apt install -y grafana
 sudo systemctl enable --now grafana-server
 ```
 
-Abra `http://<grafana-vm-ip>:3000` no navegador. O login padrão é `admin/admin` (troque imediatamente). Adicione o Prometheus como fonte de dados, apontando para o IP interno da VM do Prometheus, porta 9090.
+Libere a porta 3000 para o seu próprio IP no grupo de segurança da VM do Grafana e abra `http://<grafana-vm-ip>:3000` no navegador. O login padrão é `admin/admin` (troque imediatamente). Adicione o Prometheus como fonte de dados, apontando para o IP interno da VM do Prometheus, porta 9090.
 
 Para os painéis: importe o painel de id `1860` ("Node Exporter Full") da biblioteca do Grafana. Ele cobre todas as métricas que o `node_exporter` emite, separadas por instância e agregadas.
 
@@ -222,6 +234,5 @@ A URL do incoming webhook do Slack vem do seu workspace do Slack. Para rotas de 
 
 ## Próximos passos {#next-steps}
 
-- [Referência de máquinas virtuais](/docs/api/vms) — o recurso que emite todas essas métricas.
-- [Snapshots](/docs/api/snapshots) — faça backup do volume de dados da VM do Prometheus para que um ano de histórico não desapareça com a perda de uma única VM.
-- [Webhooks da plataforma](/docs/webhooks) — os eventos `vm.state_changed` são mais ruidosos que este monitoramento, mas úteis para atribuir casos como "a VM foi reiniciada pelo suporte".
+- [Referência de máquinas virtuais](/docs/api/vms) — as VMs que esta configuração monitora.
+- [Backups](/docs/api/backups) — faça backup do volume da VM do Prometheus para que um ano de histórico não desapareça com a perda de uma única VM.
