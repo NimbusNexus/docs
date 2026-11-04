@@ -318,7 +318,7 @@ Por la API, `GET /v1/deliveries/{id}/transform` devuelve la ejecución, o `null`
 
 ### Entregas descartadas {#dropped}
 
-Cuando un filtro descarta una entrega, o un script devuelve `null`, no se envía nada y no se hace ningún intento. La entrega queda como `sent` con `"dropped": true`, la consola la muestra como **dropped**, y las estadísticas del endpoint y del workspace la cuentan aparte de las entregadas: la tasa de éxito se calcula sobre lo que debía enviarse. Descartar no es fallar, ni para el endpoint ni para la transformación. Aun así, la entrega cuenta para la [cuota mensual de entregas](/docs/product-webhooks#objects), que cuenta cada entrega cuando se publica su evento.
+Cuando un filtro descarta una entrega, o un script devuelve `null`, no se envía nada y no se hace ningún intento. La entrega queda como `sent` con `"dropped": true`, la consola la muestra como **dropped**, y las estadísticas del endpoint y del workspace la cuentan aparte de las entregadas: la tasa de éxito se calcula sobre lo que debía enviarse. Descartar no es fallar, ni para el endpoint ni para la transformación. Una entrega descartada tampoco cuenta para la [cuota mensual de entregas](/docs/product-webhooks#objects): la cuota cuenta cada entrega cuando se publica su evento, antes de que se ejecute un filtro o un script, y deja de contarla cuando se descarta. Por eso, con la cuota agotada, una publicación se sigue rechazando, aunque un filtro fuera a descartar todas sus entregas.
 
 ## Cuando una ejecución falla {#failures}
 

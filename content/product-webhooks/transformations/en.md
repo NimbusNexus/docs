@@ -318,7 +318,7 @@ Through the API, `GET /v1/deliveries/{id}/transform` returns the run, or `null` 
 
 ### Dropped deliveries {#dropped}
 
-When a filter drops a delivery, or a script returns `null`, nothing is sent and no attempt is made. The delivery settles as `sent` with `"dropped": true`, the console shows it as **dropped**, and endpoint and workspace stats count it apart from the delivered, so a success rate is worked out over what was meant to be sent. A drop is not a failure, for the endpoint or for the transformation. It still counts toward the [monthly delivery quota](/docs/product-webhooks#objects), which counts each delivery when its event is published.
+When a filter drops a delivery, or a script returns `null`, nothing is sent and no attempt is made. The delivery settles as `sent` with `"dropped": true`, the console shows it as **dropped**, and endpoint and workspace stats count it apart from the delivered, so a success rate is worked out over what was meant to be sent. A drop is not a failure, for the endpoint or for the transformation. Nor does a dropped delivery count toward the [monthly delivery quota](/docs/product-webhooks#objects): the quota counts each delivery when its event is published, before a filter or script has run, and stops counting it when it is dropped. So once the quota is used up, a publish is still refused, even if a filter would drop every delivery it makes.
 
 ## When a run fails {#failures}
 

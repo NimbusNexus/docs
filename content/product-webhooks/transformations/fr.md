@@ -318,7 +318,7 @@ Via l’API, `GET /v1/deliveries/{id}/transform` renvoie l’exécution, ou `nul
 
 ### Livraisons abandonnées {#dropped}
 
-Quand un filtre abandonne une livraison, ou qu’un script renvoie `null`, rien n’est envoyé et aucune tentative n’est faite. La livraison passe à `sent` avec `"dropped": true`, la console l’affiche comme **dropped**, et les statistiques de l’endpoint et de l’espace de travail la comptent à part des livraisons effectuées : un taux de réussite se calcule sur ce qui devait être envoyé. Un abandon n’est pas un échec, ni pour l’endpoint ni pour la transformation. La livraison compte malgré tout dans le [quota mensuel de livraisons](/docs/product-webhooks#objects), qui compte chaque livraison au moment où son événement est publié.
+Quand un filtre abandonne une livraison, ou qu’un script renvoie `null`, rien n’est envoyé et aucune tentative n’est faite. La livraison passe à `sent` avec `"dropped": true`, la console l’affiche comme **dropped**, et les statistiques de l’endpoint et de l’espace de travail la comptent à part des livraisons effectuées : un taux de réussite se calcule sur ce qui devait être envoyé. Un abandon n’est pas un échec, ni pour l’endpoint ni pour la transformation. Une livraison abandonnée ne compte pas non plus dans le [quota mensuel de livraisons](/docs/product-webhooks#objects) : le quota compte chaque livraison au moment où son événement est publié, avant qu’un filtre ou un script ne s’exécute, et cesse de la compter quand elle est abandonnée. Une fois le quota épuisé, une publication est donc toujours refusée, même si un filtre devait abandonner toutes ses livraisons.
 
 ## Quand une exécution échoue {#failures}
 

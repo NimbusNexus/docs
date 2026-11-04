@@ -318,7 +318,7 @@ Eine Transformation läuft einmal pro Zustellung, beim ersten Versuch. Was sie e
 
 ### Verworfene Zustellungen {#dropped}
 
-Wenn ein Filter eine Zustellung verwirft oder ein Skript `null` zurückgibt, wird nichts gesendet und kein Versuch unternommen. Die Zustellung endet im Status `sent` mit `"dropped": true`, die Konsole zeigt sie als **dropped**, und die Statistiken von Endpoint und Workspace zählen sie getrennt von den zugestellten: Eine Erfolgsquote wird über das berechnet, was gesendet werden sollte. Ein Verwerfen ist kein Fehlschlag, weder für den Endpoint noch für die Transformation. Auf das [monatliche Kontingent für Zustellungen](/docs/product-webhooks#objects) zählt die Zustellung trotzdem, denn es zählt jede Zustellung, sobald ihr Event veröffentlicht wird.
+Wenn ein Filter eine Zustellung verwirft oder ein Skript `null` zurückgibt, wird nichts gesendet und kein Versuch unternommen. Die Zustellung endet im Status `sent` mit `"dropped": true`, die Konsole zeigt sie als **dropped**, und die Statistiken von Endpoint und Workspace zählen sie getrennt von den zugestellten: Eine Erfolgsquote wird über das berechnet, was gesendet werden sollte. Ein Verwerfen ist kein Fehlschlag, weder für den Endpoint noch für die Transformation. Auch auf das [monatliche Kontingent für Zustellungen](/docs/product-webhooks#objects) zählt eine verworfene Zustellung nicht: Das Kontingent zählt jede Zustellung, sobald ihr Event veröffentlicht wird, also bevor ein Filter oder Skript gelaufen ist, und zählt sie nicht mehr, sobald sie verworfen wird. Deshalb wird eine Veröffentlichung bei aufgebrauchtem Kontingent weiterhin abgelehnt, auch wenn ein Filter jede ihrer Zustellungen verwerfen würde.
 
 ## Wenn eine Ausführung fehlschlägt {#failures}
 
