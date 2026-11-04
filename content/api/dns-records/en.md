@@ -2,7 +2,7 @@
 title: DNS records
 description: A, AAAA, CNAME, MX, TXT, SRV, NS records inside a zone.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -19,10 +19,13 @@ A record set is one `(name, type)` tuple inside a [zone](/docs/api/dns-zones), h
 | **CNAME** | Alias to another name                      | `other.example.com.`                       |
 | **MX**    | Mail exchanger                             | `10 mail.example.com.`                     |
 | **TXT**   | Free text — verification, SPF, DKIM, DMARC | `"v=spf1 -all"`                            |
+| **SPF**   | SPF policy, in its own record type         | `"v=spf1 -all"`                            |
 | **SRV**   | Service location                           | `10 5 5060 sip.example.com.`               |
 | **NS**    | Delegation to other nameservers            | `ns1.other.com.`                           |
 | **CAA**   | Cert-authority authorization               | `0 issue "letsencrypt.org"`                |
-| **PTR**   | Reverse-DNS pointer (for floating IPs)     | See [floating IPs](/docs/api/floating-ips) |
+| **SSHFP** | SSH host key fingerprint                   | `4 2 <sha256-fingerprint>`                 |
+| **NAPTR** | Rewrite rule for a service lookup          | `100 10 "U" "E2U+sip" "!^.*$!sip:info@example.com!" .` |
+| **PTR**   | Reverse-DNS pointer                        | See [reverse DNS](/docs/api/reverse-dns)   |
 
 We don't support: `ALIAS` / `ANAME` (CNAME-flattening at the apex) — use the CNAME at a subdomain instead, or an A record pointing at a floating IP at the apex.
 
@@ -40,13 +43,9 @@ The nameservers serve all three values per query, and resolvers spread requests 
 
 ## TTLs {#ttl}
 
-Each record set has a TTL in seconds — how long resolvers cache the answer before re-querying. Defaults:
+Each record set has a TTL in seconds — how long resolvers cache the answer before re-querying. Set `ttl` when you create or update a record set. Without one, the record set uses its zone's TTL, which is 3600 (1 hour) unless you set another on the zone.
 
-- **A / AAAA / CNAME:** 300 seconds (5 minutes) — friendly for rapid updates / failover
-- **MX / NS:** 3600 (1 hour) — these change rarely
-- **TXT for verification:** 60 — short to make verification re-checks fast
-
-Pick lower TTLs while you're actively iterating; bump them up once the records stabilize, to reduce query volume + cost.
+Pick lower TTLs while you're actively iterating; bump them up once the records stabilize, to reduce query volume.
 
 ## What's next {#next-steps}
 

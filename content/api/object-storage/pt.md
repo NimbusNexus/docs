@@ -1,75 +1,47 @@
 ---
 title: "Armazenamento de objetos"
-description: "Buckets compatíveis com S3, com três classes de armazenamento e transferência gratuita para VMs na mesma região."
+description: "Contêineres e objetos do seu projeto, com opções de leitura pública e credenciais de curta duração."
 publishedAt: 2026-05-19
-updatedAt: 2026-05-19
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Armazenamento de objetos
 
-O armazenamento de objetos da NimbusNexus expõe a **API do AWS S3**. Ferramentas e bibliotecas existentes — a CLI `aws s3`, o boto3, os SDKs oficiais para Java/Go/Node, qualquer framework que fala S3 — funcionam sem alterações depois que você as aponta para o nosso endpoint e coloca as nossas credenciais.
+O armazenamento de objetos da NimbusNexus guarda arquivos como objetos em contêineres que pertencem ao seu projeto. Você gerencia os dois por `/api/v1/object_storage/`, com as mesmas credenciais do resto da API.
 
-## O que é compatível com S3 e o que não é {#compat}
+## Contêineres {#containers}
 
-Implementamos as operações usadas por 90% de quem chama o S3:
+`POST /api/v1/object_storage/` cria um contêiner. Defina `public_read: true` para deixar qualquer pessoa ler objetos individuais cuja URL ela conheça, e acrescente `public_listing: true` para deixar qualquer pessoa listar também o conteúdo do contêiner; `public_listing` sem `public_read` retorna `400`. Um nome que já existe retorna `409`.
 
-- CRUD de buckets (`PutBucket`, `GetBucket`, `DeleteBucket`)
-- CRUD de objetos (`PutObject`, `GetObject`, `DeleteObject`, `HeadObject`, `ListObjects`/`ListObjectsV2`)
-- Upload multipart (`CreateMultipartUpload`, `UploadPart`, `CompleteMultipartUpload`)
-- URLs pré-assinadas (sig v4)
-- Metadados de objetos, content-type, headers personalizados
-- Criptografia no lado do servidor (sempre ativa, AES-256)
+`GET /api/v1/object_storage/` lista os seus contêineres com o `bytes` e o `count` de cada um. `PATCH /api/v1/object_storage/{container_name}` atualiza os metadados de um contêiner, e `DELETE /api/v1/object_storage/{container_name}` exclui um contêiner vazio; um contêiner que ainda tem objetos retorna `409`.
 
-**Não** implementamos:
+## Nomes de contêineres {#naming}
 
-- O IAM específico da AWS (temos o nosso — use o modelo de token Bearer descrito em [Autenticação](/docs/authentication) para a API de gerenciamento; as credenciais S3 são emitidas separadamente).
-- S3 Object Lock / conformidade WORM (planejado para o 4º trimestre de 2026).
-- S3 Select (consulta no lado do servidor).
-- Replicação entre regiões pela API do S3 (nós a expomos pela API de gerenciamento, com preços mais claros).
+Um nome de contêiner tem de 3 a 63 caracteres entre letras minúsculas, dígitos e hífens, e começa e termina com uma letra ou um dígito. Sublinhados, pontos e espaços não são permitidos, nem um nome formatado como um endereço IP.
 
-Se o seu app usa uma funcionalidade do S3 que não está na lista de suportadas, ele recebe um `501 Not Implemented` com o nome da operação em `error.code`. Mude para o equivalente suportado ou abra uma solicitação de funcionalidade.
+## Objetos {#objects}
 
-## Classes de armazenamento {#classes}
+- `POST /api/v1/object_storage/{container_name}/objects` envia um novo objeto como `file` multipart, com o nome `object_name` ou, sem ele, com o nome do arquivo. Um nome que já existe retorna `409`.
+- `PUT /api/v1/object_storage/{container_name}/objects/{object_name}/content` substitui o conteúdo de um objeto.
+- `GET /api/v1/object_storage/{container_name}/objects/{object_name}/content` baixa o objeto: texto como UTF-8, conteúdo binário codificado em base64.
+- `GET` e `PATCH /api/v1/object_storage/{container_name}/objects/{object_name}` leem e atualizam os metadados dele, e `DELETE` no mesmo caminho o exclui.
+- `POST /api/v1/object_storage/{container_name}/objects/{object_name}/copy` e `/move` copiam ou movem o objeto para um novo nome ou para outro contêiner.
 
-Três classes, escolhidas na gravação do objeto (ou como padrão do bucket):
+Um nome de objeto pode conter `/`, que é lido como um caminho de pastas.
 
-| Classe     | Por GB·mês | Latência do primeiro byte | Duração mínima de armazenamento | Quando usar                                                                                                                                                                       |
-| ---------- | ------------ | ------------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `standard` | \$0,013    | <50 ms                    | Nenhuma                         | Dados quentes — assets web, leituras frequentes, qualquer coisa servida ao vivo.                                                                                                  |
-| `ia`       | \$0,007    | <50 ms                    | 30 dias                         | "Infrequent access" — acessado de vez em quando, mas você quer rapidez quando acessa. O mesmo desempenho de recuperação do Standard, metade da tarifa de armazenamento, uma taxa de recuperação por GB. |
-| `cold`     | \$0,004    | 1–60 minutos              | 90 dias                         | Arquivo — backups, logs brutos, retenção para conformidade. Mais barato para manter, mais lento para recuperar.                                                                   |
+## Listagem e paginação {#listing}
 
-Duração mínima de armazenamento significa: se você excluir um objeto antes da janela mínima, paga a tarifa por GB pelo restante da janela. É esse o "infrequent" de IA: sai barato se você deixa os objetos parados e caro se fica criando e excluindo.
+`GET /api/v1/object_storage/{container_name}/objects` lista os objetos de um contêiner. Pagine com `limit` e `marker` (o último nome que você viu), ou defina `full_listing=true` para receber todos em uma única resposta. `prefix` mantém só os nomes que começam com ele.
 
-Para necessidades de puro arquivamento, em que você quase nunca lê os dados, veja o [armazenamento frio]({{BASE_URL}}/cold-storage) — um produto de arquivo dedicado, com tarifas ainda mais baratas (\$0,004/GB·mês fixo, mais as taxas de recuperação).
+Passe `delimiter=/` para uma listagem no estilo de pastas: os objetos deste nível vêm em `objects`, e os prefixos um nível abaixo, em `subdirs`.
 
-## Egress, o que realmente muda {#egress}
+## Credenciais de curta duração {#credentials}
 
-A maior diferença em relação ao AWS S3 é **como o egress é cobrado**:
-
-- VM ↔ armazenamento de objetos **na mesma região**: **gratuito**, sempre. Esse é o caminho por onde passa o tráfego da maioria das cargas de trabalho — suas VMs falam com seus buckets — e não o cobramos. Egress efetivo para tráfego de produção que fica dentro de uma região: \$0.
-- Egress para a internet pública: \$0,009/GB, com o primeiro **1 TB gratuito por mês** por projeto. Para comparação, o AWS S3 cobra \$0,09/GB pelos primeiros 10 TB.
-- Egress entre regiões: \$0,005/GB. Mais baixo que o egress para a internet pública porque o caminho passa pelo nosso backbone, não pela internet aberta.
-
-A frase "transferência gratuita para VMs na mesma região" da página de marketing é um compromisso real de arquitetura, não uma promoção. O objetivo é tornar econômicas as arquiteturas multicamadas (o armazenamento de objetos como fonte da verdade, com VMs na frente que leem e servem os dados).
-
-## Nomes de buckets {#naming}
-
-Os nomes de buckets são **únicos globalmente entre todos os tenants da NimbusNexus** — a mesma regra da AWS. Compatíveis com DNS: minúsculas, 3–63 caracteres, sem sublinhados, sem hífens no início ou no fim. A ocupação de nomes de bucket por terceiros é o principal motivo para garantir cedo os nomes importantes.
-
-Os nomes de buckets aparecem na URL: `https://<bucket>.{{S3_HOST_US_EAST_1}}/<key>` ou, no estilo de caminho, em `{{S3_ENDPOINT_US_EAST_1}}/<bucket>/<key>`. Os dois estilos funcionam; os clientes dos SDKs escolhem um conforme a configuração deles.
-
-## Listagem, paginação, desempenho {#listing}
-
-`ListObjectsV2` retorna até 1.000 chaves por requisição, ordenadas lexicograficamente pela chave. Acima de 1.000, pagine com `continuation_token` — igual ao S3.
-
-Para buckets muito largos (milhões de chaves), use a **listagem com delimitador**: passe `delimiter=/` para obter uma listagem no estilo de diretórios, em que as chaves são agrupadas por prefixo. Listar um "diretório" com um delimitador percorre apenas os filhos imediatos dele, não o bucket inteiro.
-
-Objetos da classe Cold aparecem em uma resposta de listagem exatamente como os de Standard / IA — listar não dispara a recuperação; só `GetObject` dispara. Você pode percorrer de graça um bucket Cold com 100 milhões de objetos; restaurar um objeto da classe Cold tem sua própria cobrança por GB.
+`POST /api/v1/object_storage/credentials` emite uma credencial de curta duração, com escopo de projeto, para o projeto do escopo atual da sua sessão, e retorna o `trust_id` e o `expires_at` dela. Você pode pedir uma duração com `ttl_seconds`; o servidor impõe um teto. Um editor independente envia o `trust_id` em um header `X-Trust-Id` nas chamadas seguintes ao armazenamento de objetos e, assim, chega ao armazenamento do projeto sem ter o seu token completo nem nenhum segredo duradouro; cada chamada continua sendo autenticada normalmente. `DELETE /api/v1/object_storage/credentials/{trust_id}` a revoga.
 
 ## Próximos passos {#next-steps}
 
-- [Autenticação](/docs/authentication) — autenticação por token Bearer para a API de gerenciamento. As credenciais S3 (chave de acesso + chave secreta) são emitidas separadamente pela API de gerenciamento.
+- [Autenticação](/docs/authentication) — as chaves de API vão no header `X-API-Key`.
 - [Armazenamento em blocos](/docs/api/block-storage) — quando você quer um sistema de arquivos em vez de um armazenamento chave-valor, ou precisa de semântica POSIX.
-- [Editor Mosaic]({{BASE_URL}}/products/mosaic) — editor no navegador para arquivos YAML/JSON/Markdown dentro dos seus buckets. Gratuito em toda conta de armazenamento.
+- [Editor Mosaic]({{BASE_URL}}/products/mosaic) — editor no navegador para arquivos YAML/JSON/Markdown dentro dos seus contêineres.

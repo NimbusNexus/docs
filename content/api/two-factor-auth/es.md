@@ -1,17 +1,24 @@
 ---
 title: "Autenticación de dos factores"
-description: "Segundos factores TOTP y WebAuthn en tu cuenta."
+description: "Un segundo factor TOTP, de una app de autenticación, además de tu contraseña."
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: two-factor-auth
 ---
 
 # Autenticación de dos factores
 
-La autenticación de dos factores añade un segundo factor (un código TOTP de una aplicación de autenticación o una llave de acceso de WebAuthn) además del inicio de sesión con contraseña. Los endpoints de aquí cubren el alta, el listado de dispositivos, la eliminación de dispositivos y la descarga de códigos de recuperación.
+La autenticación de dos factores añade un segundo factor (un código TOTP de una aplicación de autenticación) además del inicio de sesión con contraseña. Los endpoints de aquí la activan, informan de su estado y la desactivan:
 
-Para los usuarios del panel, la 2FA se gestiona desde el navegador, en la página de ajustes de la cuenta; esta parte de la API es para la automatización (provisionar un nuevo usuario administrador, rotar los códigos de recuperación de forma programática, imponer la 2FA en toda la organización antes de una auditoría de cumplimiento). Quienes llaman con una clave de API no necesitan 2FA — las claves ya son en sí un factor de "algo que tienes"; la 2FA protege la vía de inicio de sesión de las personas en el panel.
+- `GET /api/v1/2fa/credential` — genera un secreto TOTP y devuelve su código QR como imagen. El secreto en sí llega en la cabecera de respuesta `X-Secret-Key`.
+- `POST /api/v1/2fa/totp_passcode_validation` — envía ese secreto como `secretKey`, con un `passcode` actual de seis dígitos de la aplicación. Si el código coincide, la 2FA queda activada.
+- `GET /api/v1/2fa/status` — `two_factor_enabled` indica si la 2FA está activada.
+- `POST /api/v1/2fa/off` — desactiva la 2FA.
+
+Cada usuario tiene un solo secreto TOTP; repetir el alta lo sustituye.
+
+Para los usuarios del panel, la 2FA se gestiona desde el navegador, en la página de ajustes de la cuenta. A través de la API, cada llamada lee o cambia solo la 2FA propia de quien llama con una sesión iniciada, nunca la de otro usuario. Quienes llaman con una clave de API no necesitan 2FA — las claves ya son en sí un factor de "algo que tienes".
 
 Recomendación firme: activa la 2FA en todas las cuentas de personas con roles concedidos en proyectos de producción. La mayoría de los compromisos de cuentas se deben a la reutilización de contraseñas + no tener segundo factor.
 

@@ -1,22 +1,22 @@
 ---
 title: "Regionsanfragen"
-description: "Zugriff auf eine Region beantragen, die Sie derzeit nicht haben, oder eine Kontingenterhöhung in einer Region, die Sie bereits nutzen."
+description: "NimbusNexus bitten, eine Region zu eröffnen, die es noch nicht bedient."
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: region-requests
 ---
 
 # Regionsanfragen
 
-Neue Konten erhalten standardmäßig Zugriff auf eine Region (die bei der Registrierung gewählte). Für Zugriff auf weitere Regionen ist eine Regionsanfrage nötig — ein kurzes Formular, in dem Sie den Workload beschreiben, der die neue Region braucht. Die meisten Produktionskonten werden innerhalb eines Werktags freigegeben; die Prüfung dient der Kapazitätsplanung und dazu, ungewöhnliche Muster zu erkennen (ein brandneues Konto, das am ersten Tag Kapazität in fünf Regionen anfragt, ist ein kurzes Gespräch wert).
+Eine angemeldete Sitzung kann jede Region nutzen, die NimbusNexus bedient: `GET /api/v1/account/datacenters` listet sie auf, und `GET /api/v1/account/rescope?region=<region_name>` wechselt in eine davon (siehe [Kontoübersicht](/docs/api/account-overview)). Eine Regionsanfrage gilt einem Ort, den NimbusNexus noch nicht bedient. Damit sagen Sie uns, wo wir als Nächstes eröffnen sollen.
 
-Dieser Endpoint verarbeitet auch Kontingenterhöhungen — eine Anfrage, die Anzahl der VMs, die vCPU oder das Speicherlimit in einer Region zu erhöhen, auf die Sie bereits Zugriff haben. Der Grund für die Prüfung ist derselbe: Große Anfragen brauchen Kapazitätsplanung. Zum Kontingentmodell selbst siehe [Kontingente](/docs/api/quotas).
+Eine Regionsanfrage ändert keine Kontingente. Um ein Limit zu erhöhen, senden Sie eine Kontingentanfrage mit `POST /api/v1/quota-request/` (siehe [Kontingente](/docs/api/quotas)).
 
-Die API gibt es hier, damit automatisierte Deployments die Anfrage nach dem Prinzip Fire-and-Forget absenden können; die Freigabe erfolgt weiterhin manuell bei uns (das ist bewusst einer der wenigen Bereiche der API, die nicht vollständig Self-Service sind).
+`POST /api/v1/account/region-requests` steht hinter dem Formular „Region anfragen“ auf der Website von NimbusNexus und braucht deshalb keine Anmeldung. Senden Sie eine `email` und einen `regionCode`: einen der Codes `ams`, `par`, `mad`, `sto`, `mil`, `waw`, `dxb`, `tlv`, `bom`, `icn`, `hkg`, `cgk`, `gru`, `mex`, `yyz` und `jnb` oder `__other` mit dem Ort in `regionOtherText`. `company` und `note` sind optional. Die Antwort ist nur `success`: Nichts wird genehmigt oder freigeschaltet. Wir zählen die Anfragen, um zu sehen, wo Nachfrage besteht.
 
 ## Nächste Schritte {#next-steps}
 
 - [Regionen](/docs/api/regions) — die Liste der verfügbaren Regionen.
-- [Kontingente](/docs/api/quotas) — die Limits pro Projekt, die eine Regionsanfrage ebenfalls anpassen kann.
+- [Kontingente](/docs/api/quotas) — wie Sie ein höheres Limit beantragen.
 - [Kontoübersicht](/docs/api/account-overview) — der Kontokontext für den Regionszugriff.

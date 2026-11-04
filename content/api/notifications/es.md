@@ -1,21 +1,22 @@
 ---
 title: "Notificaciones"
-description: "Preferencias de notificación de la cuenta — de qué te avisamos por email y qué se enruta mediante webhooks."
+description: "Tus notificaciones en la app — lístalas, márcalas como leídas, bórralas y recíbelas en directo por un WebSocket."
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: notifications
 ---
 
 # Notificaciones
 
-Las preferencias de notificación controlan qué eventos generan un email a qué contacto, y cuáles generan en su lugar (o además) una entrega de webhook. Las categorías incluyen alertas de facturación, eventos de seguridad, avisos de cuota, anuncios de mantenimiento programado y lanzamientos de funciones.
+Una notificación es un mensaje en la app dirigido a un solo usuario, por ejemplo una invitación a un workspace o la respuesta a una solicitud de cuota. Cada una tiene un `title` y un `message`, un `delivery_status` (`pending`, `unread` o `read`), un `visual_type` (`info`, `system`, `invite`, `payment`, `billing`, `warning`, `critical` o `resize`) y, de forma opcional, `meta_data` sobre el objeto al que se refiere.
 
-Los valores por defecto son razonables — la facturación y la seguridad siempre van al contacto de facturación/seguridad, independientemente de las preferencias. Las categorías configurables son las operativas: ventanas de mantenimiento, umbrales de cuota, anuncios de funciones en beta, etc.
+`GET /api/v1/notifications/list` devuelve las notificaciones de quien llama, de la más reciente a la más antigua, con un `total` y un `unread_count`. Filtra con `statuses`, `workspace_id`, `meta_data_key` y `meta_data_value`, y pagina con `offset` y `limit` (hasta 200). Marca una como leída con `PATCH /api/v1/notifications/`, o varias a la vez con `PATCH /api/v1/notifications/bulk`. `DELETE` en esas mismas dos rutas las borra.
 
-En equipos más grandes, el patrón típico es enrutar las notificaciones operativas mediante webhooks hacia tu sistema de gestión de incidentes (PagerDuty, Opsgenie) en lugar de enviarlas por email a un único contacto. La vía de webhooks de aquí usa la misma semántica de entrega que se describe en [Webhooks de la plataforma](/docs/webhooks).
+Para la entrega en directo, abre un WebSocket a `/api/v1/ws` con tu token de sesión en las cabeceras del handshake. `GET /api/v1/notifications/websocket-info` describe la conexión.
 
 ## Próximos pasos {#next-steps}
 
-- [Webhooks de la plataforma](/docs/webhooks) — el canal de entrega para lo que no se envía por email.
-- [Resumen de la cuenta](/docs/api/account-overview) — donde están los contactos de facturación y de seguridad.
+- [Workspaces](/docs/api/workspaces) — las invitaciones a un workspace llegan como notificaciones.
+- [Cuotas](/docs/api/quotas) — también las respuestas a las solicitudes de cuota.
+- [Facturación](/docs/api/invoices) — las direcciones de email que reciben los extractos y los recibos.

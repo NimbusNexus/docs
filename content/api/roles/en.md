@@ -2,50 +2,35 @@
 title: Roles
 description: Built-in and custom roles, plus the role-assignment endpoints that grant a user a role on a project.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Roles
 
-A role is a bundle of permissions. **Role assignment** is the act of granting a role to a user on a project. The same user can hold different roles on different projects; a user with no role on a project can't see it at all.
+A role is a bundle of permissions. **Role assignment** is the act of granting a role to a user or a [group](/docs/api/user-groups) on a project, or on the workspace itself. The same user can hold different roles on different projects; a user with no role on a project can't see it at all.
 
 ## Built-in roles {#built-in}
 
-Every project ships with four built-in roles you can assign without defining anything custom:
-
-| Role                | What they can do                                                                                         |
-| ------------------- | -------------------------------------------------------------------------------------------------------- |
-| **`viewer`**        | Read every resource. No writes, no deletes. Right for monitoring tools, auditors.                        |
-| **`editor`**        | Create + update most resources. Cannot manage IAM (users, roles, keys). Right for day-to-day developers. |
-| **`admin`**         | Everything `editor` can do, plus IAM. Can create users, grant/revoke roles, manage API keys.             |
-| **`billing-admin`** | Read invoices, change payment method, view + raise quota. No resource access. Right for finance.         |
-
-The `admin` role does **not** include `billing-admin` and vice versa. By design — the engineer who runs the API shouldn't also be the one approving the bill.
-
-## Granular roles {#granular}
-
-Beyond the four built-ins, we ship per-resource granular roles for the cases where `editor` is too much:
-
-- `vms:operator` — create / start / stop / destroy VMs only, no networking
-- `storage:operator` — manage volumes, buckets, snapshots, backups
-- `dns:admin` — full DNS zone + record management; nothing else
-- `networking:admin` — networks, subnets, security groups, floating IPs, LBs
-- `databases:admin` — managed databases + their backups
-
-You assign these the same way as built-ins, via `POST /v1/role-assignments`.
+`GET /api/v1/roles/` lists the roles you can grant: the platform's global roles, marked `is_global: true`, and any custom roles your workspace has created. The global roles include `reader`, `member`, `manager` and `admin`. `GET /api/v1/roles/{role_id}` reads one.
 
 ## Custom roles {#custom}
 
-Define your own at `POST /v1/roles` (not in the minimal sample below) by listing the permissions to bundle. Permission names follow the pattern `<resource>:<action>` — e.g. `vms:read`, `volumes:create`, `databases:snapshot`. The full permission catalog is at `GET /v1/permissions`.
+`POST /api/v1/roles/` creates a role in your workspace, with a `name` and an optional `description`. `PATCH /api/v1/roles/{role_id}` changes either one, and `DELETE /api/v1/roles/{role_id}` removes the role. Only your workspace's own roles can be changed or deleted; for a global role, both answer `404`.
 
-Use cases for custom roles: "read everything except billing" for a security auditor; "manage DNS records but not zones" for a marketing team that owns subdomain content but not the zone delegation.
+## Granting and revoking {#grant}
+
+`POST /api/v1/roles/grant` takes a list of assignments, so one call can grant several. Each assignment names a `role`, a `user` or a `group`, and a `project`, or a `domain` for the workspace itself, all by ID. `POST /api/v1/roles/revoke` takes the same list and removes those assignments.
+
+`GET /api/v1/roles/assignments` lists the workspace's assignments, on its projects and on the workspace itself, including the ones that come through a group. Filter it by `role`, `user`, `group`, `project` or `domain`.
+
+Grant and revoke also accept an admin's API key. The other role calls need an admin's session scoped to the workspace itself: an API key is always scoped to one project, so a key's call to them answers `400`.
 
 ## How role assignments compose {#compose}
 
-A user can hold multiple role assignments on one project. The effective permission set is the **union** — the role list is additive, not multiplicative. Granting `viewer` + `vms:operator` to the same user gives them read on everything + write on VMs specifically.
+A user can hold multiple role assignments on one project. The effective permission set is the **union** — the role list is additive, not multiplicative. A role granted to the user directly and another granted to one of their groups both apply.
 
-Revoking one role doesn't revoke the others. To strip a user completely, delete each assignment one at a time, or delete the user (which atomically revokes all assignments).
+Revoking one role doesn't revoke the others. To strip a user completely, revoke each assignment one at a time, or delete the user (which atomically revokes all assignments).
 
 ## What's next {#next-steps}
 

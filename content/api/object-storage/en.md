@@ -1,75 +1,47 @@
 ---
 title: Object storage
-description: S3-compatible buckets with three storage classes and free in-region transfer to VMs.
+description: Containers and objects in your project, with public-read options and short-lived credentials.
 publishedAt: 2026-05-19
-updatedAt: 2026-05-19
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Object storage
 
-NimbusNexus Object Storage exposes the **AWS S3 API**. Existing tools and libraries — `aws s3` CLI, boto3, the official Java/Go/Node SDKs, every framework that talks S3 — work unchanged after pointing them at our endpoint and dropping in our credentials.
+NimbusNexus object storage keeps files as objects in containers that belong to your project. You manage both through `/api/v1/object_storage/`, with the same credentials as the rest of the API.
 
-## What's S3-compatible, what's not {#compat}
+## Containers {#containers}
 
-We implement the operations 90% of S3 callers use:
+`POST /api/v1/object_storage/` creates a container. Set `public_read: true` to let anyone read individual objects whose URL they know, and add `public_listing: true` to let anyone list the container's contents too; `public_listing` without `public_read` answers `400`. A name that already exists answers `409`.
 
-- Bucket CRUD (`PutBucket`, `GetBucket`, `DeleteBucket`)
-- Object CRUD (`PutObject`, `GetObject`, `DeleteObject`, `HeadObject`, `ListObjects`/`ListObjectsV2`)
-- Multipart upload (`CreateMultipartUpload`, `UploadPart`, `CompleteMultipartUpload`)
-- Pre-signed URLs (sig v4)
-- Object metadata, content-type, custom headers
-- Server-side encryption (always-on, AES-256)
+`GET /api/v1/object_storage/` lists your containers with their `bytes` and `count`. `PATCH /api/v1/object_storage/{container_name}` updates a container's metadata, and `DELETE /api/v1/object_storage/{container_name}` deletes an empty one; a container that still holds objects answers `409`.
 
-We **don't** implement:
+## Container naming {#naming}
 
-- AWS-specific IAM (we have our own — use the [Authentication](/docs/authentication) bearer-token model for the management API; S3 credentials are issued separately).
-- S3 Object Lock / WORM compliance (planned for 2026 Q4).
-- S3 Select (server-side query).
-- Cross-region replication via S3 API (we expose it via the management API instead, with cleaner pricing).
+A container name is 3–63 characters of lowercase letters, digits and hyphens, starting and ending with a letter or digit. Underscores, periods and spaces aren't allowed, and neither is a name formatted like an IP address.
 
-If your app uses an S3 feature that's not in the supported list, it'll get a `501 Not Implemented` with the operation name in `error.code`. Switch to the supported equivalent or open a feature request.
+## Objects {#objects}
 
-## Storage classes {#classes}
+- `POST /api/v1/object_storage/{container_name}/objects` uploads a new object as multipart `file`, named `object_name` or, without one, after the file. A name that already exists answers `409`.
+- `PUT /api/v1/object_storage/{container_name}/objects/{object_name}/content` replaces an object's content.
+- `GET /api/v1/object_storage/{container_name}/objects/{object_name}/content` downloads it: text as UTF-8, binary content base64-encoded.
+- `GET` and `PATCH /api/v1/object_storage/{container_name}/objects/{object_name}` read and update its metadata, and `DELETE` on the same path deletes it.
+- `POST /api/v1/object_storage/{container_name}/objects/{object_name}/copy` and `/move` copy or move it to a new name or another container.
 
-Three classes, picked at object-put time (or per-bucket default):
+An object name can contain `/`, which reads as a folder path.
 
-| Class      | Per-GB-month | First-byte latency | Min storage duration | When to use                                                                                                                                                        |
-| ---------- | ------------ | ------------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `standard` | \$0.013      | <50 ms             | None                 | Hot data — web assets, frequent reads, anything served live.                                                                                                       |
-| `ia`       | \$0.007      | <50 ms             | 30 days              | "Infrequent access" — accessed sometimes, but you want it fast when you do. Same retrieval performance as Standard, half the storage rate, a per-GB retrieval fee. |
-| `cold`     | \$0.004      | 1–60 minutes       | 90 days              | Archive — backups, raw logs, compliance retention. Cheaper to keep, slower to retrieve.                                                                            |
+## Listing and paging {#listing}
 
-Minimum-storage-duration means: if you delete an object before the minimum window, you pay the per-GB rate for the rest of the window. That's the "infrequent" in IA: it's cheap if you let objects sit, expensive if you churn them.
+`GET /api/v1/object_storage/{container_name}/objects` lists a container's objects. Page with `limit` and `marker` (the last name you've seen), or set `full_listing=true` to get them all in one response. `prefix` keeps only the names that start with it.
 
-For pure archive needs where you almost never read the data, see [Cold storage]({{BASE_URL}}/cold-storage) — a dedicated archive product with even cheaper rates (\$0.004/GB-month flat, plus retrieval fees).
+Pass `delimiter=/` for a folder-style listing: the objects at this level come back in `objects`, and the prefixes one level down in `subdirs`.
 
-## Egress, the actually-different thing {#egress}
+## Short-lived credentials {#credentials}
 
-The single biggest difference from AWS S3 is **how egress is priced**:
-
-- VM ↔ object storage **in the same region**: **free**, always. This is the load path for most workloads — your VMs talk to your buckets — and we don't bill it. Effective egress for production traffic that stays inside one region: \$0.
-- Public internet egress: \$0.009/GB, with the first **1 TB free per month** per project. For comparison, AWS S3 charges \$0.09/GB for the first 10 TB.
-- Cross-region egress: \$0.005/GB. Lower than public-internet egress because the path is on our backbone, not the open internet.
-
-The "free in-region transfer to VMs" line on the marketing page is a real architectural commitment, not a promotion. The point is to make multi-tier architectures (object storage as the source-of-truth, fronted by VMs that read and serve) economical.
-
-## Bucket naming {#naming}
-
-Bucket names are **globally unique across all NimbusNexus tenants** — same rule as AWS. DNS-compatible: lower-case, 3–63 chars, no underscores, no leading/trailing dashes. Bucket-name squatting is the main reason claim early for important names.
-
-Bucket names appear in the URL: `https://<bucket>.{{S3_HOST_US_EAST_1}}/<key>` or path-style at `{{S3_ENDPOINT_US_EAST_1}}/<bucket>/<key>`. Both styles work; SDK clients pick one based on their config.
-
-## Listing, paging, performance {#listing}
-
-`ListObjectsV2` returns up to 1,000 keys per request, sorted lexicographically by key. Beyond 1,000, paginate with `continuation_token` — same as S3.
-
-For very wide buckets (millions of keys), use **delimited listing**: pass `delimiter=/` to get directory-style listing where keys are grouped by prefix. Listing a "directory" with a delimiter scans only its immediate children, not the whole bucket.
-
-Cold-class objects in a list response are returned identically to Standard / IA — listing doesn't trigger retrieval, only `GetObject` does. You can scan a 100M-object Cold bucket for free; restoring an object out of Cold has its own per-GB charge.
+`POST /api/v1/object_storage/credentials` mints a short-lived, project-scoped credential for the project your session is scoped to, and returns its `trust_id` and `expires_at`. You can ask for a lifetime with `ttl_seconds`; the server caps it. A standalone editor sends the `trust_id` in an `X-Trust-Id` header on later object-storage calls, reaching the project's storage without holding your full token or any lasting secret; each call still authenticates as usual. `DELETE /api/v1/object_storage/credentials/{trust_id}` revokes it.
 
 ## What's next {#next-steps}
 
-- [Authentication](/docs/authentication) — bearer-token auth for the management API. S3 credentials (access key + secret key) are issued separately via the management API.
+- [Authentication](/docs/authentication) — API keys go in the `X-API-Key` header.
 - [Block storage](/docs/api/block-storage) — when you want a filesystem rather than a key-value store, or you need POSIX semantics.
-- [Mosaic editor]({{BASE_URL}}/products/mosaic) — browser-based editor for YAML/JSON/Markdown files inside your buckets. Free with every Storage account.
+- [Mosaic editor]({{BASE_URL}}/products/mosaic) — browser-based editor for YAML/JSON/Markdown files inside your containers.

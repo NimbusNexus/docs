@@ -2,50 +2,35 @@
 title: "Roles"
 description: "Roles predefinidos y personalizados, y los endpoints de asignación de roles que conceden a un usuario un rol en un proyecto."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Roles
 
-Un rol es un conjunto de permisos. La **asignación de rol** es el acto de conceder un rol a un usuario en un proyecto. Un mismo usuario puede tener roles distintos en proyectos distintos; un usuario sin ningún rol en un proyecto no puede verlo en absoluto.
+Un rol es un conjunto de permisos. La **asignación de rol** es el acto de conceder un rol a un usuario o a un [grupo](/docs/api/user-groups) en un proyecto, o en el propio workspace. Un mismo usuario puede tener roles distintos en proyectos distintos; un usuario sin ningún rol en un proyecto no puede verlo en absoluto.
 
 ## Roles predefinidos {#built-in}
 
-Cada proyecto incluye cuatro roles predefinidos que puedes asignar sin definir nada personalizado:
-
-| Rol                 | Qué puede hacer                                                                                                              |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| **`viewer`**        | Leer todos los recursos. Sin escrituras y sin borrados. Adecuado para herramientas de monitorización y auditores.            |
-| **`editor`**        | Crear + actualizar la mayoría de los recursos. No puede gestionar IAM (usuarios, roles, claves). Adecuado para los desarrolladores del día a día. |
-| **`admin`**         | Todo lo que puede hacer `editor`, más IAM. Puede crear usuarios, conceder/revocar roles y gestionar claves de API.           |
-| **`billing-admin`** | Leer facturas, cambiar el método de pago, ver + aumentar la cuota. Sin acceso a los recursos. Adecuado para finanzas.        |
-
-El rol `admin` **no** incluye `billing-admin`, ni viceversa. Es así por diseño — el ingeniero que gestiona la API no debería ser también quien aprueba la factura.
-
-## Roles granulares {#granular}
-
-Además de los cuatro predefinidos, ofrecemos roles granulares por recurso para los casos en los que `editor` es demasiado:
-
-- `vms:operator` — solo crear / arrancar / detener / destruir VMs, sin red
-- `storage:operator` — gestionar volúmenes, buckets, snapshots y backups
-- `dns:admin` — gestión completa de zonas DNS + registros; nada más
-- `networking:admin` — redes, subredes, grupos de seguridad, IPs flotantes, LBs
-- `databases:admin` — bases de datos gestionadas + sus backups
-
-Se asignan igual que los predefinidos, con `POST /v1/role-assignments`.
+`GET /api/v1/roles/` lista los roles que puedes conceder: los roles globales de la plataforma, marcados con `is_global: true`, y los roles personalizados que haya creado tu workspace. Entre los roles globales están `reader`, `member`, `manager` y `admin`. `GET /api/v1/roles/{role_id}` lee uno.
 
 ## Roles personalizados {#custom}
 
-Define los tuyos con `POST /v1/roles` (no aparece en el ejemplo mínimo de abajo) enumerando los permisos que quieres agrupar. Los nombres de los permisos siguen el patrón `<resource>:<action>` — p. ej. `vms:read`, `volumes:create`, `databases:snapshot`. El catálogo completo de permisos está en `GET /v1/permissions`.
+`POST /api/v1/roles/` crea un rol en tu workspace, con un `name` y una `description` opcional. `PATCH /api/v1/roles/{role_id}` cambia cualquiera de los dos, y `DELETE /api/v1/roles/{role_id}` borra el rol. Solo se pueden cambiar o borrar los roles propios de tu workspace; para un rol global, ambas llamadas responden `404`.
 
-Casos de uso de los roles personalizados: "leer todo salvo la facturación" para un auditor de seguridad; "gestionar registros DNS pero no zonas" para un equipo de marketing que es dueño del contenido de los subdominios, pero no de la delegación de la zona.
+## Conceder y revocar {#grant}
+
+`POST /api/v1/roles/grant` recibe una lista de asignaciones, así que una sola llamada puede conceder varias. Cada asignación indica un `role`, un `user` o un `group`, y un `project` o, para el propio workspace, un `domain`, todo por ID. `POST /api/v1/roles/revoke` recibe la misma lista y elimina esas asignaciones.
+
+`GET /api/v1/roles/assignments` lista las asignaciones del workspace, en sus proyectos y en el propio workspace, incluidas las que llegan a través de un grupo. Fíltralo por `role`, `user`, `group`, `project` o `domain`.
+
+Conceder y revocar también aceptan la clave de API de un administrador. Las demás llamadas de roles necesitan una sesión de administrador con el alcance del propio workspace: una clave de API siempre tiene el alcance de un único proyecto, así que una llamada con una clave a ellas responde `400`.
 
 ## Cómo se combinan las asignaciones de rol {#compose}
 
-Un usuario puede tener varias asignaciones de rol en un mismo proyecto. El conjunto efectivo de permisos es la **unión** — la lista de roles es aditiva, no multiplicativa. Conceder `viewer` + `vms:operator` a un mismo usuario le da lectura sobre todo + escritura específicamente sobre las VMs.
+Un usuario puede tener varias asignaciones de rol en un mismo proyecto. El conjunto efectivo de permisos es la **unión** — la lista de roles es aditiva, no multiplicativa. Un rol concedido directamente al usuario y otro concedido a uno de sus grupos se aplican los dos.
 
-Revocar un rol no revoca los demás. Para quitarle todo a un usuario, borra cada asignación una a una, o borra el usuario (lo que revoca de forma atómica todas sus asignaciones).
+Revocar un rol no revoca los demás. Para quitarle todo a un usuario, revoca cada asignación una a una, o borra el usuario (lo que revoca de forma atómica todas sus asignaciones).
 
 ## Próximos pasos {#next-steps}
 

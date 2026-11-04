@@ -2,64 +2,52 @@
 title: "Autenticación"
 description: "Claves de API, alcances, el aislamiento entre proyectos y cómo rotar credenciales sin riesgo."
 publishedAt: 2026-05-19
-updatedAt: 2026-10-15
+updatedAt: 2026-11-03
 kind: concept
 ---
 
 # Autenticación
 
-La API de NimbusNexus usa **claves de API** como tokens bearer. Hay un único mecanismo para todos los endpoints — ni un formato de credencial por recurso, ni un esquema de firma aparte para las llamadas "avanzadas". Si puedes hacer una petición autenticada, puedes hacerlas todas.
+La API de NimbusNexus en `{{API_HOST}}` recibe una **clave de API** en la cabecera `X-API-Key`. Cada clave pertenece a una persona y funciona en un proyecto, con los roles y las reglas de acceso con los que se creó.
 
 ## Cómo es una petición {#request-shape}
 
-Envía la clave en la cabecera `Authorization`. El formato es la palabra literal `Bearer` seguida de tu clave:
+Envía la clave en la cabecera `X-API-Key`:
 
 ```bash
-curl {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer nn_live_xxxxxxxxxxxxxxxx"
+curl {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY"
 ```
 
-Las claves llevan un prefijo según el entorno: `nn_live_*` para producción y `nn_test_*` para el sandbox. Después del prefijo tienen 32–48 caracteres de un alfabeto seguro para base32.
+La clave es el valor `api_key` que recibes al crearla: el ID de la clave y su secreto, unidos por dos puntos y codificados en base64. Una clave que la API no puede decodificar o no reconoce responde `401`.
 
 ## Cómo generar una clave {#generating}
 
-En el panel: **Settings → API keys → New key**. Verás el valor de la clave una sola vez, al crearla; cópialo en ese momento. Después, el panel solo muestra el prefijo + los 4 últimos caracteres, para que puedas distinguir cada clave sin exponer el secreto.
-
-No hay una API para crear claves de API, y es a propósito. Para recuperarse del compromiso de una clave hace falta un canal fuera de banda al que la clave comprometida no pueda llegar — tener que usar el panel es el cuello de botella que hace que esa recuperación sea limpia.
+Crea una clave en el panel o con `POST /api/v1/api_keys/` desde una sesión iniciada con el alcance del proyecto de la clave. Dale un `name` que sea único entre tus claves y, de forma opcional, una `description` y un `expires_at`. La respuesta contiene la clave una sola vez, en `api_key`; cópiala en ese momento. Después, la API devuelve el nombre, los roles, las reglas de acceso y la caducidad de la clave, pero nunca su secreto.
 
 ## Alcance de proyecto {#project-scope}
 
 Cada clave de API tiene el alcance de **un único proyecto**. La clave puede leer y escribir recursos de su proyecto; no puede ver los recursos de otros proyectos, ni siquiera dentro de la misma cuenta.
 
-Los proyectos son la unidad de control de acceso, de facturación y de aislamiento. El proyecto por defecto que viene con una cuenta nueva sirve para el desarrollo individual; los equipos que trabajan en producción suelen querer un proyecto por entorno (`prod`, `staging`, `dev`), para que una clave de desarrollo comprometida no pueda llegar a los datos de producción.
+Los proyectos son la unidad de control de acceso y de aislamiento; la facturación es por workspace. El proyecto por defecto que viene con una cuenta nueva sirve para el desarrollo individual; los equipos que trabajan en producción suelen querer un proyecto por entorno (`prod`, `staging`, `dev`), para que una clave de desarrollo comprometida no pueda llegar a los datos de producción.
 
 Cambiar de proyecto = generar una clave nueva en el proyecto de destino. No hay ningún mecanismo del tipo "usa esta clave, pero haz como si estuvieras en otro proyecto"; eso erosionaría la garantía de aislamiento.
 
-## Alcances (capacidades) {#scopes}
+## Qué puede hacer una clave {#scopes}
 
-Las claves llevan **alcances** que limitan lo que pueden hacer dentro de su proyecto. El conjunto de alcances por defecto de una clave nueva es lectura+escritura sobre todo el proyecto; puedes restringirlo al crearla, p. ej. a solo `vms:read` para un agente de monitorización que nunca necesita crear recursos.
+Una clave actúa con **roles** en su proyecto, y unas **reglas de acceso** limitan qué llamadas puede hacer:
 
-La lista completa de alcances refleja los tipos de recurso:
+- `roles` — los roles con los que actúa la clave, elegidos entre los que tienes en el proyecto. Si lo omites, la clave los recibe todos.
+- `access_rules` — las llamadas que la clave puede hacer. Cada regla es un `service` (`api` para esta API), un `method` y un `path`, como `GET` y `/api/v1/instance/`. `GET /api/v1/api_keys/access_rules_artifacts` lista todos los métodos y rutas que puedes indicar; si una ruta no existe, crear la clave responde `422`.
+- `unrestricted: true` — sin reglas de acceso: la clave puede hacer cualquier llamada que permitan sus roles.
 
-- `vms:read`, `vms:write`, `vms:create`, `vms:delete`
-- `databases:read`, `databases:write`, …
-- `block-storage:read`, `block-storage:write`, …
-- `object-storage:read`, `object-storage:write`, …
-- `iam:read`, `iam:write` (gestionar los propios usuarios, proyectos y claves)
-
-Una petición a un endpoint que requiere un alcance que la clave no tiene devuelve `403 Forbidden` con `error.code: 'forbidden'`, y `error.message` dice qué faltaba. Así sale barato empezar con alcances restringidos y ampliarlos solo cuando algo falle. (Versiones anteriores de esta página prometían `scope_required` con el alcance en `error.fields.scope`; la API nunca ha enviado ninguno de los dos.)
+Una clave sin reglas de acceso y sin `unrestricted` solo puede leer su propia sesión (`GET /api/v1/account/get_session_auth_data`). Una llamada fuera de las reglas de acceso de una clave responde `403`, con el mensaje "API key is restricted for this path!". Así sale barato empezar con reglas restringidas y añadir llamadas solo cuando se rechace una.
 
 ## Rotación {#rotation}
 
-Cada clave se puede rotar de forma independiente. Rotar una clave:
+No hay ninguna llamada para rotar. Para sustituir una clave, crea la nueva, pasa tus herramientas a ella y después borra la antigua con `DELETE /api/v1/api_keys/{api_key_id}`. La API comprueba la clave en cada petición, así que una clave borrada deja de funcionar en su siguiente llamada. Las herramientas que guardan la clave durante mucho tiempo (CI/CD, agentes desplegados) deberían volver a leerla al arrancar el proceso, para que una rotación se propague en un ciclo de despliegue. Ponles un `expires_at` a las claves, para que una olvidada deje de funcionar por sí sola.
 
-1. Genera un nuevo valor de clave.
-2. Marca la clave antigua como **obsoleta**, pero la mantiene válida durante **24 horas**.
-3. Registra el uso de las dos claves durante ese periodo, para que puedas comprobar que la clave nueva está en uso antes de que la antigua deje de funcionar.
-
-Para la rotación automatizada (que recomendamos), llama a la API de IAM para rotar de forma programada y deja que el solapamiento de 24 horas absorba el tiempo del despliegue. Las herramientas que guardan la clave durante mucho tiempo (CI/CD, agentes desplegados) deberían volver a leerla al arrancar el proceso, para que una rotación se propague en un ciclo de despliegue.
-
-Si sospechas que una clave está comprometida, **revócala** en lugar de rotarla — así te saltas el periodo de gracia de 24 horas y la clave antigua queda invalidada de inmediato. El panel permite revocarla con un solo clic; también hay un endpoint de IAM para revocar claves de emergencia desde tu código.
+Si sospechas que una clave está comprometida, bórrala de inmediato, en el panel o con `DELETE /api/v1/api_keys/{api_key_id}` desde una sesión iniciada.
 
 ## Errores habituales {#errors}
 
@@ -81,4 +69,3 @@ Los errores anteriores usan el formato de error estándar que se describe en [Er
 
 - Lee [Convenciones](/docs/conventions) para conocer los patrones que siguen todos los endpoints (ids de recursos, paginación, errores, idempotencia).
 - Lee la [referencia de máquinas virtuales](/docs/api/vms) para ver un ejemplo concreto y completo de la API de un recurso.
-- Para configuraciones entre servicios dentro de tu propia infraestructura, también puedes crear **relaciones de confianza** entre proyectos — consulta la referencia de IAM (próximamente).

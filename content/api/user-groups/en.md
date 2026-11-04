@@ -2,14 +2,14 @@
 title: User groups
 description: Groups of users for shared role assignment. Useful when teams grow beyond per-user grants.
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: user-groups
 ---
 
 # User groups
 
-A user group is a named collection of users that can be granted roles together. Instead of granting `vms:read` to fifteen engineers individually, you grant it to the `backend-team` group and add new engineers to the group.
+A user group is a named collection of users that can be granted roles together. Instead of granting `reader` on a project to fifteen engineers individually, you grant it to the `backend-team` group and add new engineers to the group. Grant the role with `POST /api/v1/roles/grant`, naming the `group` and the `project`, and add members with `POST /api/v1/groups/grant`.
 
 Groups are scoped to a workspace. A user can belong to multiple groups; a group can hold roles in multiple projects within its workspace. Role assignments are additive — a user gets the union of every role granted directly to them plus every role granted to a group they belong to.
 

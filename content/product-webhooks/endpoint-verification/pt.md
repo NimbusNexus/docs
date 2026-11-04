@@ -2,7 +2,7 @@
 title: "Verificação de endpoint"
 description: "Comprove que um endpoint quer os seus eventos antes que ele receba algum — um desafio assinado de uso único que ele precisa devolver."
 publishedAt: 2026-10-19
-updatedAt: 2026-10-30
+updatedAt: 2026-11-03
 kind: concept
 ---
 
@@ -83,7 +83,7 @@ O reenvio é barrado da mesma forma. Reenviar uma entrega para esse endpoint, ou
 
 Alguns receptores aceitam qualquer POST, mas nunca devolvem um corpo escolhido por você — entre eles, os catch hooks do Zapier. Eles não conseguem passar pela verificação. Quando o seu plano permitir, deixe a verificação desligada no projeto que entrega para eles; caso contrário, coloque na frente deles um pequeno relay seu que responda ao desafio.
 
-Os incoming webhooks do Slack são um caso à parte, assim como os do Microsoft Teams e os do Discord. Cada um aceita apenas o próprio formato de mensagem, como uma mensagem do Slack com um campo `text` ou `blocks`, então eles recusam o envelope de evento que entregamos, mesmo com a verificação desligada. Dê ao endpoint uma [transformação](/docs/product-webhooks/transformations) e eles passam a aceitar as entregas: os presets **Slack message**, **Microsoft Teams card** e **Discord message** transformam cada evento em uma mensagem, em todos os planos pagos. Eles continuam sem conseguir responder ao desafio, então mantenha a verificação desligada no projeto deles. [Slack, Teams e Discord](/docs/product-webhooks/chat-apps) mostra o passo a passo.
+Os incoming webhooks do Slack são um caso à parte, assim como os do Microsoft Teams e os do Discord. Cada um aceita apenas o próprio formato de mensagem, como uma mensagem do Slack com um campo `text` ou `blocks`, então eles recusam o envelope de evento que entregamos, mesmo com a verificação desligada. Dê ao endpoint uma [transformação](/docs/product-webhooks/transformations#templates) e eles passam a aceitar as entregas: os templates **Slack message**, **Microsoft Teams card** e **Discord message** são pipelines que transformam cada evento em uma mensagem, em todos os planos. Eles continuam sem conseguir responder ao desafio, então o projeto deles precisa da verificação desligada, se o seu plano permitir desligá-la. [Slack, Teams e Discord](/docs/product-webhooks/chat-apps) mostra o passo a passo.
 
 ## Próximos passos {#next-steps}
 

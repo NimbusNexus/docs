@@ -2,7 +2,7 @@
 title: "Sicherheitsgruppen"
 description: "Zustandsbehaftete Firewall-Regelsätze für die Netzwerkschnittstellen von VMs."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -21,9 +21,10 @@ Zum Vergleich: Bei einer zustandslosen ACL (z. B. AWS Network ACLs) bräuchten S
 Jede Regel hat:
 
 - **Richtung** — `ingress` oder `egress`
-- **Protokoll** — `tcp`, `udp`, `icmp` oder `any`
-- **Portbereich** — einzelner Port (`80`), Bereich (`8000-9000`) oder „any“
-- **Quelle / Ziel** — ein CIDR-Block (`0.0.0.0/0`, `10.0.0.0/8`) ODER die ID einer anderen Sicherheitsgruppe
+- **Ether-Typ** — `ether`: `IPv4` oder `IPv6`
+- **Protokoll** — `any`, ein Name wie `tcp`, `udp`, `icmp`, `ipv6-icmp` oder `sctp` oder `custom` mit einer Protokollnummer (0–255) in `protocol_custom`
+- **Portbereich** — `port_min` und `port_max`, jeweils 0–65535. Geben Sie nur `port_min` für einen einzelnen Port an (`80`), beide für einen Bereich (`8000` bis `9000`) oder keinen von beiden für beliebige Ports
+- **Quelle / Ziel** — ein CIDR-Block in `remote_cidr` (`0.0.0.0/0`, `10.0.0.0/8`), eine andere Sicherheitsgruppe in `remote_sec_grp` oder eine [Adressgruppe](/docs/api/address-groups) in `remote_addr_grp`
 
 Der Modus „Quelle ist eine andere Sicherheitsgruppe“ ist der, den Sie am ehesten kennen sollten. Eine Regel wie „Port 5432 von `web-tier-sg` erlauben“ lässt jede VM der Gruppe `web-tier-sg` Ihre Postgres-VM auf 5432 erreichen — ohne dass Sie IPs aufzählen müssen, und die Regel funktioniert weiter, wenn VMs in `web-tier-sg` hinzukommen oder wegfallen.
 

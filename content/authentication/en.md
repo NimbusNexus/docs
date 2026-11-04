@@ -2,64 +2,52 @@
 title: Authentication
 description: API keys, scopes, project boundaries, and how to rotate credentials safely.
 publishedAt: 2026-05-19
-updatedAt: 2026-10-15
+updatedAt: 2026-11-03
 kind: concept
 ---
 
 # Authentication
 
-The NimbusNexus API uses **API keys** as bearer tokens. There's one mechanism for every endpoint — no per-resource credential format, no separate signing scheme for "advanced" calls. If you can make one authenticated request, you can make all of them.
+The NimbusNexus API at `{{API_HOST}}` takes an **API key** in the `X-API-Key` header. Each key belongs to one person and works in one project, with the roles and access rules it was created with.
 
 ## How a request looks {#request-shape}
 
-Send the key in the `Authorization` header. The format is the literal word `Bearer` followed by your key:
+Send the key in the `X-API-Key` header:
 
 ```bash
-curl {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer nn_live_xxxxxxxxxxxxxxxx"
+curl {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY"
 ```
 
-Keys are prefixed by environment: `nn_live_*` for production, `nn_test_*` for the sandbox. They're 32–48 characters of base32-safe alphabet after the prefix.
+The key is the `api_key` value returned when you create it: the key's ID and its secret, joined by a colon and base64-encoded. A key the API can't decode or doesn't recognise answers `401`.
 
 ## Generating a key {#generating}
 
-In the dashboard: **Settings → API keys → New key**. You'll see the key value exactly once at creation time; copy it then. After that the dashboard shows only the prefix + last 4 chars so you can identify which key is which without exposing the secret.
-
-There's no API for creating API keys on purpose. A compromise-of-one-key recovery path needs an out-of-band channel that the compromised key can't reach — having to use the dashboard is the bottleneck that makes that recovery clean.
+Create a key in the dashboard, or with `POST /api/v1/api_keys/` from a signed-in session scoped to the project the key is for. Give it a `name` that's unique among your keys and, optionally, a `description` and an `expires_at`. The response holds the key exactly once, in `api_key`; copy it then. After that, the API returns the key's name, roles, access rules and expiry, but never its secret.
 
 ## Project scope {#project-scope}
 
 Every API key is scoped to a **single project**. The key can read and write resources in its project; it cannot see resources in other projects, even within the same account.
 
-Projects are the unit of access control, billing, and isolation. The default project that ships with a new account is fine for individual development; production teams usually want a project per environment (`prod`, `staging`, `dev`) so a compromised dev key can't reach production data.
+Projects are the unit of access control and isolation; billing is per workspace. The default project that ships with a new account is fine for individual development; production teams usually want a project per environment (`prod`, `staging`, `dev`) so a compromised dev key can't reach production data.
 
 Switching projects = generating a new key in the target project. There's no "use this key but pretend you're in another project" mechanism; that would erode the isolation guarantee.
 
-## Scopes (capabilities) {#scopes}
+## What a key may do {#scopes}
 
-Keys carry **scopes** that limit what they can do within their project. The default new-key scope set is read+write on everything in the project; you can narrow it at creation time to e.g. only `vms:read` for a monitoring agent that never needs to create resources.
+A key acts with **roles** on its project, and **access rules** limit which calls it may make:
 
-The full scope list mirrors resource types:
+- `roles` — the roles the key acts with, chosen from the ones you hold on the project. Leave it out and the key gets all of them.
+- `access_rules` — the calls the key may make. Each rule is a `service` (`api` for this API), a `method` and a `path`, such as `GET` and `/api/v1/instance/`. `GET /api/v1/api_keys/access_rules_artifacts` lists every method and path you can name; a path that doesn't exist answers `422` when you create the key.
+- `unrestricted: true` — no access rules: the key can make any call its roles allow.
 
-- `vms:read`, `vms:write`, `vms:create`, `vms:delete`
-- `databases:read`, `databases:write`, …
-- `block-storage:read`, `block-storage:write`, …
-- `object-storage:read`, `object-storage:write`, …
-- `iam:read`, `iam:write` (manage users, projects, keys themselves)
-
-A request that hits an endpoint requiring a scope the key doesn't carry returns `403 Forbidden` with `error.code: 'forbidden'`, and `error.message` says what was missing. That makes it cheap to start with narrow scopes and widen them only when something fails. (Earlier versions of this page promised `scope_required` with the scope in `error.fields.scope`; the API has never sent either.)
+A key with neither access rules nor `unrestricted` can only read its own session (`GET /api/v1/account/get_session_auth_data`). A call outside a key's access rules answers `403`, with the message "API key is restricted for this path!". That makes it cheap to start with narrow rules and add calls only when one is refused.
 
 ## Rotation {#rotation}
 
-Every key can be rotated independently. Rotating a key:
+There's no rotate call. To replace a key, create the new one, move your tools to it, then delete the old one with `DELETE /api/v1/api_keys/{api_key_id}`. The API checks the key on every request, so a deleted key stops working on its next call. Tools that hold the key long-term (CI/CD, deployed agents) should re-read it at process start time so a rotation propagates within a deploy cycle. Give keys an `expires_at`, so that a forgotten one stops working by itself.
 
-1. Generates a new key value.
-2. Marks the old key as **deprecated** but keeps it valid for **24 hours**.
-3. Logs both keys' usage during that window so you can verify the new key is in use before the old key dies.
-
-For automated rotation (which we recommend), call the IAM API to rotate on a schedule and let the 24-hour overlap absorb the rollout window. Tools that hold the key long-term (CI/CD, deployed agents) should re-read it at process start time so a rotation propagates within a deploy cycle.
-
-If you suspect a key is compromised, **revoke** it instead of rotating — that skips the 24-hour grace period and invalidates the old key immediately. The dashboard has a one-click revoke; there's also an IAM endpoint for programmatic emergency revocation.
+If you suspect a key is compromised, delete it at once, in the dashboard or with `DELETE /api/v1/api_keys/{api_key_id}` from a signed-in session.
 
 ## Common errors {#errors}
 
@@ -81,4 +69,3 @@ The errors above use the standard error shape described in [Errors](/docs/errors
 
 - Read [Conventions](/docs/conventions) for the patterns every endpoint follows (resource ids, pagination, errors, idempotency).
 - Read the [Virtual machines reference](/docs/api/vms) for a concrete worked example of a resource API.
-- For service-to-service setups inside your own infrastructure, you can also create **trust relationships** between projects — see the IAM reference (coming soon).

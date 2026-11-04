@@ -2,50 +2,35 @@
 title: "Rollen"
 description: "Integrierte und benutzerdefinierte Rollen sowie die Endpoints für Rollenzuweisungen, die einem Benutzer eine Rolle in einem Projekt erteilen."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # Rollen
 
-Eine Rolle ist ein Bündel von Berechtigungen. Eine **Rollenzuweisung** erteilt einem Benutzer eine Rolle in einem Projekt. Derselbe Benutzer kann in verschiedenen Projekten verschiedene Rollen haben; ein Benutzer ohne Rolle in einem Projekt kann es gar nicht sehen.
+Eine Rolle ist ein Bündel von Berechtigungen. Eine **Rollenzuweisung** erteilt einem Benutzer oder einer [Gruppe](/docs/api/user-groups) eine Rolle in einem Projekt oder im Workspace selbst. Derselbe Benutzer kann in verschiedenen Projekten verschiedene Rollen haben; ein Benutzer ohne Rolle in einem Projekt kann es gar nicht sehen.
 
 ## Integrierte Rollen {#built-in}
 
-Jedes Projekt bringt vier integrierte Rollen mit, die Sie zuweisen können, ohne selbst etwas zu definieren:
-
-| Rolle | Was sie darf |
-| --- | --- |
-| **`viewer`** | Jede Ressource lesen. Kein Schreiben, kein Löschen. Richtig für Monitoring-Tools, Auditoren. |
-| **`editor`** | Die meisten Ressourcen erstellen + aktualisieren. Kann IAM (Benutzer, Rollen, Keys) nicht verwalten. Richtig für Entwickler im Alltag. |
-| **`admin`** | Alles, was `editor` kann, plus IAM. Kann Benutzer erstellen, Rollen erteilen/widerrufen, API-Keys verwalten. |
-| **`billing-admin`** | Rechnungen lesen, Zahlungsmethode ändern, Kontingent ansehen + erhöhen. Kein Zugriff auf Ressourcen. Richtig für die Finanzabteilung. |
-
-Die Rolle `admin` umfasst `billing-admin` **nicht** und umgekehrt. Das ist Absicht — wer die API bedient, sollte nicht auch die Rechnung freigeben.
-
-## Granulare Rollen {#granular}
-
-Über die vier integrierten Rollen hinaus bieten wir granulare Rollen pro Ressource für die Fälle, in denen `editor` zu viel ist:
-
-- `vms:operator` — nur VMs erstellen / starten / stoppen / löschen, kein Netzwerk
-- `storage:operator` — Volumes, Buckets, Snapshots, Backups verwalten
-- `dns:admin` — vollständige Verwaltung von DNS-Zonen + -Einträgen; sonst nichts
-- `networking:admin` — Netzwerke, Subnetze, Sicherheitsgruppen, Floating-IPs, LBs
-- `databases:admin` — verwaltete Datenbanken + ihre Backups
-
-Sie weisen diese genauso zu wie die integrierten Rollen, über `POST /v1/role-assignments`.
+`GET /api/v1/roles/` listet die Rollen auf, die Sie erteilen können: die globalen Rollen der Plattform, markiert mit `is_global: true`, und alle benutzerdefinierten Rollen, die Ihr Workspace angelegt hat. Zu den globalen Rollen gehören `reader`, `member`, `manager` und `admin`. `GET /api/v1/roles/{role_id}` liest eine davon.
 
 ## Benutzerdefinierte Rollen {#custom}
 
-Definieren Sie eigene Rollen über `POST /v1/roles` (nicht im minimalen Beispiel unten), indem Sie die Berechtigungen auflisten, die gebündelt werden sollen. Berechtigungsnamen folgen dem Muster `<resource>:<action>` — z. B. `vms:read`, `volumes:create`, `databases:snapshot`. Den vollständigen Katalog der Berechtigungen liefert `GET /v1/permissions`.
+`POST /api/v1/roles/` legt in Ihrem Workspace eine Rolle mit einem `name` und optional einer `description` an. `PATCH /api/v1/roles/{role_id}` ändert beides, und `DELETE /api/v1/roles/{role_id}` entfernt die Rolle. Nur die eigenen Rollen Ihres Workspaces lassen sich ändern oder löschen; für eine globale Rolle antworten beide mit `404`.
 
-Anwendungsfälle für benutzerdefinierte Rollen: „alles lesen außer Abrechnung“ für einen Sicherheitsauditor; „DNS-Einträge verwalten, aber keine Zonen“ für ein Marketingteam, das für die Inhalte von Subdomains zuständig ist, aber nicht für die Delegierung der Zone.
+## Erteilen und widerrufen {#grant}
+
+`POST /api/v1/roles/grant` nimmt eine Liste von Zuweisungen entgegen, sodass ein Aufruf mehrere erteilen kann. Jede Zuweisung nennt eine `role`, einen `user` oder eine `group` und ein `project` oder, für den Workspace selbst, eine `domain`, jeweils per ID. `POST /api/v1/roles/revoke` nimmt dieselbe Liste entgegen und entfernt diese Zuweisungen.
+
+`GET /api/v1/roles/assignments` listet die Zuweisungen des Workspaces auf, in seinen Projekten und im Workspace selbst, einschließlich derer, die über eine Gruppe kommen. Filtern Sie nach `role`, `user`, `group`, `project` oder `domain`.
+
+Erteilen und Widerrufen akzeptieren auch den API-Key eines Admins. Die anderen Rollen-Aufrufe brauchen die Sitzung eines Admins, die für den Workspace selbst gilt: Ein API-Key gilt immer für ein einzelnes Projekt, deshalb antwortet die API auf den Aufruf eines Keys bei ihnen mit `400`.
 
 ## Wie sich Rollenzuweisungen kombinieren {#compose}
 
-Ein Benutzer kann in einem Projekt mehrere Rollenzuweisungen haben. Die effektiven Berechtigungen sind die **Vereinigungsmenge** — die Rollenliste ist additiv, nicht multiplikativ. Erhält derselbe Benutzer `viewer` + `vms:operator`, darf er alles lesen + speziell VMs schreiben.
+Ein Benutzer kann in einem Projekt mehrere Rollenzuweisungen haben. Die effektiven Berechtigungen sind die **Vereinigungsmenge** — die Rollenliste ist additiv, nicht multiplikativ. Eine Rolle, die dem Benutzer direkt erteilt wurde, und eine, die einer seiner Gruppen erteilt wurde, gelten beide.
 
-Wenn Sie eine Rolle widerrufen, bleiben die anderen bestehen. Um einem Benutzer alle Rechte zu entziehen, löschen Sie jede Zuweisung einzeln oder löschen Sie den Benutzer (das widerruft alle Zuweisungen atomar).
+Wenn Sie eine Rolle widerrufen, bleiben die anderen bestehen. Um einem Benutzer alle Rechte zu entziehen, widerrufen Sie jede Zuweisung einzeln oder löschen Sie den Benutzer (das widerruft alle Zuweisungen atomar).
 
 ## Nächste Schritte {#next-steps}
 

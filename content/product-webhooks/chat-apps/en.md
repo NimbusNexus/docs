@@ -1,8 +1,8 @@
 ---
 title: Slack, Teams and Discord
-description: Send events to a Slack, Microsoft Teams or Discord channel, with a preset transformation that turns each event into a message the channel accepts.
+description: Send events to a Slack, Microsoft Teams or Discord channel, with a template that turns each event into a message the channel accepts.
 publishedAt: 2026-10-30
-updatedAt: 2026-10-30
+updatedAt: 2026-11-03
 kind: guide
 ---
 
@@ -11,16 +11,16 @@ kind: guide
 Slack, Microsoft Teams and Discord each give a channel a webhook URL that posts whatever it receives — but only in their own message format, so they reject the event envelope we normally send. A [transformation](/docs/product-webhooks/transformations) bridges the gap. By the end of this guide you'll have:
 
 - an endpoint aimed at your channel's webhook URL;
-- the preset for that app turning each event into a message it accepts;
+- that app's template turning each event into a message it accepts;
 - a test event posted in the channel.
 
 Total time: about 10 minutes.
 
 ## Prereqs {#prereqs}
 
-- A Webhooks workspace on Starter, Pro or Custom. Free does not include transformations.
+- A Webhooks workspace, on any plan: the chat templates are pipelines, which every plan includes.
 - The right to add a webhook to the channel: in Slack, to install an app in the workspace; in Teams, to create a workflow; in Discord, the **Manage Webhooks** permission.
-- [Endpoint verification](/docs/product-webhooks/endpoint-verification#cannot-echo) off for the project the endpoint goes in. These channels take only their own messages, so they can never answer the verification challenge, and an endpoint that must pass it receives nothing. Paid plans can turn verification off.
+- [Endpoint verification](/docs/product-webhooks/endpoint-verification#cannot-echo) off for the project the endpoint goes in. These channels take only their own messages, so they can never answer the verification challenge, and an endpoint that must pass it receives nothing. Paid plans can turn verification off; on a plan that requires it, these channels can't be used.
 
 ## 1 · Get the channel's webhook URL {#webhook-url}
 
@@ -52,23 +52,25 @@ curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/endpoints \
        "subscriptions": [{"match_kind": "exact", "pattern": "invoice.paid"}]}'
 ```
 
-## 3 · Choose the preset {#preset}
+## 3 · Start from the template {#preset}
 
-Open the endpoint's menu on the **Endpoints** page and choose **Transformation**. Select **Preset**, then the one for your app — **Slack message**, **Microsoft Teams card** or **Discord message** — and **Save**. From now on, each delivery to this endpoint is sent as a message:
+Open the endpoint's menu on the **Endpoints** page and choose **Transformation**. Choose **Pipeline**, then, under **Start from a template**, the one for your app — **Use Slack message**, **Use Microsoft Teams card** or **Use Discord message** — and **Save**. From now on, each delivery to this endpoint is sent as a message:
 
-| Preset | What the channel shows |
+| Template | What the channel shows |
 |---|---|
-| Slack message | The event type and id, when it happened, and its data in a code block. |
-| Microsoft Teams card | An Adaptive Card with the event type, its id and time, and its data. |
-| Discord message | The event type and id, and its data in a JSON code block. |
+| Slack message | The event type as a header, its id and time, and its data in a code block. |
+| Microsoft Teams card | An Adaptive Card with the event type, its id and time, and its data in monospace. |
+| Discord message | An embed with the event type as its title, its data in a JSON code block, and its id and time beneath. It mentions no one. |
 
-Each one cuts the data to fit the app's own limit, such as 3,000 characters in a Slack section or 2,000 in a Discord message.
+Each template cuts the data to fit the app's limits, and nothing in the event can format the message, mention anyone or end the code block early. Saving makes the pipeline your own: it doesn't change when the template does.
 
-A preset is a script like any other, so there is nothing to name through the API: [create a transformation](/docs/product-webhooks/transformations#set-up) with the script you want. The console's **Edit this script** shows each preset's code to start from.
+Through the API, `GET /v1/transformations/templates` returns each template with its `pipeline`: [create a transformation](/docs/product-webhooks/transformations#set-up) with that document, then set the endpoint's `transformation_id` to it.
+
+An endpoint that already runs one of the old presets, which are scripts, keeps running it unchanged.
 
 ## 4 · Test it {#test}
 
-Under **Test** on the same page, choose **Run test**. It runs the preset against a recent event from the endpoint's deliveries, or one you paste, and shows the message it would send. Nothing is sent.
+Under **Test** on the same page, choose **Run test**. It runs the pipeline in the editor against a recent event from the endpoint's deliveries, or one you paste, and shows the message it would send. Nothing is sent.
 
 Then send a real one: **Send test event** on the console's Overview, or publish an event the endpoint subscribes to:
 
@@ -87,19 +89,16 @@ Every event the endpoint subscribes to now posts a message in your channel. Open
 
 ## Making it your own {#customize}
 
-Choose **Edit this script** to change what the message says or which events post one. Returning `null` sends nothing, so a script can keep the channel for the events people need. For Slack:
+The template's steps are now your pipeline's, so you can change them like any other. To keep the channel for the events people need, add a **Filter** step with **Send only matching events** and two conditions, `type` **is** `invoice.paid` and `data.amount` **is at least** `100000`, then move it to the top, so it tests the event before the message is built. As JSON:
 
-```js
-function transform(event) {
-  if (event.type !== "invoice.paid" || event.data.amount < 100000) return null;
-  return { body: { text: `Invoice ${event.data.id} paid: ${event.data.amount / 100} ${event.data.currency}` } };
-}
+```json
+{ "filter": { "type": "invoice.paid", "data": { "amount": { "$gte": 100000 } } } }
 ```
 
-For Discord, send `content` where Slack takes `text`; for Teams, keep the preset's card and change the text in it. A delivery the script drops is not sent and does not count as failed. Test the script before you save it: a run that fails sends the delivery to the dead-letter queue, never the untransformed event.
+A delivery the filter drops is not sent and does not count as failed. To change what the message says, edit the **Reshape the body** step that builds it; the console shows it as JSON, so change it there and choose **Apply**. Its values read the event through [paths and filters](/docs/product-webhooks/transformations#values), such as `{{ data.amount | money(data.currency) }}`. Test before you save: a run that fails sends the delivery to the dead-letter queue, never the untransformed event.
 
 ## Next steps {#next-steps}
 
-- [Transformations](/docs/product-webhooks/transformations) — the script contract, limits and what happens when a script fails.
+- [Transformations](/docs/product-webhooks/transformations#templates) — templates, pipeline steps, testing and what happens when a run fails.
 - [Endpoint verification](/docs/product-webhooks/endpoint-verification#cannot-echo) — receivers that cannot answer the challenge.
 - [Deliveries and retries](/docs/product-webhooks/deliveries) — states, retries and sending again.

@@ -2,7 +2,7 @@
 title: "Enregistrements DNS"
 description: "Enregistrements A, AAAA, CNAME, MX, TXT, SRV et NS d’une zone."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -19,10 +19,13 @@ Un jeu d’enregistrements est un tuple `(name, type)` dans une [zone](/docs/api
 | **CNAME** | Alias vers un autre nom | `other.example.com.` |
 | **MX** | Serveur de messagerie | `10 mail.example.com.` |
 | **TXT** | Texte libre — vérification, SPF, DKIM, DMARC | `"v=spf1 -all"` |
+| **SPF** | Politique SPF, dans son propre type d’enregistrement | `"v=spf1 -all"` |
 | **SRV** | Emplacement d’un service | `10 5 5060 sip.example.com.` |
 | **NS** | Délégation vers d’autres serveurs de noms | `ns1.other.com.` |
 | **CAA** | Autorisation des autorités de certification | `0 issue "letsencrypt.org"` |
-| **PTR** | Pointeur de DNS inverse (pour les IP flottantes) | Voir les [IP flottantes](/docs/api/floating-ips) |
+| **SSHFP** | Empreinte de la clé d’hôte SSH | `4 2 <sha256-fingerprint>` |
+| **NAPTR** | Règle de réécriture pour la recherche d’un service | `100 10 "U" "E2U+sip" "!^.*$!sip:info@example.com!" .` |
+| **PTR** | Pointeur de DNS inverse | Voir le [DNS inverse](/docs/api/reverse-dns) |
 
 Nous ne prenons pas en charge : `ALIAS` / `ANAME` (aplatissement de CNAME à l’apex) — utilisez plutôt le CNAME sur un sous-domaine, ou à l’apex un enregistrement A qui pointe vers une IP flottante.
 
@@ -40,13 +43,9 @@ Les serveurs de noms renvoient les trois valeurs à chaque requête, et les rés
 
 ## TTL {#ttl}
 
-Chaque jeu d’enregistrements a un TTL en secondes — la durée pendant laquelle les résolveurs gardent la réponse en cache avant de refaire la requête. Valeurs par défaut :
+Chaque jeu d’enregistrements a un TTL en secondes — la durée pendant laquelle les résolveurs gardent la réponse en cache avant de refaire la requête. Définissez `ttl` lorsque vous créez ou modifiez un jeu d’enregistrements. Sans cette valeur, le jeu d’enregistrements utilise le TTL de sa zone, qui est de 3600 (1 heure), sauf si vous en définissez un autre sur la zone.
 
-- **A / AAAA / CNAME :** 300 secondes (5 minutes) — adapté aux mises à jour rapides / au basculement
-- **MX / NS :** 3600 (1 heure) — ils changent rarement
-- **TXT de vérification :** 60 — court, pour que les nouvelles vérifications soient rapides
-
-Choisissez des TTL plus bas tant que vous itérez activement ; augmentez-les une fois les enregistrements stabilisés, pour réduire le volume de requêtes et le coût.
+Choisissez des TTL plus bas tant que vous itérez activement ; augmentez-les une fois les enregistrements stabilisés, pour réduire le volume de requêtes.
 
 ## Étapes suivantes {#next-steps}
 

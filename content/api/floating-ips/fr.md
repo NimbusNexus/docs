@@ -2,13 +2,13 @@
 title: "IP flottantes"
 description: "IP publiques propres à une région, détachables d’une VM et rattachables à une autre."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
 # IP flottantes
 
-Une IP flottante est une adresse IP publique qui **appartient à votre projet, pas à une VM précise**. Vous en allouez une, vous l’attachez à une VM, et elle devient l’IP publique de cette VM. Détachez-la plus tard et rattachez-la à une autre VM — votre trafic va désormais vers la nouvelle VM, sans que l’adresse change.
+Une IP flottante est une adresse IP publique qui **appartient à votre projet, pas à une VM précise**. Vous en réservez une sur un réseau externe, vous l’allouez à un port d’une VM, et elle devient l’IP publique de cette VM. Détachez-la plus tard et rattachez-la à une autre VM — votre trafic va désormais vers la nouvelle VM, sans que l’adresse change.
 
 ## Pourquoi les IP flottantes existent {#why}
 
@@ -18,39 +18,31 @@ L’IP attribuée par défaut à une VM est **éphémère** — détruire la VM 
 - Tout ce qui figure dans la liste d’autorisation d’IP d’un partenaire (le partenaire doit autoriser la nouvelle adresse)
 - Les déploiements blue/green, où vous voulez basculer le trafic entre deux VM déjà démarrées sans attendre la propagation DNS
 
-Une IP flottante règle ces trois cas. L’IP survit à n’importe quelle VM ; vous la basculez d’une VM à l’autre en ~2 secondes avec un seul appel d’API.
+Une IP flottante règle ces trois cas. L’IP survit à n’importe quelle VM ; vous la basculez d’une VM à l’autre avec un seul appel d’API.
 
 ## Portée régionale {#region}
 
-Les IP flottantes sont **propres à une région**. Une IP allouée dans `us-east-1` ne peut être attachée qu’à des VM de `us-east-1`. Un basculement inter-région nécessite au choix :
-
-- Une IP flottante par région + un basculement au niveau DNS (basé sur la latence, avec contrôles de santé)
-- Un produit d’IP anycast, que nous ne proposons pas actuellement
-
-Nous ne prévoyons pas de lever cette limite — des IP flottantes inter-région exigeraient de router des annonces BGP publiques à l’échelle mondiale, ce qui est un produit totalement différent de l’allocation par région.
+Les IP flottantes sont **propres à une région**. Une IP provient du réseau externe d’une région et ne s’attache qu’à des ports de cette région.
 
 ## Facturation {#billing}
 
-- **Attachée** à une VM en cours d’exécution : **\$0** — l’IP est comprise dans le coût de la VM.
-- **Attachée** à une VM arrêtée : \$2.50/mois — comme la ligne d’IP réservée de la VM.
-- **Non attachée** : \$2.50/mois — même tarif. Nous facturons les IP non attachées pour décourager leur accumulation, qui épuiserait le pool régional plus vite que nous ne pouvons l’agrandir.
+Une IP flottante est facturée à son propre prix, de sa création à sa suppression, qu’elle soit attachée ou non. L’attacher à une VM ne l’intègre pas au coût de la VM. [Données tarifaires](/docs/api/pricing-data) indique le prix actuel.
 
-Le schéma habituel : allouez l’IP quand vous en avez besoin, attachez-la immédiatement, libérez-la quand vous avez terminé.
+Le schéma habituel : créez l’IP quand vous en avez besoin, attachez-la aussitôt, et supprimez-la quand vous avez terminé.
 
 ## IPv4 ou IPv6 {#ipv4-ipv6}
 
-Les IP flottantes existent dans les deux variantes. `version: 'ipv4'` est la valeur par défaut (et ce dont la plupart des gens ont besoin). `version: 'ipv6'` est allouée à partir de notre `/48` propre à chaque région ; les deux sont publiques et routables.
+Il n’y a pas de champ de version : une adresse provient du réseau externe que vous indiquez dans `floating_network_id`, et `POST /api/v1/floating_ip/reserve` peut aussi prendre une `ip_address` précise. `GET /api/v1/floating_ip/artifacts` liste les réseaux externes avec l’`ip_version` de chaque sous-réseau.
 
-Une VM peut avoir à la fois une IP flottante IPv4 et une IP flottante IPv6 attachées. Plusieurs IPv4 sur une même VM ne sont pas prises en charge ; si vous avez besoin de plusieurs adresses sur une VM, utilisez des adresses privées de VPC avec du NAT.
+Chaque IP flottante se lie à une IP fixe sur un port (`vm_port_id` et `vm_ip_address`) : une VM qui a plusieurs IP fixes peut donc porter une IP flottante sur chacune.
 
 ## Sémantique d’attachement et de détachement {#attach}
 
-- **L’attachement** est atomique : la VM obtient l’adresse en ~2 secondes. Les connexions TCP existantes vers l’ancienne IP publique de la VM (s’il y en avait une) sont coupées — la table de routage du noyau change, tout simplement.
-- **Le détachement** ne libère pas l’IP ; il la dissocie seulement de la VM. L’IP reste facturée jusqu’à ce que vous appeliez DELETE.
+- **L’attachement** passe par `POST /api/v1/floating_ip/allocate`, avec le réseau externe (`floating_network_id`), le port (`vm_port_id`) et son IP fixe (`vm_ip_address`). Passez `floating_ip_id` pour attacher une adresse que vous avez déjà ; sans lui, allocate en crée une nouvelle. `GET /api/v1/floating_ip/artifacts?resource_id=<id>` liste les ports d’une VM ou d’un load balancer.
+- **Le détachement** passe par `POST /api/v1/floating_ip/deallocate`. Il ne libère pas l’IP ; il la dissocie seulement de la VM. L’IP reste facturée jusqu’à ce que vous la supprimiez, avec `DELETE /api/v1/floating_ip/` (son identifiant dans `ids`) ou avec `deallocate` et `delete: true`.
 - Rattacher la même IP à une autre VM : c’est exactement le chemin du basculement. Détachez, attachez à la nouvelle cible, le DNS ne change pas.
 
 ## Étapes suivantes {#next-steps}
 
 - [Machines virtuelles](/docs/api/vms) — la ressource à laquelle s’attachent les IP flottantes.
 - [Régions](/docs/api/regions) — les IP flottantes sont propres à une région.
-- Le guide **Basculement multi-région** (bientôt disponible) décrit le schéma au niveau DNS pour le basculement inter-région quand les IP flottantes seules ne suffisent pas.

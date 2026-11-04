@@ -2,7 +2,7 @@
 title: "Webhooks"
 description: "La plateforme de webhooks managée — publiez un événement une fois, nous signons, réessayons et rejouons chaque livraison vers vos abonnés."
 publishedAt: 2026-08-05
-updatedAt: 2026-10-30
+updatedAt: 2026-11-03
 kind: concept
 ---
 
@@ -30,7 +30,7 @@ Ce produit, c’est toute cette mécanique. Il reçoit aussi dans l’autre sens
 | **Source** | Une URL à laquelle un fournisseur envoie des webhooks. Chaque requête signée devient un événement. Voir [Sources](/docs/product-webhooks/sources). |
 | **Endpoint** | Une URL HTTPS enregistrée pour recevoir des webhooks, qui porte un ou plusieurs abonnements. |
 | **Abonnement** | Une règle de correspondance sur un endpoint : `exact`, `prefix`, `suffix` ou `all`, plus un motif comme `order.`. |
-| **Transformation** | Une courte fonction JavaScript attachée à un endpoint, qui remodèle, filtre ou abandonne chaque livraison avant qu’elle ne soit signée et envoyée. Plans payants. Voir [Transformations](/docs/product-webhooks/transformations). |
+| **Transformation** | Ce qu’un endpoint fait de chaque livraison avant qu’elle ne soit signée et envoyée : la filtrer, l’alléger, la remodeler ou y ajouter des justificatifs d’identité. Un pipeline d’étapes déclaratives fonctionne sur tous les plans, Free compris ; un script JavaScript, sur Starter, Pro et Custom. Voir [Transformations](/docs/product-webhooks/transformations). |
 | **Livraison** | Un envoi d’un événement vers un endpoint correspondant, avec suivi des tentatives. Signée, réessayée, observable. Voir [Livraisons et réessais](/docs/product-webhooks/deliveries). |
 | **Type d’événement** | Une entrée du catalogue des noms de types, avec un JSON Schema facultatif. Voir [Types d’événements](/docs/product-webhooks/event-types). |
 | **Secret de signature** | Secret propre à chaque endpoint, utilisé pour signer chaque livraison en HMAC. Affiché **une seule fois**, à la création. |
@@ -81,8 +81,8 @@ Choisissez la portée à la création. `admin` donne le contrôle total ; `publi
 - [Sources](/docs/product-webhooks/sources) — recevoir les webhooks de Stripe, de GitHub ou de tout expéditeur HMAC.
 - [Livraisons et réessais](/docs/product-webhooks/deliveries) — les états, le calendrier des réessais et les renvois.
 - [Vérification des endpoints](/docs/product-webhooks/endpoint-verification) — le challenge auquel un endpoint répond avant de recevoir des événements.
-- [Transformations](/docs/product-webhooks/transformations) — remodeler, filtrer ou abandonner chaque livraison avec un court script.
-- [Slack, Teams et Discord](/docs/product-webhooks/chat-apps) — envoyer des événements vers un canal avec un preset.
+- [Transformations](/docs/product-webhooks/transformations#pipeline) — filtrer, alléger, remodeler chaque livraison ou y ajouter des justificatifs d’identité avec un pipeline, sur tous les plans.
+- [Slack, Teams et Discord](/docs/product-webhooks/chat-apps) — envoyer des événements vers un canal avec un modèle de la galerie.
 - [Types d’événements](/docs/product-webhooks/event-types) — le catalogue, la politique pour les types inconnus et les schémas de payload.
 - [Requêtes capturées](/docs/product-webhooks/captured-requests) — les requêtes brutes reçues par une source.
 - [Vérification de signature](/docs/product-webhooks/signatures) — le contrat de signature et les trois règles pour la vérifier.

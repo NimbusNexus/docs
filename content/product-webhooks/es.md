@@ -2,7 +2,7 @@
 title: "Webhooks"
 description: "La plataforma de webhooks gestionada — publica un evento una vez y nosotros firmamos, reintentamos y reenviamos cada entrega a tus suscriptores."
 publishedAt: 2026-08-05
-updatedAt: 2026-10-30
+updatedAt: 2026-11-03
 kind: concept
 ---
 
@@ -30,7 +30,7 @@ Este producto es esa maquinaria que lo rodea. También recibe en el otro sentido
 | **Fuente** | Una URL a la que un proveedor envía webhooks. Cada petición firmada se convierte en un evento. Consulta [Fuentes](/docs/product-webhooks/sources). |
 | **Endpoint** | Una URL HTTPS registrada para recibir webhooks, con una o varias suscripciones. |
 | **Suscripción** | Una regla de coincidencia de un endpoint: `exact`, `prefix`, `suffix` o `all`, más un patrón como `order.`. |
-| **Transformación** | Una función corta de JavaScript asociada a un endpoint, que adapta, filtra o descarta cada entrega antes de que se firme y se envíe. En los planes de pago. Consulta [Transformaciones](/docs/product-webhooks/transformations). |
+| **Transformación** | Lo que un endpoint hace con cada entrega antes de que se firme y se envíe: filtrarla, recortarla, adaptarla o añadirle credenciales. Una pipeline de pasos declarativos funciona en todos los planes, Free incluido; un script de JavaScript, en Starter, Pro y Custom. Consulta [Transformaciones](/docs/product-webhooks/transformations). |
 | **Entrega** | Un envío, con seguimiento de sus intentos, de un evento a un endpoint que coincide. Firmada, reintentada, observable. Consulta [Entregas y reintentos](/docs/product-webhooks/deliveries). |
 | **Tipo de evento** | Una entrada del catálogo de nombres de tipo, con un JSON Schema opcional. Consulta [Tipos de evento](/docs/product-webhooks/event-types). |
 | **Secreto de firma** | Secreto propio de cada endpoint con el que se firma con HMAC cada entrega. Se muestra **una sola vez**, al crearlo. |
@@ -81,8 +81,8 @@ Elige el alcance al emitirla. `admin` da control total; `publish` puede producir
 - [Fuentes](/docs/product-webhooks/sources) — recibe webhooks de Stripe, GitHub o cualquier emisor que firme con HMAC.
 - [Entregas y reintentos](/docs/product-webhooks/deliveries) — estados, el calendario de reintentos y cómo volver a enviar.
 - [Verificación de endpoints](/docs/product-webhooks/endpoint-verification) — el desafío que responde un endpoint antes de recibir eventos.
-- [Transformaciones](/docs/product-webhooks/transformations) — adapta, filtra o descarta cada entrega con un script corto.
-- [Slack, Teams y Discord](/docs/product-webhooks/chat-apps) — envía eventos a un canal con un preset.
+- [Transformaciones](/docs/product-webhooks/transformations#pipeline) — filtra, recorta, adapta o añade credenciales a cada entrega con una pipeline, en todos los planes.
+- [Slack, Teams y Discord](/docs/product-webhooks/chat-apps) — envía eventos a un canal con una plantilla de la galería.
 - [Tipos de evento](/docs/product-webhooks/event-types) — el catálogo, la política para los tipos desconocidos y los esquemas de payload.
 - [Peticiones capturadas](/docs/product-webhooks/captured-requests) — las peticiones en bruto que llegaron a una fuente.
 - [Verificación de firmas](/docs/product-webhooks/signatures) — el contrato de firma y las tres reglas para comprobarlo.

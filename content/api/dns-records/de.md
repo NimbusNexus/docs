@@ -2,7 +2,7 @@
 title: "DNS-Einträge"
 description: "A-, AAAA-, CNAME-, MX-, TXT-, SRV- und NS-Einträge innerhalb einer Zone."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -19,10 +19,13 @@ Ein Record-Set ist ein Tupel `(name, type)` innerhalb einer [Zone](/docs/api/dns
 | **CNAME** | Alias auf einen anderen Namen | `other.example.com.` |
 | **MX** | Mailserver | `10 mail.example.com.` |
 | **TXT** | Freitext — Verifizierung, SPF, DKIM, DMARC | `"v=spf1 -all"` |
+| **SPF** | SPF-Richtlinie, als eigener Eintragstyp | `"v=spf1 -all"` |
 | **SRV** | Standort eines Dienstes | `10 5 5060 sip.example.com.` |
 | **NS** | Delegierung an andere Nameserver | `ns1.other.com.` |
 | **CAA** | Autorisierung von Zertifizierungsstellen | `0 issue "letsencrypt.org"` |
-| **PTR** | Reverse-DNS-Zeiger (für Floating-IPs) | Siehe [Floating-IPs](/docs/api/floating-ips) |
+| **SSHFP** | Fingerprint des SSH-Host-Keys | `4 2 <sha256-fingerprint>` |
+| **NAPTR** | Umschreibregel für das Nachschlagen eines Dienstes | `100 10 "U" "E2U+sip" "!^.*$!sip:info@example.com!" .` |
+| **PTR** | Reverse-DNS-Zeiger | Siehe [Reverse DNS](/docs/api/reverse-dns) |
 
 Nicht unterstützt werden: `ALIAS` / `ANAME` (CNAME-Flattening am Apex) — verwenden Sie stattdessen den CNAME auf einer Subdomain oder am Apex einen A-Eintrag, der auf eine Floating-IP zeigt.
 
@@ -40,13 +43,9 @@ Die Nameserver liefern bei jeder Abfrage alle drei Werte, und Resolver verteilen
 
 ## TTLs {#ttl}
 
-Jedes Record-Set hat eine TTL in Sekunden — wie lange Resolver die Antwort zwischenspeichern, bevor sie erneut abfragen. Standardwerte:
+Jedes Record-Set hat eine TTL in Sekunden — wie lange Resolver die Antwort zwischenspeichern, bevor sie erneut abfragen. Setzen Sie `ttl`, wenn Sie ein Record-Set erstellen oder aktualisieren. Ohne diesen Wert verwendet das Record-Set die TTL seiner Zone, die 3600 (1 Stunde) beträgt, sofern Sie an der Zone keine andere festlegen.
 
-- **A / AAAA / CNAME:** 300 Sekunden (5 Minuten) — gut für schnelle Updates / Failover
-- **MX / NS:** 3600 (1 Stunde) — diese ändern sich selten
-- **TXT für Verifizierung:** 60 — kurz, damit erneute Verifizierungsprüfungen schnell gehen
-
-Wählen Sie niedrigere TTLs, solange Sie noch aktiv ändern; erhöhen Sie sie, sobald die Einträge stabil sind, um Abfragevolumen + Kosten zu senken.
+Wählen Sie niedrigere TTLs, solange Sie noch aktiv ändern; erhöhen Sie sie, sobald die Einträge stabil sind, um das Abfragevolumen zu senken.
 
 ## Nächste Schritte {#next-steps}
 

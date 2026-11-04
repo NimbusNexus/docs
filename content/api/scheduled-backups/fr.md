@@ -1,22 +1,23 @@
 ---
 title: "Sauvegardes planifiées"
-description: "Planifications de sauvegarde récurrentes — quotidiennes, hebdomadaires, personnalisées. Distinctes des sauvegardes à la demande."
+description: "Planifications de sauvegarde récurrentes — quotidiennes, hebdomadaires ou mensuelles. Distinctes des sauvegardes à la demande."
 publishedAt: 2026-05-21
-updatedAt: 2026-05-21
+updatedAt: 2026-11-03
 kind: reference
 openapiTag: scheduled-backups
 ---
 
 # Sauvegardes planifiées
 
-Les [sauvegardes](/docs/api/backups) à la demande couvrent le cas « je veux un snapshot de ce volume tout de suite ». Les sauvegardes planifiées couvrent tout le reste : des sauvegardes nocturnes de chaque volume de production, des sauvegardes complètes hebdomadaires associées à des incrémentales quotidiennes, des snapshots mensuels conservés un an pour la conformité.
+Les [sauvegardes](/docs/api/backups) à la demande couvrent le cas « je veux un snapshot de ce volume tout de suite ». Les sauvegardes planifiées font des copies d’un volume selon un calendrier et conservent les plus récentes.
 
-Une planification est un petit document JSON — choisissez une cible (un volume, une VM, une base de données), une fréquence (de style cron), une politique de rétention (conserver les N plus récentes, ou expirer après X jours) et une politique de stockage (quelle région/classe de stockage pour les sauvegardes). Le planificateur tourne en arrière-plan ; les exécutions en échec sont réessayées avec backoff et apparaissent dans le journal d’exécution de la planification.
+Une planification a une `frequency` et une `backup_quantity`, le nombre de copies à conserver (5 par défaut). Une planification `daily` s’exécute chaque jour ; `weekly` s’exécute tous les 7 jours et `monthly` tous les 30 jours, à compter du jour de création de la planification. Créez-en une avec `POST /api/v1/backup_restore/backup_scheduler/` ; elle appartient à votre espace de travail. Liez-la ensuite à chaque volume avec `POST /api/v1/backup_restore/volume_scheduler/`, en indiquant le `volume_id`, le `schedule_id` et le `type` de copie, `snapshot` ou `backup`. La liaison répond `409` si les copies dépasseraient votre quota de sauvegarde.
 
-La plupart des comptes de production utilisent 2–4 planifications : daily-keep-14, weekly-keep-8, monthly-keep-12, et parfois un snapshot de fin d’année conservé 7 ans pour la finance ou le juridique.
+Pour envoyer aussi les copies `backup` vers un stockage externe, définissez `use_outside_storage` sur la liaison et associez le stockage avec `POST /api/v1/backup_restore/volume_scheduler/config-storage` (`config_id`, `storage_id`, `priority`). L’`outside_backup_quantity` de la planification (1 par défaut) fixe le nombre de copies à y conserver.
+
+Le planificateur tourne en arrière-plan. Une exécution en échec est réessayée, et une exécution qui échoue de façon répétée envoie une [notification](/docs/api/notifications). Pour conserver une copie au-delà de la rotation, comme une copie de fin d’année, définissez `permanent: true` sur elle avec `PATCH /api/v1/backup_restore/volume_backups/{volume_backup_id}`.
 
 ## Étapes suivantes {#next-steps}
 
 - [Sauvegardes](/docs/api/backups) — l’équivalent à la demande, et le type de ressource que produisent les planifications.
-- [Stockage en bloc](/docs/api/block-storage) et [Snapshots](/docs/api/snapshots) — les sources des sauvegardes.
-- [Bases de données managées](/docs/api/managed-databases) — possèdent leur propre modèle de rétention ; n’utilisent pas les planifications de cet endpoint.
+- [Stockage en bloc](/docs/api/block-storage) — les volumes que copient les planifications.

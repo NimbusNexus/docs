@@ -2,7 +2,7 @@
 title: "Quotas"
 description: "Limites par projet sur les VM, les vCPU, la RAM, le stockage, les IP flottantes et les autres ressources."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-03
 kind: reference
 ---
 
@@ -12,51 +12,40 @@ Les quotas sont des limites par projet qui bornent la quantité de chaque ressou
 
 ## Ce qui est soumis à quota {#what}
 
-Chaque projet a un quota sur chacun des éléments suivants :
+Les endpoints de quota couvrent quatre services. Chacun répond avec ses propres noms de quota, par exemple :
 
-| Ressource | Quota par défaut | Notes |
+| Service | Ce qu’il limite | Exemples de noms de quota |
 | --- | --- | --- |
-| VM | 50 | Par région ; une VM compte dans tous les états sauf `terminated` |
-| vCPU | 200 | Total sur l’ensemble des VM en cours d’exécution |
-| RAM (GB) | 800 | Total sur l’ensemble des VM en cours d’exécution |
-| Stockage en bloc (GB) | 5,000 | Somme de tous les volumes (attachés + détachés) |
-| Stockage objet (GB) | illimité | Limite souple uniquement : nous vous contactons au-delà de ~50 TB pour aligner les attentes |
-| Snapshots | 200 | Par région ; les snapshots supprimés ne comptent pas |
-| Sauvegardes | 500 | Par région |
-| IP flottantes | 20 | Par région |
-| Réseaux | 10 | Par région |
-| Groupes de sécurité | 50 | Par région |
-| Load balancers | 10 | Par région |
-| Zones DNS | 50 | À l’échelle du projet |
-| Utilisateurs | 25 | À l’échelle du projet |
+| `nova` | VM | `instances`, `cores`, `ram` (en MB) |
+| `cinder` | Stockage en bloc | `volumes`, `gigabytes`, `snapshots`, `backups` |
+| `neutron` | Réseau | `network`, `subnet`, `port`, `router`, `floatingip`, `security_group` |
+| `projects` | Projets de votre espace de travail | `max_projects` |
 
-Les valeurs par défaut sont prudentes. Les quotas de la plupart des projets de production sont relevés à 5–10× sur les axes les plus utilisés (vCPU, RAM, stockage) peu après le lancement.
+Lisez les valeurs par défaut avec `GET /api/v1/quota/{service}?defaults=true`. `max_projects` vaut `-1`, c’est-à-dire aucune limite, sauf si une limite a été définie pour votre espace de travail.
 
 ## Quota et consommation {#quota-vs-usage}
 
 Les endpoints exposent les deux :
 
-- `GET /v1/quotas` — les **limites** (50 VM, 200 vCPU, etc.)
-- `GET /v1/quotas/usage` — la **consommation actuelle** (12 VM utilisées sur 50, 48 vCPU sur 200, etc.)
+- `GET /api/v1/quota/{service}` — les **limites**, sous forme de dictionnaire qui associe un nombre à chaque nom de quota.
+- `GET /api/v1/quota/{service}/usage` — la **consommation actuelle** : `used`, `reserved` et `limit` pour chaque nom de quota.
 
-Vérifiez toujours la consommation avant une création en masse ; une requête qui vous ferait dépasser le quota renvoie 429 avec un `Retry-After` vide (comme le quota n’est pas limité dans le temps, réessayer ne sert à rien — vous devez supprimer quelque chose ou augmenter le quota).
+`{service}` vaut `nova`, `cinder`, `neutron` ou `projects`.
+
+Vérifiez toujours la consommation avant une création en masse ; une requête qui vous ferait dépasser le quota échoue (comme le quota n’est pas limité dans le temps, réessayer ne sert à rien — vous devez supprimer quelque chose ou augmenter le quota).
 
 ## Augmenter un quota {#raising}
 
-Les augmentations de quota passent par le formulaire de contact du support, pas par l’API. Trois raisons :
+Demandez une augmentation avec `POST /api/v1/quota-request/` : indiquez le `service_name`, le `quota_name` et la `new_value`, et expliquez pourquoi dans `reason`. La demande porte sur votre projet actuel, ou sur votre espace de travail quand le service est `projects`. Elle exige le rôle `manager` ou `admin`, et chaque quota ne peut avoir qu’une seule demande ouverte à la fois.
 
-1. **Planification de capacité.** Les fortes augmentations (10×+) nécessitent de réserver du matériel dans la région cible.
-2. **Conformité.** Certaines augmentations de quota nécessitent une brève discussion sur le profil de la charge de travail.
-3. **Prévention des abus.** Un endpoint d’augmentation de quota en libre-service serait la première chose qu’appellerait un compte compromis.
-
-La plupart des augmentations sont accordées en moins d’un jour ouvré. Les migrations de production sont traitées le jour même si vous le signalez dans la demande.
+Un administrateur NimbusNexus examine chaque demande à la main. Son approbation applique la nouvelle limite ; une demande peut aussi être rejetée ou vous être renvoyée pour modification. Dans tous les cas, la réponse arrive sous forme de [notification](/docs/api/notifications). `GET /api/v1/quota-request/list` liste vos demandes, et `PATCH` ou `DELETE /api/v1/quota-request/` modifie ou retire une demande ouverte.
 
 ## Quotas et régions {#regions}
 
-La plupart des quotas sont **par région** (VM, snapshots, réseaux). Quelques-uns s’appliquent **à l’échelle du projet** (zones DNS, utilisateurs). La réponse de l’endpoint le précise explicitement — chaque entrée de quota porte un champ `scope` (`region: us-east-1` ou `project`).
+Les chiffres de `nova`, `cinder` et `neutron` portent sur la région de votre session ; changez de région avec `GET /api/v1/account/rescope?region=<region_name>`. Le quota `projects` compte les projets de tout votre espace de travail. Les réponses sont de simples dictionnaires qui associent des nombres aux noms de quota, sans champ de région ni de portée.
 
 ## Étapes suivantes {#next-steps}
 
 - [Projets](/docs/api/projects) — le conteneur auquel s’appliquent les quotas.
 - [Authentification](/docs/authentication) — comment appeler ces endpoints.
-- Le **formulaire de contact du support** sur [/contact/support]({{BASE_URL}}/contact/support) — là où se font les augmentations de quota.
+- [Notifications](/docs/api/notifications) — là où arrive la réponse à une demande de quota.
