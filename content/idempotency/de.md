@@ -1,80 +1,45 @@
 ---
 title: "Idempotenz"
-description: "Ändernde Requests mit dem Header Idempotency-Key gefahrlos wiederholen."
+description: "Welche Routen den Header Idempotency-Key annehmen und wie Sie auf den übrigen gefahrlos wiederholen."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-05
+updatedAt: 2026-11-04
 kind: concept
 ---
 
 # Idempotenz
 
-Ein Request ist **idempotent**, wenn er zweimal gesendet dieselbe Wirkung hat wie einmal. `GET /v1/vms` ist von Natur aus idempotent — er ändert nichts. `POST /v1/vms` ist von Natur aus **nicht** idempotent — rufen Sie ihn zweimal auf, erhalten Sie zwei VMs.
+Ein Request ist **idempotent**, wenn er zweimal gesendet dieselbe Wirkung hat wie einmal. `GET /api/v1/instance/` ist von Natur aus idempotent — er ändert nichts. `POST /api/v1/instance/` ist von Natur aus **nicht** idempotent — rufen Sie ihn zweimal auf, erhalten Sie zwei VMs.
 
-Mit dem Header `Idempotency-Key` machen Sie jeden ändernden Request gefahrlos wiederholbar. Übergeben Sie einen beliebigen eindeutigen Wert (üblich ist eine UUID); wir speichern die Antwort 24 Stunden lang zwischen und geben bei jeder Wiederholung mit demselben Key dieselbe Antwort zurück.
+Mit dem Header `Idempotency-Key` machen Sie einen Request gefahrlos wiederholbar, aber nur auf den wenigen Routen, die ihn annehmen. Jede andere Route ignoriert den Header.
 
 ## Welches Problem das löst {#problem}
 
-Sie rufen `POST /v1/vms` auf. Auf dem Rückweg bricht die Netzwerkverbindung ab, und Sie erhalten ein Timeout statt eines 201. Wurde die VM erstellt? Sie wissen es nicht:
+Sie veröffentlichen ein Event mit `POST /v1/events`. Auf dem Rückweg bricht die Netzwerkverbindung ab, und Sie erhalten ein Timeout statt eines 201. Wurde das Event versendet? Sie wissen es nicht:
 
-- Wenn Sie den Request wiederholen: Vielleicht haben Sie dann zwei VMs (das Original war erfolgreich; Ihr Retry hat eine zweite erstellt).
-- Wenn Sie ihn nicht wiederholen: Vielleicht haben Sie dann null VMs (das Original ist fehlgeschlagen; Sie haben den falschen Zustand akzeptiert).
+- Wenn Sie den Request wiederholen: Vielleicht erhalten Ihre Kunden es dann zweimal (das Original war erfolgreich; Ihr Retry hat ein zweites veröffentlicht).
+- Wenn Sie ihn nicht wiederholen: Vielleicht erhalten sie es dann nie (das Original ist fehlgeschlagen; Sie haben den falschen Zustand akzeptiert).
 
-Mit einem Idempotency-Key ist der Retry sicher. War das Original erfolgreich, gibt der Retry dasselbe 201 mit derselben VM-ID zurück — kein Duplikat. Ist das Original fehlgeschlagen, erledigt der Retry die Arbeit tatsächlich.
+Mit einem Idempotency-Key ist der Retry sicher. War das Original erfolgreich, gibt der Retry das ursprüngliche Event zurück und verteilt nichts erneut. Ist das Original fehlgeschlagen, erledigt der Retry die Arbeit tatsächlich.
 
-## Header verwenden {#usage}
+## Routen, die den Header annehmen {#usage}
 
-Senden Sie einen beliebigen String mit bis zu 255 Zeichen:
+| Route | API | Der Key ist |
+| --- | --- | --- |
+| `POST /v1/events` | Webhooks | Optional |
+| `POST /v1/qr-tracked/imports` | QR-Codes | Erforderlich |
+| `POST /api/v1/payment/payment_methods/{payment_method_id}/add_funds` | Infrastruktur | Erforderlich |
+
+Senden Sie einen beliebigen eindeutigen String:
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -X POST {{WEBHOOKS_BASE_URL}}/v1/events \
+  -H "Authorization: Bearer $WEBHOOKS_API_KEY" \
   -H "Idempotency-Key: 8e1c91a4-04d0-4d77-8e6e-2f7c1a5b8e84" \
   -H "Content-Type: application/json" \
-  -d '{ "name": "web-01", "size": "gp-2-4", "region": "us-east-1", "image": "ubuntu-24.04" }'
+  -d '{ "event_type": "order.created", "payload": { "order_id": "1234" } }'
 ```
 
 Üblich ist eine UUID v4 pro logischer Operation. Generieren Sie sie einmal auf dem Client, speichern Sie sie, bevor Sie den Request senden, und verwenden Sie sie bei jedem Retry derselben logischen Operation wieder. Für die *nächste* logische Operation generieren Sie eine neue.
-
-## Was als „derselbe Key“ gilt {#same-key}
-
-Wir speichern die Antwort zwischen, zugeordnet zu:
-
-1. dem Wert des Headers `Idempotency-Key`
-2. dem API-Key, der den Request sendet
-3. dem Endpoint (Methode + Pfad)
-
-Zwei Requests teilen sich eine zwischengespeicherte Antwort also nur, wenn **alle drei übereinstimmen**. Das verhindert Unfälle — ein Key, der für zwei Endpoints, zwei API-Keys oder sogar zwei Projekte (verschiedene API-Keys) wiederverwendet wird, führt zu keiner Verwechslung.
-
-## Was zwischengespeichert wird {#cached}
-
-Wir speichern die **vollständige Antwort** zwischen — Statuscode, Header, Body. Eine Wiederholung mit demselben Key liefert eine byte-identische Ausgabe. Das ist wichtig für Clients, die Antworten per Fingerprint vergleichen, um „Hat sich das geändert?“ zu erkennen — sie bekommen eine konsistente Antwort.
-
-Wir speichern auch **Fehler** zwischen. Wenn Ihr erster Aufruf an der Validierung gescheitert ist (`422 validation_error`), gibt der Retry dasselbe `422` zurück — keinen anderen Fehler, auch wenn Sie zwischen den Versuchen etwas korrigiert haben. Das ist richtig so: Idempotenz bedeutet „dieselbe Wirkung“, und die Wirkung des ersten Aufrufs war ein Fehlschlag. Wenn Sie einen neuen Versuch wollen, generieren Sie einen neuen Key.
-
-Die Webhooks-API ist die Ausnahme: Sie speichert einen Key nur, wenn ein Publish erfolgreich ist. Siehe [Bei der Webhooks-API](#webhooks).
-
-Die TTL des Caches beträgt **24 Stunden** ab der ersten Verwendung. Danach wird ein Request mit demselben Key als neuer Request behandelt.
-
-## Wann Sie ihn verwenden {#when}
-
-| Art des Endpoints | Verwenden? |
-| --- | --- |
-| `POST`, der eine Ressource erstellt (`POST /v1/vms`) | Ja |
-| `PUT`, der eine Ressource ersetzt (`PUT /v1/vms/{id}`) | Ja |
-| `PATCH`, der eine Ressource aktualisiert | Ja |
-| `DELETE` | Ja |
-| `GET`, `HEAD`, `OPTIONS` | Nein — bereits von Natur aus idempotent |
-| `POST`, der eine einmalige Operation auslöst (z. B. `POST /v1/vms/{id}/reboot`) | Ja — zweimal neu starten ist etwas anderes als einmal |
-
-In der Praxis: Jeder ändernde Request, der unterwegs fehlschlagen kann, profitiert von einem Key. Die Kosten sind ein Header pro Request und ein Schritt zum Generieren einer UUID auf Ihrer Seite.
-
-## Konflikt mit einer früheren Verwendung {#conflicts}
-
-Wenn Sie einen Key mit einem **anderen Request-Body** am selben Endpoint wiederverwenden, erhalten Sie `409 Conflict` mit `error.code: 'conflict'`, und `error.message` sagt, dass der Key bereits mit einem anderen Request-Body verwendet wurde. Der ursprüngliche Request bleibt bestehen; Ihr abweichender Body wird abgelehnt. Das ist das sicherste Verhalten — die alte Antwort stillschweigend zurückzugeben, würde einen Bug in Ihrer Retry-Schleife verdecken.
-
-Wenn Sie tatsächlich einen anderen Request senden müssen, generieren Sie einen neuen Key.
-
-Frühere Versionen dieser Seite gaben an, diese Antwort trage `error.code: 'idempotency_key_reused'`. Diesen Code hat die API nie gesendet; sie sendet `conflict`. `conflict` deckt auch andere Kollisionen mit bestehendem Zustand ab, etwa einen bereits vergebenen Namen; bei der Webhooks-API ist `details.reason` in diesem Fall `idempotency_key_reuse`. Siehe [Fehler](/docs/errors#codes-state).
 
 ## Bei der Webhooks-API {#webhooks}
 
@@ -89,15 +54,29 @@ Bei der Webhooks-API gilt `Idempotency-Key` für das Veröffentlichen eines Even
 
 „Derselbe Body“ bedeutet derselbe Event-Typ und dieselbe Payload für dasselbe Projekt. Ein Key gehört zu Ihrem Workspace und Projekt, nicht zu dem API-Key, der ihn gesendet hat; zwei API-Keys, die in dasselbe Projekt veröffentlichen, teilen sich also die Keys. Ein Key wird mindestens 24 Stunden lang aufbewahrt.
 
-## Wann Sie darauf verzichten können {#skip}
+## Bei QR-Codes und beim Aufladen von Guthaben {#other-routes}
 
-Ohne Key gilt `best-effort retry`. Für Lesezugriffe ist das in Ordnung; für Schreibzugriffe, bei denen Sie „vielleicht nichts, vielleicht eins“ verkraften (auf Anwendungsebene idempotente Operationen), ebenfalls. Der Header kostet nichts — aber wenn Ihre Anwendung bei Fehlern keinen Retry macht, merken Sie keinen Unterschied.
+Bei QR-Codes braucht ein Bulk-Import (`POST /v1/qr-tracked/imports`) einen Key. Ein Key gehört zu Ihrem Workspace. Derselbe Key und derselbe Body geben den ursprünglichen Import zurück, ohne seine Codes erneut zu erstellen; auf denselben Key und einen anderen Body antwortet die API mit `409`.
 
-Die Fälle, in denen Sie wirklich einen Key wollen:
+Das Aufladen Ihres Guthabens (`POST /api/v1/payment/payment_methods/{payment_method_id}/add_funds`) braucht ebenfalls einen Key, damit eine wiederholte Aufladung die Karte nicht zweimal belastet. Dieser Aufruf braucht eine angemeldete Sitzung, keinen API-Key ([Zahlungsmethoden](/docs/api/payment-methods)).
 
-- Alles, was mit Abrechnung zu tun hat (Sie wollen eine Karte nicht zweimal belasten)
-- Alles, was Nutzer sehen (Sie wollen eine Benachrichtigung nicht zweimal senden)
-- Jeder Schritt in einem Workflow, der bei einem Fehler Ressourcen bereitstellt (Sie wollen keine verwaisten Ressourcen)
+## Konflikt mit einer früheren Verwendung {#conflicts}
+
+Wenn Sie bei Webhooks oder QR-Codes einen Key mit einem **anderen Request-Body** am selben Endpoint wiederverwenden, erhalten Sie `409 Conflict` mit `error.code: 'conflict'`, und `error.message` sagt, dass der Key bereits mit einem anderen Request-Body verwendet wurde. Der ursprüngliche Request bleibt bestehen; Ihr abweichender Body wird abgelehnt. Das ist das sicherste Verhalten — die alte Antwort stillschweigend zurückzugeben, würde einen Bug in Ihrer Retry-Schleife verdecken.
+
+Wenn Sie tatsächlich einen anderen Request senden müssen, generieren Sie einen neuen Key.
+
+Frühere Versionen dieser Seite gaben an, diese Antwort trage `error.code: 'idempotency_key_reused'`. Diesen Code hat die API nie gesendet; sie sendet `conflict`. `conflict` deckt auch andere Kollisionen mit bestehendem Zustand ab, etwa einen bereits vergebenen Namen; bei der Webhooks-API ist `details.reason` in diesem Fall `idempotency_key_reuse`. Siehe [Fehler](/docs/errors#codes-state).
+
+## Auf allen anderen Routen {#skip}
+
+Ohne Key prüfen Sie, bevor Sie einen Schreibzugriff wiederholen:
+
+- **Eine VM oder ein Volume erstellen.** Der Aufruf stellt die Arbeit in die Warteschlange und antwortet ohne ID; suchen Sie die neue Ressource also in der Liste (`GET /api/v1/instance/`, `GET /api/v1/storage/`), bevor Sie ihn erneut senden. Mit einem eindeutigen `name` ist sie leicht zu finden.
+- **Etwas mit einem eindeutigen Namen erstellen.** Auf eine DNS-Zone oder einen Container im Objektspeicher, deren Name bereits vergeben ist, antwortet die API mit `409`, ein Retry nach einem Timeout kann also keine zweite Ressource erstellen. Verstehen Sie das `409` als Zeichen dafür, dass das Original möglicherweise funktioniert hat.
+- **Löschen.** Ein wiederholtes Löschen löscht nichts weiter, auch wenn der zweite Aufruf möglicherweise mit einem Fehler antwortet, weil die Ressource bereits weg ist. Lesen Sie die Ressource, um sicherzugehen.
+
+Bei Lesezugriffen ist ein Retry immer in Ordnung.
 
 ## Nächste Schritte {#next-steps}
 

@@ -1,8 +1,8 @@
 ---
 title: "Моніторинг парку VM"
-description: "Збір метрик у Prometheus, метрики від NimbusNexus і алерти, які мають значення."
+description: "Збір метрик у Prometheus через node_exporter і алерти, які мають значення."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-04
 kind: guide
 ---
 
@@ -19,20 +19,33 @@ kind: guide
 - VM із Grafana, що робить запити до Prometheus
 - 6 алертів, що покривають «те, про що вам справді треба отримувати термінові сповіщення»
 
-Загальна вартість: ~$30/міс за VM із Prometheus і Grafana (два інстанси `gp-1-2` в одному регіоні) плюс сховище для метрик.
+Вартість: VM із Prometheus і Grafana (у прикладах нижче — по одному vCPU і 2 GB RAM кожна) плюс сховище для метрик. Ціни наведено на сторінці [Дані про ціни](/docs/api/pricing-data).
 
 ## 1 · Запустіть VM для Prometheus {#prometheus}
 
+На сторінці [Швидкий старт](/docs/quickstart#region) показано, звідки беруться образ, мережа, група безпеки й значення `spec`. `sshs` вказує зареєстрований вами [SSH-ключ](/docs/api/ssh-keys).
+
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+export SSH_KEY_NAME="<ssh-key-name>"
+
+curl -X POST {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "monitoring-prometheus",
-    "size": "gp-1-2",
-    "region": "us-east-1",
-    "image": "ubuntu-24.04"
-  }'
+  -d "{
+    \"name\": \"monitoring-prometheus\",
+    \"image\": \"$IMAGE_ID\",
+    \"spec\": {
+      \"architecture\": \"$ARCHITECTURE\",
+      \"vm_class\": \"$VM_CLASS\",
+      \"cpu\": 1,
+      \"ram\": 2048,
+      \"volume_type\": \"$VOLUME_TYPE\"
+    },
+    \"volume_size\": 50,
+    \"network\": [\"$NETWORK_ID\"],
+    \"security_group\": [\"$SECURITY_GROUP_ID\"],
+    \"sshs\": \"$SSH_KEY_NAME\"
+  }"
 ```
 
 Підключіться через SSH і встановіть Prometheus:
@@ -55,6 +68,8 @@ sudo systemctl enable --now prometheus-node-exporter
 
 Якщо у парку більше кількох VM, використовуйте [образ VM](/docs/api/vm-images) з уже вбудованим node_exporter або запускайте одноразовий скрипт Ansible / cloud-init під час завантаження. Вручну заходити через SSH на 20 VM — не рішення в довгостроковій перспективі.
 
+Група безпеки нічого не пропускає всередину, доки ви цього не дозволите, тож додайте до групи парку правило, що відкриває TCP 9100 для групи VM із Prometheus ([Групи безпеки](/docs/api/security-groups)).
+
 ## 3 · Налаштуйте збір метрик із парку в Prometheus {#scrape}
 
 ```yaml
@@ -73,19 +88,7 @@ scrape_configs:
           # … one entry per VM
 ```
 
-Для динамічних парків (автомасштабування, часте розгортання) використовуйте HTTP-виявлення сервісів через API NimbusNexus:
-
-```yaml
-scrape_configs:
-  - job_name: 'fleet'
-    http_sd_configs:
-      - url: '{{API_BASE_URL}}/v1/vms/prometheus-targets'
-        authorization:
-          type: Bearer
-          credentials_file: /etc/prometheus/nimbus.key
-```
-
-Так Prometheus кожні 60 секунд отримує з API поточний список VM і заново синхронізує свій список цілей. Нові VM потрапляють під моніторинг автоматично; для видалених алерти припиняються.
+Для динамічних парків (автомасштабування, часте розгортання) генеруйте список, а не пишіть його вручну: `GET /api/v1/instance/` повертає кожну VM з її адресами в `nics`, а `file_sd_configs` у Prometheus читає цілі з файлу, який ви перезаписуєте. В API немає маршруту, призначеного для виявлення сервісів у Prometheus.
 
 Перезавантажте Prometheus:
 
@@ -96,15 +99,24 @@ sudo systemctl reload prometheus
 ## 4 · Запустіть Grafana {#grafana}
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -X POST {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "monitoring-grafana",
-    "size": "gp-1-2",
-    "region": "us-east-1",
-    "image": "ubuntu-24.04"
-  }'
+  -d "{
+    \"name\": \"monitoring-grafana\",
+    \"image\": \"$IMAGE_ID\",
+    \"spec\": {
+      \"architecture\": \"$ARCHITECTURE\",
+      \"vm_class\": \"$VM_CLASS\",
+      \"cpu\": 1,
+      \"ram\": 2048,
+      \"volume_type\": \"$VOLUME_TYPE\"
+    },
+    \"volume_size\": 25,
+    \"network\": [\"$NETWORK_ID\"],
+    \"security_group\": [\"$SECURITY_GROUP_ID\"],
+    \"sshs\": \"$SSH_KEY_NAME\"
+  }"
 ```
 
 ```bash
@@ -115,7 +127,7 @@ sudo apt install -y grafana
 sudo systemctl enable --now grafana-server
 ```
 
-Відкрийте в браузері `http://<grafana-vm-ip>:3000`. Стандартний логін — `admin/admin` (одразу змініть). Додайте Prometheus як джерело даних із внутрішнім IP VM із Prometheus і портом 9090.
+Відкрийте порт 3000 для свого IP у групі безпеки VM із Grafana, а потім відкрийте в браузері `http://<grafana-vm-ip>:3000`. Стандартний логін — `admin/admin` (одразу змініть). Додайте Prometheus як джерело даних із внутрішнім IP VM із Prometheus і портом 9090.
 
 Дашборди: імпортуйте дашборд з ID `1860` («Node Exporter Full») з бібліотеки Grafana. Він охоплює всі метрики, які віддає `node_exporter`, — окремо для кожного інстансу й сукупно.
 
@@ -222,6 +234,5 @@ URL вхідного вебхука Slack береться з вашого ро�
 
 ## Наступні кроки {#next-steps}
 
-- [Довідник віртуальних машин](/docs/api/vms) — ресурс, що віддає всі ці метрики.
-- [Снапшоти](/docs/api/snapshots) — робіть бекап тому даних VM із Prometheus, щоб історія за рік не зникла через втрату однієї VM.
-- [Вебхуки платформи](/docs/webhooks) — події `vm.state_changed` шумніші за цей моніторинг, але корисні, щоб зʼясувати, що «VM перезавантажила підтримка».
+- [Довідник віртуальних машин](/docs/api/vms) — VM, за якими стежить це налаштування.
+- [Бекапи](/docs/api/backups) — робіть бекап тому VM із Prometheus, щоб історія за рік не зникла через втрату однієї VM.

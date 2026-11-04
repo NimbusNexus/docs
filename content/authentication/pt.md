@@ -1,8 +1,8 @@
 ---
 title: "Autenticação"
-description: "Chaves de API, escopos, fronteiras de projeto e como rotacionar credenciais com segurança."
+description: "Chaves de API, funções e regras de acesso, fronteiras de projeto e como substituir uma chave com segurança."
 publishedAt: 2026-05-19
-updatedAt: 2026-11-03
+updatedAt: 2026-11-04
 kind: concept
 ---
 

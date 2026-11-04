@@ -2,7 +2,7 @@
 title: "Патерни розгортання контейнерів"
 description: "Одна VM, Docker під керуванням systemd, за плаваючим IP. Патерн для 80 % випадків."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-04
 kind: guide
 ---
 
@@ -21,38 +21,78 @@ NimbusNexus (поки що) не пропонує керованого серв�
 
 ## 1 · Розгорніть VM {#vm}
 
-Виберіть розмір, що підходить вашому сервісу. Для більшості навантажень API/веб без стану `gp-1-2` (1 vCPU, 2 GB RAM) — добра відправна точка; якщо потрібно більше, збільште розмір.
+Виберіть розмір, що підходить вашому сервісу. Для більшості навантажень API/веб без стану один vCPU і 2 GB RAM — добра відправна точка; якщо потрібно більше, збільште розмір. На сторінці [Швидкий старт](/docs/quickstart#region) показано, звідки беруться образ, мережа, група безпеки й значення `spec`. Група безпеки має пропускати SSH і порт вашого сервісу ([Групи безпеки](/docs/api/security-groups)), а `sshs` вказує зареєстрований вами [SSH-ключ](/docs/api/ssh-keys).
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+export SSH_KEY_NAME="<ssh-key-name>"
+USER_DATA='#!/bin/bash\napt-get update && apt-get install -y docker.io'
+
+curl -X POST {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "api-prod",
-    "size": "gp-1-2",
-    "region": "us-east-1",
-    "image": "ubuntu-24.04",
-    "user_data": "#!/bin/bash\napt-get update && apt-get install -y docker.io"
-  }'
+  -d "{
+    \"name\": \"api-prod\",
+    \"image\": \"$IMAGE_ID\",
+    \"spec\": {
+      \"architecture\": \"$ARCHITECTURE\",
+      \"vm_class\": \"$VM_CLASS\",
+      \"cpu\": 1,
+      \"ram\": 2048,
+      \"volume_type\": \"$VOLUME_TYPE\"
+    },
+    \"volume_size\": 25,
+    \"network\": [\"$NETWORK_ID\"],
+    \"security_group\": [\"$SECURITY_GROUP_ID\"],
+    \"sshs\": \"$SSH_KEY_NAME\",
+    \"user_data\": \"$USER_DATA\"
+  }"
 ```
 
-`user_data` виконується під час першого завантаження — тут він встановлює Docker. Коли VM переходить у стан `running`, Docker уже готовий.
+`user_data` виконується під час першого завантаження — тут він встановлює Docker. VM досягає `ACTIVE` раніше, ніж цей скрипт завершиться, тож дайте їй хвилину-дві.
+
+Виклик відповідає без ідентифікатора. Знайдіть VM за назвою й перевірте, що її `status` уже `ACTIVE`:
+
+```bash
+export VM_ID=$(curl -s {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq -r '.data[] | select(.name == "api-prod") | .id')
+
+curl -s {{API_BASE_URL}}/api/v1/instance/$VM_ID \
+  -H "X-API-Key: $NIMBUS_KEY" | jq -r '.data.status'
+```
 
 ## 2 · Виділіть плаваючий IP {#floating-ip}
 
+Мережі VM потрібен [маршрутизатор](/docs/api/routers) до зовнішньої мережі. Прочитайте те, що потрібно наступному виклику: зовнішню мережу, а також порт і фіксований IP VM:
+
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/floating-ips \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -s "{{API_BASE_URL}}/api/v1/floating_ip/artifacts?resource_id=$VM_ID" \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq '{ networks: [.data.floating_networks.data[] | { id, name }], interfaces: .data.interfaces.data }'
+```
+
+```bash
+export FLOATING_NETWORK_ID="<external-network-id>"
+export PORT_ID="<port-id>"
+export FIXED_IP="<fixed-ip>"
+```
+
+Потім виділіть IP. Новому плаваючому IP потрібні тарифний план і ліміт пропускної здатності: `bandwidth_mbps` має бути кратним 10, а пропускна здатність тарифікується ([Дані про ціни](/docs/api/pricing-data)).
+
+```bash
+export PUBLIC_IP=$(curl -s -X POST {{API_BASE_URL}}/api/v1/floating_ip/allocate \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d "{ \"region\": \"us-east-1\", \"vm_id\": \"$VM_ID\" }"
+  -d "{
+    \"floating_network_id\": \"$FLOATING_NETWORK_ID\",
+    \"vm_port_id\": \"$PORT_ID\",
+    \"vm_ip_address\": \"$FIXED_IP\",
+    \"bandwidth_subscription\": \"Monthly\",
+    \"bandwidth_mbps\": 100
+  }" | jq -r '.data.ip_address')
 ```
 
-IP підʼєднується до VM і стає її публічною адресою. Збережіть IPv4-адресу:
-
-```bash
-export PUBLIC_IP=$(curl -s {{API_BASE_URL}}/v1/floating-ips/$FLOATING_IP_ID \
-  -H "Authorization: Bearer $NIMBUS_KEY" | jq -r '.ipv4')
-```
+IP підʼєднується до VM і стає її публічною адресою.
 
 Націльте на нього свій DNS ([DNS-записи](/docs/api/dns-records) або ваш наявний реєстратор).
 
@@ -62,7 +102,7 @@ export PUBLIC_IP=$(curl -s {{API_BASE_URL}}/v1/floating-ips/$FLOATING_IP_ID \
 
 - **Docker Hub** — безкоштовно для публічних образів.
 - **GitHub Container Registry** (`ghcr.io`) — безкоштовно для публічних репозиторіїв, входить у GitHub.
-- **Обʼєктне сховище NimbusNexus** — якщо волієте хостити самі, завантажуйте tar-архіви в приватний bucket і стягуйте їх у юніті systemd (керувати тегами трохи складніше).
+- **Обʼєктне сховище NimbusNexus** — якщо волієте хостити самі, завантажуйте tar-архіви в приватний контейнер обʼєктного сховища і стягуйте їх у юніті systemd (керувати тегами трохи складніше).
 
 У цій інструкції ми використовуємо `ghcr.io/yourorg/api:v1.4.2`.
 
@@ -116,8 +156,8 @@ WantedBy=multi-user.target
 Покладіть свої секрети в `/etc/api/env`:
 
 ```env
-DATABASE_URL=postgresql://app:••••@{{DB_HOST_DEMO}}:6432/app?sslmode=verify-full
-NIMBUS_KEY=nn_live_xxxxxxxxxxxxxxxx
+DATABASE_URL=postgresql://app:••••@10.0.2.10:5432/app?sslmode=require
+NIMBUS_KEY=<your-api-key>
 JWT_SECRET=...
 ```
 
@@ -161,7 +201,7 @@ sudo journalctl -u api.service -f
 Для довшого зберігання логів пересилайте їх із journald туди, де ви зберігаєте логи:
 
 - **systemd-journal-remote** — вбудоване вивантаження на іншу машину із systemd.
-- **Vector** — кілька виходів, зокрема S3-сумісне обʼєктне сховище (надсилання в bucket NimbusNexus).
+- **Vector** — пересилання логів у кілька виходів.
 - **Promtail + Loki** — агрегація логів на стеку Grafana.
 
 ## Чому цей патерн, а не Kubernetes {#why}
@@ -174,7 +214,7 @@ sudo journalctl -u api.service -f
 
 ## Чого цей патерн не робить {#limitations}
 
-- **Без автомасштабування.** Масштабування вшир — вручну через `nimbus vms create`; скорочення — вручну через `nimbus vms delete`. Добре для стабільних навантажень; погано для тих, що коливаються разом із трафіком.
+- **Без автомасштабування.** Масштабування вшир — це створення VM (`POST /api/v1/instance/`); скорочення — видалення VM (`POST /api/v1/instance/action`). Добре для стабільних навантажень; погано для тих, що коливаються разом із трафіком.
 - **Без виявлення сервісів.** Сервіси знаходять одне одного за відомими публічними IP або через DNS — а не через пошук усередині кластера. Для конфігурацій із двох-трьох сервісів це нормально; для більших потрібен реєстр.
 - **Без перезапусків за перевірками стану — лише за кодом виходу контейнера.** systemd перезапускає контейнер після збою, але не тоді, коли «процес працює, але несправний». Якщо вам це потрібно, додайте власний watchdog (sidecar, що звертається до `/healthz` і в разі збою надсилає контейнеру `kill -1`).
 

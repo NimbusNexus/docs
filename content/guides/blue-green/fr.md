@@ -2,13 +2,13 @@
 title: "Déploiements blue/green avec IP flottantes"
 description: "Des déploiements sans interruption en basculant une IP flottante entre deux VM déjà démarrées."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-04
 kind: guide
 ---
 
 # Déploiements blue/green avec IP flottantes
 
-Le modèle blue/green classique : faites tourner la production actuelle derrière une IP flottante, construisez la nouvelle version sur une VM séparée, lancez des smoke tests sur celle-ci tant qu’elle n’est pas encore exposée au public, puis basculez l’IP flottante de l’ancienne VM vers la nouvelle. Le trafic bascule en ~2 secondes. En cas de problème, rebasculez l’IP.
+Le modèle blue/green classique : faites tourner la production actuelle derrière une IP flottante, construisez la nouvelle version sur une VM séparée, lancez des smoke tests sur celle-ci tant qu’elle n’est pas encore exposée au public, puis basculez l’IP flottante de l’ancienne VM vers la nouvelle. Le trafic bascule dès que l’IP s’attache. En cas de problème, rebasculez l’IP.
 
 Ce guide suppose une charge de travail sur une seule VM (une VM de production, une VM de staging). Pour des charges sur plusieurs VM derrière un load balancer, voir [Load balancers](/docs/api/load-balancers) — le même modèle s’applique, mais vous échangez plutôt les pools de cibles du LB.
 
@@ -17,34 +17,36 @@ Ce guide suppose une charge de travail sur une seule VM (une VM de production, u
 - Deux VM dans la même région. Nous les appellerons `blue` (en service actuellement) et `green` (version suivante).
 - Une [IP flottante](/docs/api/floating-ips) actuellement attachée à `blue`.
 - Un enregistrement DNS A qui pointe vers l’IP flottante.
-- La CLI `nimbus` installée, ou curl avec $NIMBUS_KEY défini.
+- `curl` et `jq`, avec `$NIMBUS_KEY` défini sur une [clé API](/docs/authentication) qui peut faire ces appels.
 
 ```bash
-export NIMBUS_KEY="nn_live_xxxxxxxxxxxxxxxx"
-export BLUE_ID="vm_01HG7Y3..."     # currently serving
-export GREEN_ID="vm_01HG7Y4..."    # new version
-export FLOATING_IP_ID="ip_01HG7..."
+export NIMBUS_KEY="<your-api-key>"
+export BLUE_ID="<blue-vm-id>"     # currently serving
+export GREEN_ID="<green-vm-id>"    # new version
+export FLOATING_IP_ID="<floating-ip-id>"
 ```
+
+`GET /api/v1/instance/` liste vos VM et `GET /api/v1/floating_ip/` vos IP flottantes, avec leurs identifiants.
 
 ## 1 · Construire la VM green {#build-green}
 
-Démarrez la nouvelle version avec le code et la configuration mis à jour, mais sans attacher l’IP flottante. À ce stade, c’est une VM autonome avec une IP publique par défaut ; rien en production ne l’atteint.
+Démarrez la nouvelle version avec le code et la configuration mis à jour, mais sans attacher l’IP flottante. À ce stade, c’est une VM autonome avec sa propre adresse ; rien en production ne l’atteint.
 
 Déployez-y votre application, lancez les migrations de base de données (si elles assurent la compatibilité ascendante, dite forward compatibility — voir « migrations de schéma » ci-dessous), préchauffez les caches et exécutez tout le travail de démarrage qui doit avoir lieu avant l’arrivée du trafic.
 
 ## 2 · Lancer les smoke tests sur green {#smoke}
 
-Appelez directement l’IP publique par défaut de green :
+Appelez directement l’adresse propre de green, depuis un endroit qui peut l’atteindre : une autre VM sur le même réseau, ou n’importe où si green est sur le réseau externe. `GET /api/v1/instance/{server_id}/interfaces/` liste les interfaces d’une VM, une par réseau ; `.data[0]` ci-dessous est la première.
 
 ```bash
-GREEN_IP=$(curl -s {{API_BASE_URL}}/v1/vms/$GREEN_ID \
-  -H "Authorization: Bearer $NIMBUS_KEY" | jq -r '.ipv4')
+GREEN_IP=$(curl -s {{API_BASE_URL}}/api/v1/instance/$GREEN_ID/interfaces/ \
+  -H "X-API-Key: $NIMBUS_KEY" | jq -r '.data[0].fixed_ips[0].ip_address')
 
 curl -H "Host: app.example.com" "http://$GREEN_IP/healthz"
 curl -H "Host: app.example.com" "http://$GREEN_IP/api/critical-endpoint"
 ```
 
-Le header `Host` vous permet de tester les comportements qui dépendent du nom d’hôte canonique (par exemple le routage, CORS ou tout ce qui repose sur un certificat épinglé) sans modifier le DNS. Si votre service exige HTTPS et que vous avez épinglé un certificat sur `app.example.com`, installez ce certificat sur green à l’avance (Let’s Encrypt avec un challenge HTTP-01 sur l’IP par défaut de green fonctionne).
+Le header `Host` vous permet de tester les comportements qui dépendent du nom d’hôte canonique (par exemple le routage, CORS ou tout ce qui repose sur un certificat épinglé) sans modifier le DNS. Si votre service exige HTTPS et que vous avez épinglé un certificat sur `app.example.com`, installez ce certificat sur green à l’avance.
 
 Lancez tous les autres tests que vous feriez avant une mise en production :
 
@@ -54,23 +56,45 @@ Lancez tous les autres tests que vous feriez avant une mise en production :
 
 ## 3 · Basculer l’IP flottante {#swing}
 
-C’est la bascule. Un seul appel d’API :
+C’est la bascule : deux appels d’API, un pour détacher et un pour attacher. Lisez d’abord ce dont l’appel d’attachement a besoin, le port de green et le réseau externe auquel appartient l’IP :
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/floating-ips/$FLOATING_IP_ID/attach \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+GREEN_PORT_ID=$(curl -s {{API_BASE_URL}}/api/v1/instance/$GREEN_ID/interfaces/ \
+  -H "X-API-Key: $NIMBUS_KEY" | jq -r '.data[0].port_id')
+
+FLOATING_NETWORK_ID=$(curl -s {{API_BASE_URL}}/api/v1/floating_ip/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq -r ".data[] | select(.id == \"$FLOATING_IP_ID\") | .network")
+```
+
+Puis basculez-la :
+
+```bash
+# Detach the IP from blue
+curl -X POST {{API_BASE_URL}}/api/v1/floating_ip/deallocate \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d "{ \"vm_id\": \"$GREEN_ID\" }"
+  -d "{ \"id\": \"$FLOATING_IP_ID\" }"
+
+# Attach it to green
+curl -X POST {{API_BASE_URL}}/api/v1/floating_ip/allocate \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"floating_ip_id\": \"$FLOATING_IP_ID\",
+    \"floating_network_id\": \"$FLOATING_NETWORK_ID\",
+    \"vm_port_id\": \"$GREEN_PORT_ID\",
+    \"vm_ip_address\": \"$GREEN_IP\"
+  }"
 ```
 
 Ce qui se passe :
 
-- L’IP flottante se détache de `blue` (qui l’avait parmi ses adresses publiques)
-- L’IP flottante s’attache à `green`
-- La propagation réseau prend ~2 secondes ; l’IP commence à servir depuis green
-- Les connexions TCP vers l’IP de l’ancienne VM restent ouvertes jusqu’à l’expiration de leur délai d’inactivité (en général 30–60 secondes pour le keepalive HTTP) ; les nouvelles connexions arrivent sur green
+- L’IP flottante se détache de `blue`. Entre les deux appels, l’adresse n’a aucune VM derrière elle : lancez-les donc l’un juste après l’autre.
+- L’IP flottante s’attache à `green`, et l’IP commence à servir depuis green.
+- Les nouvelles connexions arrivent sur green. Un client dont une connexion est ouverte via l’IP flottante devra peut-être se reconnecter.
 
-Pour la plupart des charges HTTP, la bascule se fait en pratique sans interruption. Les connexions existantes terminent leurs requêtes sur blue ; les nouvelles requêtes arrivent sur green. Les utilisateurs sur des connexions longues (SSE, WebSocket) sont reconnectés automatiquement par leurs clients.
+Pour la plupart des charges HTTP, la bascule se fait en pratique sans interruption. Les utilisateurs sur des connexions longues (SSE, WebSocket) sont reconnectés automatiquement par leurs clients.
 
 ## 4 · Surveiller green sous trafic {#watch}
 
@@ -83,27 +107,45 @@ La fenêtre pendant laquelle un retour arrière coûte peu correspond aux ~5 pre
 
 ## 5 · Arrêter blue {#stop-blue}
 
-Si tout est au vert (c’est le cas de le dire), arrêtez blue pour ne plus la payer :
+Si tout est au vert (c’est le cas de le dire), arrêtez blue :
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/vms/$BLUE_ID/stop \
-  -H "Authorization: Bearer $NIMBUS_KEY"
+curl -X POST {{API_BASE_URL}}/api/v1/instance/action \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{ \"servers\": [\"$BLUE_ID\"], \"cmd\": \"stop\" }"
 ```
 
-Ne lancez pas `delete` tout de suite. Les VM arrêtées coûtent ~10 % du prix des VM en marche (stockage uniquement), et vous pouvez les relancer avec `start` comme retour arrière rapide pendant ~24 heures. Après 24 heures, supprimez-les.
+Ne la supprimez pas tout de suite : une VM arrêtée peut être relancée avec `start` comme retour arrière rapide. Elle reste toutefois facturée, car une VM est facturée de sa création à sa suppression. Quand vous n’avez plus besoin de ce retour arrière, supprimez-la avec `"cmd": "delete"`.
 
 ## Procédure de retour arrière {#rollback}
 
-Si green se comporte mal sous trafic, le retour arrière est symétrique :
+Si green se comporte mal sous trafic, le retour arrière est symétrique. Relancez blue si vous l’avez arrêtée (`"cmd": "start"`), puis rebasculez l’IP :
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/floating-ips/$FLOATING_IP_ID/attach \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+BLUE_PORT_ID=$(curl -s {{API_BASE_URL}}/api/v1/instance/$BLUE_ID/interfaces/ \
+  -H "X-API-Key: $NIMBUS_KEY" | jq -r '.data[0].port_id')
+
+BLUE_IP=$(curl -s {{API_BASE_URL}}/api/v1/instance/$BLUE_ID/interfaces/ \
+  -H "X-API-Key: $NIMBUS_KEY" | jq -r '.data[0].fixed_ips[0].ip_address')
+
+curl -X POST {{API_BASE_URL}}/api/v1/floating_ip/deallocate \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d "{ \"vm_id\": \"$BLUE_ID\" }"
+  -d "{ \"id\": \"$FLOATING_IP_ID\" }"
+
+curl -X POST {{API_BASE_URL}}/api/v1/floating_ip/allocate \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"floating_ip_id\": \"$FLOATING_IP_ID\",
+    \"floating_network_id\": \"$FLOATING_NETWORK_ID\",
+    \"vm_port_id\": \"$BLUE_PORT_ID\",
+    \"vm_ip_address\": \"$BLUE_IP\"
+  }"
 ```
 
-Mêmes ~2 secondes, et le trafic revient sur blue. Les retours arrière deviennent plus difficiles si vos migrations de base de données n’assuraient pas la compatibilité ascendante — découplez les migrations de schéma des déploiements de code, et vous gardez la possibilité de revenir en arrière.
+Mêmes deux appels, et le trafic revient sur blue. Les retours arrière deviennent plus difficiles si vos migrations de base de données n’assuraient pas la compatibilité ascendante — découplez les migrations de schéma des déploiements de code, et vous gardez la possibilité de revenir en arrière.
 
 ## Migrations de schéma {#migrations}
 

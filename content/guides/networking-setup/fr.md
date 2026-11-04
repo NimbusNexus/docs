@@ -2,24 +2,24 @@
 title: "Configuration réseau d’un projet"
 description: "Réseaux, sous-réseaux, routeurs et groupes de sécurité — le câblage de référence d’une application multi-tiers."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-04
 kind: guide
 ---
 
 # Configuration réseau d’un projet
 
-La configuration réseau NimbusNexus de référence pour une application multi-tiers : un réseau privé avec deux sous-réseaux (l’un exposé au public, l’autre réservé à la base de données), un routeur qui relie le sous-réseau public à internet, et des groupes de sécurité qui restreignent le trafic entre les tiers. Ce guide décrit la mise en place de bout en bout et explique la raison d’être de chaque élément.
+La configuration réseau NimbusNexus de référence pour une application multi-tiers : un réseau privé par tier (l’un exposé au public, l’autre réservé à la base de données), un routeur qui les relie entre eux et à internet, et des groupes de sécurité qui restreignent le trafic entre les tiers. Ce guide décrit la mise en place de bout en bout et explique la raison d’être de chaque élément.
 
 À la fin, vous aurez :
 
-- Un réseau avec deux sous-réseaux (`10.0.1.0/24` pour le web, `10.0.2.0/24` pour la base de données)
-- Un routeur avec une passerelle externe, attaché au sous-réseau web
+- Deux réseaux, chacun avec un sous-réseau (`10.0.1.0/24` pour le web, `10.0.2.0/24` pour la base de données)
+- Un routeur avec une passerelle externe, attaché aux deux sous-réseaux
 - Deux groupes de sécurité : `web-sg` (HTTPS ouvert à internet) et `db-sg` (port 5432 uniquement depuis `web-sg`)
 - Une méthode de test pour vérifier que l’isolation fonctionne
 
 ## Pourquoi cette architecture {#why}
 
-Les applications sur une seule VM n’ont besoin de rien de tout cela — une VM avec une IP flottante et sans configuration réseau fonctionne très bien. Cette architecture s’adresse aux applications qui :
+Les applications sur une seule VM n’ont besoin de rien de tout cela — une VM sur le réseau externe détient directement une adresse publique. Cette architecture s’adresse aux applications qui :
 
 - Ont plusieurs composants (tier web + base de données, tier web + tier worker + cache, ...)
 - Doivent garder une partie de la stack hors de l’internet public
@@ -29,61 +29,63 @@ Pour une application vraiment mono-VM, voir plutôt [Modèles de déploiement de
 
 ## Prérequis {#prereqs}
 
-- Une clé API avec les portées `networks:write` et `vms:write`.
-- Une région choisie (nous utiliserons `us-east-1`).
+- Une clé API qui peut faire ces appels : `unrestricted`, ou des règles d’accès qui les nomment ([Ce qu’une clé peut faire](/docs/authentication#scopes)).
 - Une idée approximative des VM / services que vous voulez dans chaque tier.
 
+Tout ce que vous créez ici se retrouve dans la [région](/docs/api/regions) de votre session.
+
 ```bash
-export NIMBUS_KEY="nn_live_xxxxxxxxxxxxxxxx"
-export REGION="us-east-1"
+export NIMBUS_KEY="<your-api-key>"
 ```
 
-## 1 · Créer le réseau {#network}
+## 1 · Créer les réseaux {#network}
 
-Un réseau est le domaine de diffusion L2 — toutes les VM et ressources attachées au même réseau peuvent se joindre (sous réserve des groupes de sécurité).
+Un réseau est le domaine de diffusion L2 — toutes les VM et ressources attachées au même réseau peuvent se joindre (sous réserve des groupes de sécurité). Créez-en un par tier : une VM rejoint un réseau, pas un sous-réseau ; sur un réseau à deux sous-réseaux, vous ne pourriez donc pas choisir celui dans lequel elle se retrouve.
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/networks \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -X POST {{API_BASE_URL}}/api/v1/network/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "app-network",
-    "region": "us-east-1",
-    "cidr": "10.0.0.0/16"
-  }'
+  -d '{ "name": "web-network" }'
+
+curl -X POST {{API_BASE_URL}}/api/v1/network/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "db-network" }'
 ```
 
-Le bloc `10.0.0.0/16` est l’espace d’adressage de tout ce qui se trouve dans ce réseau. Choisissez une plage qui ne chevauche ni le VPN de votre bureau, ni votre réseau domestique, ni aucun autre réseau avec lequel vous pourriez établir un peering plus tard (`192.168.0.0/16` est donc en général un mauvais choix — trop courant). `10.0.0.0/16` convient à la plupart des configurations ; `172.16.0.0/12` aussi.
-
-Enregistrez l’identifiant du réseau :
+Chaque réponse contient l’`id` du nouveau réseau sous `data`. Enregistrez les deux :
 
 ```bash
-export NET_ID="net_01HG7Y3..."
+export WEB_NET_ID="<web-network-id>"
+export DB_NET_ID="<db-network-id>"
 ```
 
 ## 2 · Créer deux sous-réseaux {#subnets}
 
-Découpez le réseau en deux sous-réseaux — l’un pour ce qui est exposé à l’internet public, l’autre pour ce qui ne doit pas l’être.
+Donnez à chaque réseau un bloc d’adresses. Choisissez une plage qui ne chevauche ni le VPN de votre bureau, ni votre réseau domestique, ni aucun autre réseau auquel vous pourriez vous connecter plus tard (`192.168.0.0/16` est donc en général un mauvais choix — trop courant). Les blocs à l’intérieur de `10.0.0.0/16` conviennent à la plupart des configurations ; `172.16.0.0/12` aussi.
 
 ```bash
-# Web subnet — VMs that need internet access
-curl -X POST {{API_BASE_URL}}/v1/subnets \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+# Web subnet
+curl -X POST {{API_BASE_URL}}/api/v1/subnet/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
   -d "{
     \"name\": \"web\",
-    \"network_id\": \"$NET_ID\",
+    \"network_id\": \"$WEB_NET_ID\",
+    \"ip_version\": 4,
     \"cidr\": \"10.0.1.0/24\",
     \"gateway_ip\": \"10.0.1.1\"
   }"
 
-# Database subnet — for tier-2 resources
-curl -X POST {{API_BASE_URL}}/v1/subnets \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+# Database subnet
+curl -X POST {{API_BASE_URL}}/api/v1/subnet/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
   -d "{
     \"name\": \"db\",
-    \"network_id\": \"$NET_ID\",
+    \"network_id\": \"$DB_NET_ID\",
+    \"ip_version\": 4,
     \"cidr\": \"10.0.2.0/24\",
     \"gateway_ip\": \"10.0.2.1\"
   }"
@@ -91,108 +93,170 @@ curl -X POST {{API_BASE_URL}}/v1/subnets \
 
 L’IP de passerelle est l’adresse de l’interface du routeur sur ce sous-réseau. Les VM l’utilisent comme route par défaut.
 
-## 3 · Créer le routeur et l’attacher au sous-réseau web {#router}
-
-C’est le routeur qui fait sortir le trafic du sous-réseau web vers internet (et le fait revenir). Le sous-réseau de la base de données n’est pas relié au routeur — c’est ainsi qu’il reste hors de l’internet public.
+Enregistrez les `id` des deux sous-réseaux :
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/routers \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+export WEB_SUBNET_ID="<web-subnet-id>"
+export DB_SUBNET_ID="<db-subnet-id>"
+```
+
+## 3 · Créer le routeur et l’attacher aux deux sous-réseaux {#router}
+
+C’est le routeur qui fait sortir le trafic des sous-réseaux vers internet (et le fait revenir), et qui le fait passer d’un sous-réseau à l’autre. `GET /api/v1/router/artifacts` liste les réseaux externes auxquels il peut se connecter :
+
+```bash
+curl -s {{API_BASE_URL}}/api/v1/router/artifacts \
+  -H "X-API-Key: $NIMBUS_KEY" | jq '.data.external_networks.data'
+```
+
+```bash
+export EXTERNAL_NET_ID="<external-network-id>"
+
+curl -X POST {{API_BASE_URL}}/api/v1/router/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
   -d "{
     \"name\": \"app-router\",
-    \"region\": \"us-east-1\",
-    \"external_gateway\": true
+    \"external_gateway_info\": { \"network_id\": \"$EXTERNAL_NET_ID\" },
+    \"bandwidth_subscription\": \"Monthly\",
+    \"bandwidth_mbps\": 100
   }"
 ```
 
-`external_gateway: true` alloue une IP publique au routeur et active le SNAT pour le trafic sortant des sous-réseaux qui lui sont attachés.
+`external_gateway_info` alloue une IP publique au routeur et active le SNAT pour le trafic sortant des sous-réseaux qui lui sont attachés. Il demande aussi `bandwidth_subscription` et `bandwidth_mbps` (un multiple de 10) : la passerelle est plafonnée à cette bande passante, et la bande passante est facturée ([Données tarifaires](/docs/api/pricing-data)).
 
-Enregistrez l’identifiant du routeur et attachez-le au sous-réseau web :
+Enregistrez l’identifiant du routeur et attachez-le aux deux sous-réseaux :
 
 ```bash
-export ROUTER_ID="rtr_01HG7Y3..."
+export ROUTER_ID="<router-id>"
 
-curl -X POST {{API_BASE_URL}}/v1/routers/$ROUTER_ID/interfaces \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -X PUT {{API_BASE_URL}}/api/v1/router/$ROUTER_ID/interface \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
   -d "{ \"subnet_id\": \"$WEB_SUBNET_ID\" }"
+
+curl -X PUT {{API_BASE_URL}}/api/v1/router/$ROUTER_ID/interface \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{ \"subnet_id\": \"$DB_SUBNET_ID\" }"
 ```
 
-Le sous-réseau de la base de données reste hors du routeur. Ce qui s’y trouve ne peut atteindre que ce qui est joignable via le réseau L2 — c’est-à-dire les autres éléments du même réseau, sous le contrôle des groupes de sécurité.
+Le tier web peut maintenant atteindre le tier base de données, et les VM de base de données peuvent atteindre internet, par exemple pour les mises à jour de paquets. Rien sur internet ne peut atteindre une VM sans IP flottante — c’est ainsi que le tier base de données reste hors de l’internet public.
 
 ## 4 · Créer les groupes de sécurité {#security-groups}
 
-Les groupes de sécurité sont des pare-feu avec état appliqués aux interfaces réseau d’une VM. Ils contrôlent le trafic qui entre (ingress) et celui qui sort (egress). « Avec état » signifie que le retour d’une connexion initiée de l’intérieur est automatiquement autorisé — vous n’avez besoin de règles que pour les connexions initiées de l’extérieur.
+Les groupes de sécurité sont des pare-feu avec état appliqués aux interfaces réseau d’une VM. Ils contrôlent le trafic qui entre (ingress) et celui qui sort (egress). « Avec état » signifie que le retour d’une connexion initiée de l’intérieur est automatiquement autorisé — vous n’avez besoin de règles que pour les connexions initiées de l’extérieur. Un nouveau groupe laisse sortir tout le trafic et n’en laisse entrer aucun : ces deux groupes n’ont donc besoin que de règles entrantes.
 
 ```bash
-# Web security group — HTTPS open to the internet
-curl -X POST {{API_BASE_URL}}/v1/security-groups \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -X POST {{API_BASE_URL}}/api/v1/security_group/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "web-sg",
-    "region": "us-east-1",
-    "ingress_rules": [
-      { "protocol": "tcp", "port": 443, "source_cidr": "0.0.0.0/0", "description": "HTTPS" },
-      { "protocol": "tcp", "port": 22, "source_cidr": "203.0.113.5/32", "description": "SSH from office" }
-    ],
-    "egress_rules": [
-      { "protocol": "any", "destination_cidr": "0.0.0.0/0", "description": "anywhere" }
-    ]
-  }'
+  -d '{ "name": "web-sg", "description": "Web tier" }'
 
-# DB security group — port 5432 only from the web SG
-curl -X POST {{API_BASE_URL}}/v1/security-groups \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -X POST {{API_BASE_URL}}/api/v1/security_group/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "db-sg",
-    "region": "us-east-1",
-    "ingress_rules": [
-      { "protocol": "tcp", "port": 5432, "source_security_group": "web-sg", "description": "Postgres from web tier" }
-    ],
-    "egress_rules": [
-      { "protocol": "any", "destination_cidr": "0.0.0.0/0", "description": "anywhere" }
-    ]
-  }'
+  -d '{ "name": "db-sg", "description": "Database tier" }'
 ```
 
-C’est le `source_security_group` de la règle du SG de la base qui impose « seul le tier web peut se connecter » — au lieu d’un CIDR statique, la règle référence le SG lui-même. Toute VM marquée `web-sg` peut atteindre la base. Ajoutez des VM à `web-sg` ou retirez-en : la liste d’accès se met à jour automatiquement.
+Enregistrez les `id` des deux groupes, puis ajoutez une règle par appel :
+
+```bash
+export WEB_SG_ID="<web-sg-id>"
+export DB_SG_ID="<db-sg-id>"
+
+# Web security group — HTTPS open to the internet
+curl -X POST {{API_BASE_URL}}/api/v1/security_group/rule \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"security_group_id\": \"$WEB_SG_ID\",
+    \"direction\": \"ingress\",
+    \"ether\": \"IPv4\",
+    \"protocol\": \"tcp\",
+    \"port_min\": 443,
+    \"remote_cidr\": \"0.0.0.0/0\",
+    \"description\": \"HTTPS\"
+  }"
+
+# Web security group — SSH from your office
+curl -X POST {{API_BASE_URL}}/api/v1/security_group/rule \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"security_group_id\": \"$WEB_SG_ID\",
+    \"direction\": \"ingress\",
+    \"ether\": \"IPv4\",
+    \"protocol\": \"tcp\",
+    \"port_min\": 22,
+    \"remote_cidr\": \"203.0.113.5/32\",
+    \"description\": \"SSH from office\"
+  }"
+
+# DB security group — port 5432 only from the web SG
+curl -X POST {{API_BASE_URL}}/api/v1/security_group/rule \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"security_group_id\": \"$DB_SG_ID\",
+    \"direction\": \"ingress\",
+    \"ether\": \"IPv4\",
+    \"protocol\": \"tcp\",
+    \"port_min\": 5432,
+    \"remote_sec_grp\": \"$WEB_SG_ID\",
+    \"description\": \"Postgres from web tier\"
+  }"
+```
+
+C’est le `remote_sec_grp` de la règle du SG de la base qui impose « seul le tier web peut se connecter » — au lieu d’un CIDR statique, la règle référence le SG lui-même. Toute VM de `web-sg` peut atteindre la base. Ajoutez des VM à `web-sg` ou retirez-en : la liste d’accès se met à jour automatiquement.
 
 Le SG web n’ouvre le port 22 (SSH) qu’à une IP de bureau précise, pas au monde entier. N’ouvrez pas SSH à `0.0.0.0/0` — sur chaque cloud, des scanners testent le port 22 à la recherche de mots de passe faibles.
 
 ## 5 · Attacher les VM {#attach}
 
-À la création d’une VM, indiquez le réseau, le sous-réseau et les groupes de sécurité :
+À la création d’une VM, indiquez le réseau et les groupes de sécurité. [Démarrage rapide](/docs/quickstart#region) montre d’où viennent l’image et les valeurs de `spec`. `sshs` nomme une [clé SSH](/docs/api/ssh-keys) que vous avez enregistrée.
 
 ```bash
+export SSH_KEY_NAME="<ssh-key-name>"
+
 # Web tier VM
-curl -X POST {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -X POST {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
   -d "{
     \"name\": \"web-01\",
-    \"size\": \"gp-2-4\",
-    \"region\": \"us-east-1\",
-    \"image\": \"ubuntu-24.04\",
-    \"network_interfaces\": [
-      { \"subnet_id\": \"$WEB_SUBNET_ID\", \"security_groups\": [\"web-sg\"] }
-    ]
+    \"image\": \"$IMAGE_ID\",
+    \"spec\": {
+      \"architecture\": \"$ARCHITECTURE\",
+      \"vm_class\": \"$VM_CLASS\",
+      \"cpu\": 2,
+      \"ram\": 4096,
+      \"volume_type\": \"$VOLUME_TYPE\"
+    },
+    \"volume_size\": 25,
+    \"network\": [\"$WEB_NET_ID\"],
+    \"security_group\": [\"$WEB_SG_ID\"],
+    \"sshs\": \"$SSH_KEY_NAME\"
   }"
 
-# Database tier VM (if running DB on your own VM rather than managed DB)
-curl -X POST {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+# Database tier VM (if running DB on your own VM)
+curl -X POST {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
   -d "{
     \"name\": \"db-01\",
-    \"size\": \"gp-4-8\",
-    \"region\": \"us-east-1\",
-    \"image\": \"ubuntu-24.04\",
-    \"network_interfaces\": [
-      { \"subnet_id\": \"$DB_SUBNET_ID\", \"security_groups\": [\"db-sg\"] }
-    ]
+    \"image\": \"$IMAGE_ID\",
+    \"spec\": {
+      \"architecture\": \"$ARCHITECTURE\",
+      \"vm_class\": \"$VM_CLASS\",
+      \"cpu\": 4,
+      \"ram\": 8192,
+      \"volume_type\": \"$VOLUME_TYPE\"
+    },
+    \"volume_size\": 50,
+    \"network\": [\"$DB_NET_ID\"],
+    \"security_group\": [\"$DB_SG_ID\"],
+    \"sshs\": \"$SSH_KEY_NAME\"
   }"
 ```
 
@@ -200,7 +264,7 @@ Pour un accès externe à la VM web, allouez une [IP flottante](/docs/api/floati
 
 ## 6 · Vérifier l’isolation {#verify}
 
-Vérifiez que l’architecture impose bien ce que vous vouliez :
+Vérifiez que l’architecture impose bien ce que vous vouliez. Trouvez l’adresse de la VM de base de données dans le `nics` que renvoie `GET /api/v1/instance/` ; disons que c’est `10.0.2.10`.
 
 ```bash
 # From the web VM, can we reach the DB on 5432? (Should: yes)
@@ -209,8 +273,8 @@ nc -v -w 3 10.0.2.10 5432
 # From the web VM, can we reach the DB on 22 (SSH)? (Should: no — DB SG only opens 5432)
 nc -v -w 3 10.0.2.10 22
 
-# From your laptop, can we reach the DB directly? (Should: no — DB subnet isn't routable from internet)
-nc -v -w 3 <DB_PUBLIC_IP> 5432  # there's no public IP, this fails
+# From your laptop, can we reach the DB directly? (Should: no — the DB VM has no public IP)
+nc -v -w 3 10.0.2.10 5432
 ```
 
 Si l’un de ces tests ne se comporte pas comme prévu, les règles des groupes de sécurité ou les rattachements réseau/sous-réseau sont incorrects. Revérifiez-les.
@@ -226,5 +290,5 @@ Si l’un de ces tests ne se comporte pas comme prévu, les règles des groupes 
 - [Référence des réseaux](/docs/api/networks) — toutes les options de l’appel de création.
 - [Référence des sous-réseaux](/docs/api/subnets) — configuration IPv6, options DHCP, remplacement des serveurs de noms DNS.
 - [Référence des groupes de sécurité](/docs/api/security-groups) — la syntaxe complète des règles.
-- [Référence des routeurs](/docs/api/routers) — routes statiques, annonces BGP, câblage plus avancé.
+- [Référence des routeurs](/docs/api/routers) — routes statiques et fonctionnement du NAT.
 - [IP flottantes](/docs/api/floating-ips) — la brique d’IP publique qui relie tout cela au monde extérieur.

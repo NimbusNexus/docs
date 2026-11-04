@@ -1,8 +1,8 @@
 ---
 title: "VM-Flotte überwachen"
-description: "Prometheus-Scrapes, von NimbusNexus gelieferte Metriken und die Alerts, auf die es ankommt."
+description: "Prometheus-Scrapes mit node_exporter und die Alerts, auf die es ankommt."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-04
 kind: guide
 ---
 
@@ -19,20 +19,33 @@ Bei größeren Flotten (~50+ VMs oder mehrere Regionen) reicht ein selbst gehost
 - Eine Grafana-VM, die Prometheus abfragt
 - 6 Alerts für „die Dinge, für die Sie wirklich alarmiert werden wollen“
 
-Gesamtkosten: ~$30/Monat für die VMs für Prometheus + Grafana (zwei Instanzen `gp-1-2` in einer Region) plus der Speicher für die Metriken.
+Was es kostet: die VMs für Prometheus + Grafana (in den Beispielen unten jeweils eine vCPU und 2 GB RAM) plus der Speicher für die Metriken. Die Preise finden Sie unter [Preisdaten](/docs/api/pricing-data).
 
 ## 1 · Prometheus-VM starten {#prometheus}
 
+[Schnellstart](/docs/quickstart#region) zeigt, woher das Image, das Netzwerk, die Sicherheitsgruppe und die Werte für `spec` stammen. `sshs` nennt einen [SSH-Key](/docs/api/ssh-keys), den Sie registriert haben.
+
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+export SSH_KEY_NAME="<ssh-key-name>"
+
+curl -X POST {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "monitoring-prometheus",
-    "size": "gp-1-2",
-    "region": "us-east-1",
-    "image": "ubuntu-24.04"
-  }'
+  -d "{
+    \"name\": \"monitoring-prometheus\",
+    \"image\": \"$IMAGE_ID\",
+    \"spec\": {
+      \"architecture\": \"$ARCHITECTURE\",
+      \"vm_class\": \"$VM_CLASS\",
+      \"cpu\": 1,
+      \"ram\": 2048,
+      \"volume_type\": \"$VOLUME_TYPE\"
+    },
+    \"volume_size\": 50,
+    \"network\": [\"$NETWORK_ID\"],
+    \"security_group\": [\"$SECURITY_GROUP_ID\"],
+    \"sshs\": \"$SSH_KEY_NAME\"
+  }"
 ```
 
 Melden Sie sich per SSH an und installieren Sie Prometheus:
@@ -55,6 +68,8 @@ sudo systemctl enable --now prometheus-node-exporter
 
 Bei einer Flotte von mehr als einer Handvoll VMs verwenden Sie ein [VM-Image](/docs/api/vm-images) mit vorinstalliertem node_exporter oder führen beim Boot ein einmaliges Ansible-/cloud-init-Skript aus. 20 VMs einzeln per SSH einzurichten ist auf Dauer die falsche Antwort.
 
+Eine Sicherheitsgruppe lässt nichts herein, bis Sie es festlegen; geben Sie der Gruppe der Flotte also eine Regel, die TCP 9100 für die Gruppe der Prometheus-VM öffnet ([Sicherheitsgruppen](/docs/api/security-groups)).
+
 ## 3 · Prometheus zum Scrapen der Flotte konfigurieren {#scrape}
 
 ```yaml
@@ -73,19 +88,7 @@ scrape_configs:
           # … one entry per VM
 ```
 
-Für dynamische Flotten (Autoscaling, häufige Bereitstellung) verwenden Sie HTTP-Service-Discovery gegen die NimbusNexus-API:
-
-```yaml
-scrape_configs:
-  - job_name: 'fleet'
-    http_sd_configs:
-      - url: '{{API_BASE_URL}}/v1/vms/prometheus-targets'
-        authorization:
-          type: Bearer
-          credentials_file: /etc/prometheus/nimbus.key
-```
-
-Damit lädt Prometheus alle 60 Sekunden die aktuelle Liste der VMs von der API und synchronisiert seine Target-Liste neu. Neue VMs werden automatisch überwacht; gelöschte lösen keine Alerts mehr aus.
+Für dynamische Flotten (Autoscaling, häufige Bereitstellung) erzeugen Sie die Liste, statt sie von Hand zu schreiben: `GET /api/v1/instance/` liefert jede VM mit ihren Adressen in `nics`, und `file_sd_configs` von Prometheus liest die Targets aus einer Datei, die Sie neu schreiben. Eine Route speziell für die Service-Discovery von Prometheus hat die API nicht.
 
 Laden Sie Prometheus neu:
 
@@ -96,15 +99,24 @@ sudo systemctl reload prometheus
 ## 4 · Grafana starten {#grafana}
 
 ```bash
-curl -X POST {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -X POST {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "monitoring-grafana",
-    "size": "gp-1-2",
-    "region": "us-east-1",
-    "image": "ubuntu-24.04"
-  }'
+  -d "{
+    \"name\": \"monitoring-grafana\",
+    \"image\": \"$IMAGE_ID\",
+    \"spec\": {
+      \"architecture\": \"$ARCHITECTURE\",
+      \"vm_class\": \"$VM_CLASS\",
+      \"cpu\": 1,
+      \"ram\": 2048,
+      \"volume_type\": \"$VOLUME_TYPE\"
+    },
+    \"volume_size\": 25,
+    \"network\": [\"$NETWORK_ID\"],
+    \"security_group\": [\"$SECURITY_GROUP_ID\"],
+    \"sshs\": \"$SSH_KEY_NAME\"
+  }"
 ```
 
 ```bash
@@ -115,7 +127,7 @@ sudo apt install -y grafana
 sudo systemctl enable --now grafana-server
 ```
 
-Öffnen Sie `http://<grafana-vm-ip>:3000` im Browser. Standard-Login `admin/admin` (sofort ändern). Fügen Sie Prometheus als Datenquelle hinzu, die auf die interne IP der Prometheus-VM zeigt, Port 9090.
+Geben Sie in der Sicherheitsgruppe der Grafana-VM Port 3000 für Ihre eigene IP frei und öffnen Sie `http://<grafana-vm-ip>:3000` im Browser. Standard-Login `admin/admin` (sofort ändern). Fügen Sie Prometheus als Datenquelle hinzu, die auf die interne IP der Prometheus-VM zeigt, Port 9090.
 
 Für Dashboards: Importieren Sie das Dashboard mit der ID `1860` („Node Exporter Full“) aus der Bibliothek von Grafana. Es deckt jede Metrik ab, die `node_exporter` liefert, aufgeschlüsselt pro Instanz und aggregiert.
 
@@ -222,6 +234,5 @@ Die Incoming-Webhook-URL stammt aus Ihrem Slack-Workspace. Für Alarmierungswege
 
 ## Nächste Schritte {#next-steps}
 
-- [Referenz für virtuelle Maschinen](/docs/api/vms) — die Ressource, die all diese Metriken liefert.
-- [Snapshots](/docs/api/snapshots) — sichern Sie das Daten-Volume der Prometheus-VM, damit ein Jahr Historie nicht mit dem Verlust einer einzelnen VM verschwindet.
-- [Plattform-Webhooks](/docs/webhooks) — Events vom Typ `vm.state_changed` sind verrauschter als dieses Monitoring, aber nützlich für die Zuordnung „VM wurde vom Support neu gestartet“.
+- [Referenz für virtuelle Maschinen](/docs/api/vms) — die VMs, die dieses Setup überwacht.
+- [Backups](/docs/api/backups) — sichern Sie das Volume der Prometheus-VM, damit ein Jahr Historie nicht mit dem Verlust einer einzelnen VM verschwindet.
