@@ -302,7 +302,7 @@ curl -sX PATCH {{WEBHOOKS_BASE_URL}}/v1/endpoints/ep_3f9a… \
   -d '{"transformation_id": "trf_…"}'
 ```
 
-A script takes `code` in place of `pipeline`; sending both, or neither, is refused. Changing the document later is a `PATCH /v1/transformations/{id}` with a new `pipeline`. `POST /v1/endpoints` takes `transformation_id` too, `{"transformation_id": null}` detaches it, and a transformation from another project is refused as not found. Creating, changing and testing transformations and secrets takes an `admin` key; a `read` key lists and reads them.
+A script takes `code` in place of `pipeline`; sending both, or neither, is refused. Changing the document later is a `PATCH /v1/transformations/{id}` with a new `pipeline`. If the new version has an auth step and endpoints run the transformation, the `PATCH` must also carry `confirm_destinations`: the URL of each of those endpoints, as the transformation's `destinations` lists them, because the credential goes to all of them. `POST /v1/endpoints` takes `transformation_id` too, `{"transformation_id": null}` detaches it, and a transformation from another project is refused as not found. Creating, changing and testing transformations and secrets takes an `admin` key; a `read` key lists and reads them. A person, rather than a key, also needs the owner or admin role to store or change a secret, to save a pipeline whose auth step names one, or to attach such a pipeline to an endpoint.
 
 ## What a delivery shows {#deliveries}
 
@@ -346,7 +346,7 @@ A pipeline has no loops, no clock and no I/O, so the same pipeline on the same e
 | Work in one run | 100,000 values read or copied, text counting one per KiB |
 | Headers at the end of a run | 50 |
 | One header value | 8 KiB |
-| A secret's value | 8,192 characters |
+| A secret's value | 4,096 characters of printable ASCII, with no space at either end |
 
 | Script | Limit |
 |---|---|
@@ -397,6 +397,8 @@ The other refusals:
 | `422` | `invalid_transformation` | A script that doesn't load: `syntax_error`, `no_transform`, `code_too_large` or `load_failed`. |
 | `409` | `conflict` (`transformation_in_use`) | Deleting a transformation an endpoint still runs. Detach it first. |
 | `409` | `conflict` (`secret_in_use`) | Deleting a secret a pipeline's current version names. Change the pipeline first. |
+| `409` | `conflict` (`destinations_unconfirmed`) | A `PATCH` that saves an auth step without naming every endpoint that runs the transformation in `confirm_destinations`. `details.destinations` lists their URLs, and nothing is saved. |
+| `403` | `forbidden` (`role`) | A member storing or changing a secret, saving a pipeline whose auth step names one, or attaching such a pipeline to an endpoint. |
 | `404` | `not_found` (`transformation`, `transformation_version`, `secret`) | It doesn't exist, that version is no longer kept, or an endpoint names a transformation from another project. |
 | `429` | `rate_limited` | Script saves and tests past 60 a minute per workspace. |
 | `503` | `unavailable` (`transform`) | The sandbox couldn't run a script just then. Nothing was saved; try again. |

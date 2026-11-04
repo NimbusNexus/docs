@@ -302,7 +302,7 @@ curl -sX PATCH {{WEBHOOKS_BASE_URL}}/v1/endpoints/ep_3f9a… \
   -d '{"transformation_id": "trf_…"}'
 ```
 
-Un script lleva `code` en lugar de `pipeline`; enviar las dos cosas, o ninguna, se rechaza. Para cambiar el documento más adelante, usa `PATCH /v1/transformations/{id}` con una `pipeline` nueva. `POST /v1/endpoints` también acepta `transformation_id`, `{"transformation_id": null}` la desvincula, y una transformación de otro proyecto se rechaza como no encontrada. Crear, cambiar y probar transformaciones y secretos requiere una clave `admin`; una clave `read` puede listarlos y leerlos.
+Un script lleva `code` en lugar de `pipeline`; enviar las dos cosas, o ninguna, se rechaza. Para cambiar el documento más adelante, usa `PATCH /v1/transformations/{id}` con una `pipeline` nueva. Si la versión nueva tiene un paso `auth` y hay endpoints que ejecutan la transformación, el `PATCH` también debe llevar `confirm_destinations`: la URL de cada uno de esos endpoints, tal como los lista `destinations` de la transformación, porque las credenciales van a todos. `POST /v1/endpoints` también acepta `transformation_id`, `{"transformation_id": null}` la desvincula, y una transformación de otro proyecto se rechaza como no encontrada. Crear, cambiar y probar transformaciones y secretos requiere una clave `admin`; una clave `read` puede listarlos y leerlos. Una persona, a diferencia de una clave, también necesita el rol de propietario o de administrador para guardar o cambiar un secreto, para guardar una pipeline cuyo paso `auth` hace referencia a uno o para vincular una pipeline así a un endpoint.
 
 ## Qué muestra una entrega {#deliveries}
 
@@ -346,7 +346,7 @@ Una pipeline no tiene bucles, ni reloj, ni E/S, así que la misma pipeline hace 
 | Trabajo en una ejecución | 100.000 valores leídos o copiados; el texto cuenta uno por KiB |
 | Cabeceras al final de una ejecución | 50 |
 | Un valor de cabecera | 8 KiB |
-| El valor de un secreto | 8.192 caracteres |
+| El valor de un secreto | 4.096 caracteres de ASCII imprimible, sin espacios al principio ni al final |
 
 | Script | Límite |
 |---|---|
@@ -397,6 +397,8 @@ Los demás rechazos:
 | `422` | `invalid_transformation` | Un script que no se carga: `syntax_error`, `no_transform`, `code_too_large` o `load_failed`. |
 | `409` | `conflict` (`transformation_in_use`) | Borrar una transformación que un endpoint todavía ejecuta. Desvincúlala primero. |
 | `409` | `conflict` (`secret_in_use`) | Borrar un secreto que usa la versión actual de una pipeline. Cambia primero la pipeline. |
+| `409` | `conflict` (`destinations_unconfirmed`) | Un `PATCH` que guarda un paso `auth` sin nombrar en `confirm_destinations` todos los endpoints que ejecutan la transformación. `details.destinations` lista sus URL, y no se guarda nada. |
+| `403` | `forbidden` (`role`) | Un miembro que guarda o cambia un secreto, guarda una pipeline cuyo paso `auth` hace referencia a uno o vincula una pipeline así a un endpoint. |
 | `404` | `not_found` (`transformation`, `transformation_version`, `secret`) | No existe, esa versión ya no se guarda, o un endpoint nombra una transformación de otro proyecto. |
 | `429` | `rate_limited` | Se han superado los 60 guardados y pruebas de scripts por minuto por workspace. |
 | `503` | `unavailable` (`transform`) | El sandbox no pudo ejecutar el script en ese momento. No se guardó nada; vuelve a intentarlo. |

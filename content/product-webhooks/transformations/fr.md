@@ -302,7 +302,7 @@ curl -sX PATCH {{WEBHOOKS_BASE_URL}}/v1/endpoints/ep_3f9a… \
   -d '{"transformation_id": "trf_…"}'
 ```
 
-Un script prend `code` à la place de `pipeline` ; envoyer les deux, ou aucun, est refusé. Pour modifier le document plus tard, envoyez `PATCH /v1/transformations/{id}` avec un nouveau `pipeline`. `POST /v1/endpoints` accepte aussi `transformation_id`, `{"transformation_id": null}` détache la transformation, et une transformation d’un autre projet est refusée comme introuvable. Créer, modifier et tester des transformations et des secrets demande une clé `admin` ; une clé `read` peut les lister et les lire.
+Un script prend `code` à la place de `pipeline` ; envoyer les deux, ou aucun, est refusé. Pour modifier le document plus tard, envoyez `PATCH /v1/transformations/{id}` avec un nouveau `pipeline`. Si la nouvelle version a une étape `auth` et que des endpoints exécutent la transformation, le `PATCH` doit aussi contenir `confirm_destinations` : l’URL de chacun de ces endpoints, comme les liste `destinations` de la transformation, car le justificatif part vers tous. `POST /v1/endpoints` accepte aussi `transformation_id`, `{"transformation_id": null}` détache la transformation, et une transformation d’un autre projet est refusée comme introuvable. Créer, modifier et tester des transformations et des secrets demande une clé `admin` ; une clé `read` peut les lister et les lire. Une personne, contrairement à une clé, a aussi besoin du rôle de propriétaire ou d’admin pour stocker ou modifier un secret, pour enregistrer un pipeline dont l’étape `auth` en désigne un, ou pour attacher un tel pipeline à un endpoint.
 
 ## Ce que montre une livraison {#deliveries}
 
@@ -346,7 +346,7 @@ Un pipeline n’a ni boucles, ni horloge, ni E/S : le même pipeline fait donc t
 | Travail d’une exécution | 100,000 valeurs lues ou copiées, le texte comptant pour une par KiB |
 | Headers à la fin d’une exécution | 50 |
 | Une valeur de header | 8 KiB |
-| La valeur d’un secret | 8,192 caractères |
+| La valeur d’un secret | 4,096 caractères d’ASCII imprimable, sans espace au début ni à la fin |
 
 | Script | Limite |
 |---|---|
@@ -397,6 +397,8 @@ Les autres refus :
 | `422` | `invalid_transformation` | Un script qui ne se charge pas : `syntax_error`, `no_transform`, `code_too_large` ou `load_failed`. |
 | `409` | `conflict` (`transformation_in_use`) | Supprimer une transformation qu’un endpoint exécute encore. Détachez-la d’abord. |
 | `409` | `conflict` (`secret_in_use`) | Supprimer un secret que désigne la version actuelle d’un pipeline. Modifiez d’abord le pipeline. |
+| `409` | `conflict` (`destinations_unconfirmed`) | Un `PATCH` qui enregistre une étape `auth` sans nommer dans `confirm_destinations` tous les endpoints qui exécutent la transformation. `details.destinations` liste leurs URL, et rien n’est enregistré. |
+| `403` | `forbidden` (`role`) | Un membre qui stocke ou modifie un secret, enregistre un pipeline dont l’étape `auth` en désigne un, ou attache un tel pipeline à un endpoint. |
 | `404` | `not_found` (`transformation`, `transformation_version`, `secret`) | Il n’existe pas, cette version n’est plus conservée, ou un endpoint désigne une transformation d’un autre projet. |
 | `429` | `rate_limited` | Au-delà de 60 enregistrements et tests de scripts par minute et par espace de travail. |
 | `503` | `unavailable` (`transform`) | La sandbox n’a pas pu exécuter le script à ce moment-là. Rien n’a été enregistré ; réessayez. |

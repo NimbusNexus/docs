@@ -302,7 +302,7 @@ curl -sX PATCH {{WEBHOOKS_BASE_URL}}/v1/endpoints/ep_3f9a… \
   -d '{"transformation_id": "trf_…"}'
 ```
 
-Um script usa `code` no lugar de `pipeline`; enviar os dois, ou nenhum, é recusado. Para mudar o documento depois, envie `PATCH /v1/transformations/{id}` com um `pipeline` novo. `POST /v1/endpoints` também aceita `transformation_id`, `{"transformation_id": null}` desvincula a transformação, e uma transformação de outro projeto é recusada como não encontrada. Criar, alterar e testar transformações e segredos exige uma chave `admin`; uma chave `read` pode listá-los e lê-los.
+Um script usa `code` no lugar de `pipeline`; enviar os dois, ou nenhum, é recusado. Para mudar o documento depois, envie `PATCH /v1/transformations/{id}` com um `pipeline` novo. Se a versão nova tiver uma etapa `auth` e houver endpoints que executam a transformação, o `PATCH` também precisa levar `confirm_destinations`: a URL de cada um desses endpoints, como `destinations` da transformação os lista, porque as credenciais vão para todos. `POST /v1/endpoints` também aceita `transformation_id`, `{"transformation_id": null}` desvincula a transformação, e uma transformação de outro projeto é recusada como não encontrada. Criar, alterar e testar transformações e segredos exige uma chave `admin`; uma chave `read` pode listá-los e lê-los. Uma pessoa, ao contrário de uma chave, também precisa da função de proprietário ou de admin para armazenar ou alterar um segredo, salvar um pipeline cuja etapa `auth` referencia um segredo ou vincular um pipeline assim a um endpoint.
 
 ## O que uma entrega mostra {#deliveries}
 
@@ -346,7 +346,7 @@ Um pipeline não tem loops, relógio nem E/S, então o mesmo pipeline sempre faz
 | Trabalho em uma execução | 100.000 valores lidos ou copiados; texto conta um por KiB |
 | Headers no fim de uma execução | 50 |
 | Um valor de header | 8 KiB |
-| O valor de um segredo | 8.192 caracteres |
+| O valor de um segredo | 4.096 caracteres de ASCII imprimível, sem espaço no início nem no fim |
 
 | Script | Limite |
 |---|---|
@@ -397,6 +397,8 @@ As outras recusas:
 | `422` | `invalid_transformation` | Um script que não carrega: `syntax_error`, `no_transform`, `code_too_large` ou `load_failed`. |
 | `409` | `conflict` (`transformation_in_use`) | Excluir uma transformação que um endpoint ainda executa. Desvincule-a antes. |
 | `409` | `conflict` (`secret_in_use`) | Excluir um segredo que a versão atual de um pipeline usa. Altere o pipeline antes. |
+| `409` | `conflict` (`destinations_unconfirmed`) | Um `PATCH` que salva uma etapa `auth` sem indicar em `confirm_destinations` todos os endpoints que executam a transformação. `details.destinations` lista as URLs deles, e nada é salvo. |
+| `403` | `forbidden` (`role`) | Um membro que armazena ou altera um segredo, salva um pipeline cuja etapa `auth` referencia um segredo ou vincula um pipeline assim a um endpoint. |
 | `404` | `not_found` (`transformation`, `transformation_version`, `secret`) | Não existe, essa versão já não é mantida, ou um endpoint indica uma transformação de outro projeto. |
 | `429` | `rate_limited` | Acima de 60 salvamentos e testes de scripts por minuto por workspace. |
 | `503` | `unavailable` (`transform`) | O sandbox não conseguiu executar o script naquele momento. Nada foi salvo; tente de novo. |

@@ -302,7 +302,7 @@ curl -sX PATCH {{WEBHOOKS_BASE_URL}}/v1/endpoints/ep_3f9a… \
   -d '{"transformation_id": "trf_…"}'
 ```
 
-Ein Skript nimmt `code` anstelle von `pipeline`; beides oder keines von beiden zu senden, wird abgewiesen. Um das Dokument später zu ändern, senden Sie `PATCH /v1/transformations/{id}` mit einer neuen `pipeline`. `POST /v1/endpoints` nimmt ebenfalls `transformation_id`, `{"transformation_id": null}` trennt die Transformation wieder vom Endpoint, und eine Transformation aus einem anderen Projekt wird als nicht gefunden abgewiesen. Anlegen, Ändern und Testen von Transformationen und Secrets erfordert einen Key mit dem Scope `admin`; ein Key mit `read` kann sie auflisten und lesen.
+Ein Skript nimmt `code` anstelle von `pipeline`; beides oder keines von beiden zu senden, wird abgewiesen. Um das Dokument später zu ändern, senden Sie `PATCH /v1/transformations/{id}` mit einer neuen `pipeline`. Hat die neue Version einen `auth`-Schritt und führen Endpoints die Transformation aus, muss der `PATCH` außerdem `confirm_destinations` enthalten: die URL jedes dieser Endpoints, wie sie `destinations` der Transformation auflistet, denn die Credentials gehen an alle. `POST /v1/endpoints` nimmt ebenfalls `transformation_id`, `{"transformation_id": null}` trennt die Transformation wieder vom Endpoint, und eine Transformation aus einem anderen Projekt wird als nicht gefunden abgewiesen. Anlegen, Ändern und Testen von Transformationen und Secrets erfordert einen Key mit dem Scope `admin`; ein Key mit `read` kann sie auflisten und lesen. Eine Person braucht, anders als ein Key, außerdem die Rolle Owner oder Admin, um ein Secret zu hinterlegen oder zu ändern, eine Pipeline zu speichern, deren `auth`-Schritt auf eines verweist, oder eine solche Pipeline mit einem Endpoint zu verknüpfen.
 
 ## Was eine Zustellung zeigt {#deliveries}
 
@@ -346,7 +346,7 @@ Eine Pipeline hat keine Schleifen, keine Uhr und kein I/O; dieselbe Pipeline tut
 | Arbeit in einer Ausführung | 100.000 gelesene oder kopierte Werte, Text zählt einen pro KiB |
 | Header am Ende einer Ausführung | 50 |
 | Ein Header-Wert | 8 KiB |
-| Der Wert eines Secrets | 8.192 Zeichen |
+| Der Wert eines Secrets | 4.096 Zeichen druckbares ASCII, ohne Leerzeichen am Anfang oder Ende |
 
 | Skript | Limit |
 |---|---|
@@ -397,6 +397,8 @@ Die übrigen Ablehnungen:
 | `422` | `invalid_transformation` | Ein Skript, das sich nicht laden lässt: `syntax_error`, `no_transform`, `code_too_large` oder `load_failed`. |
 | `409` | `conflict` (`transformation_in_use`) | Beim Löschen einer Transformation, die ein Endpoint noch ausführt. Trennen Sie sie zuerst vom Endpoint. |
 | `409` | `conflict` (`secret_in_use`) | Beim Löschen eines Secrets, das die aktuelle Version einer Pipeline nennt. Ändern Sie zuerst die Pipeline. |
+| `409` | `conflict` (`destinations_unconfirmed`) | Bei einem `PATCH`, der einen `auth`-Schritt speichert, ohne in `confirm_destinations` jeden Endpoint zu nennen, der die Transformation ausführt. `details.destinations` listet deren URLs auf, und nichts wird gespeichert. |
+| `403` | `forbidden` (`role`) | Wenn ein Member ein Secret hinterlegt oder ändert, eine Pipeline speichert, deren `auth`-Schritt auf eines verweist, oder eine solche Pipeline mit einem Endpoint verknüpft. |
 | `404` | `not_found` (`transformation`, `transformation_version`, `secret`) | Es existiert nicht, die Version wird nicht mehr aufbewahrt, oder ein Endpoint nennt eine Transformation aus einem anderen Projekt. |
 | `429` | `rate_limited` | Mehr als 60 Speichervorgänge und Tests von Skripten pro Minute und Workspace. |
 | `503` | `unavailable` (`transform`) | Die Sandbox konnte das Skript gerade nicht ausführen. Es wurde nichts gespeichert; versuchen Sie es erneut. |
