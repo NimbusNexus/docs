@@ -2,7 +2,7 @@
 title: "Utilisateurs"
 description: "Les identités d’un espace de travail — attribuez des rôles, générez des clés API."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-03
+updatedAt: 2026-11-05
 kind: reference
 ---
 
@@ -27,7 +27,7 @@ Ce qu’un utilisateur peut faire dans un projet découle des rôles qu’il y d
 - **Modifier** — changer le nom, la description, l’indicateur d’activation ou le mot de passe.
 - **Supprimer** — supprimer définitivement. Toutes les attributions de rôles et les clés API de l’utilisateur sont révoquées de façon atomique.
 
-Les quatre exigent le rôle `admin`. Modifier et supprimer acceptent aussi la clé API d’un administrateur. Créer et lire exigent une session dont la portée est l’espace de travail lui-même, et non l’un de ses projets. Une clé API est toujours propre à un seul projet : un appel avec une clé à l’une ou l’autre reçoit donc `400`.
+Les quatre exigent le rôle `admin` et une session dont la portée est l’espace de travail lui-même, et non l’un de ses projets. Une clé API est toujours propre à un seul projet : un appel avec une clé à l’une d’elles reçoit donc `400`.
 
 Un mot de passe entre et ne ressort jamais : la fiche d’un utilisateur ne contient que `id`, `name`, `description` et `enabled`.
 
@@ -36,7 +36,7 @@ Il n’existe pas de « désactiver » distinct de « supprimer ». Si vous voul
 ## Ce que vous ne pouvez pas faire {#cant-do}
 
 - **Déplacer un utilisateur vers un autre espace de travail.** Créez un nouvel utilisateur dans l’espace de travail cible, accordez-y les rôles voulus, supprimez l’ancien. Au sein d’un même espace de travail, il n’y a rien à déplacer : accordez à l’utilisateur un rôle sur l’autre projet.
-- **Lire un utilisateur d’un autre espace de travail.** Lire ne trouve que les utilisateurs de l’espace de travail de l’appelant. Pour tout autre, l’API répond `404`.
+- **Atteindre un utilisateur d’un autre espace de travail.** Lire, modifier et supprimer ne trouvent que les utilisateurs de l’espace de travail de l’appelant. Pour tout autre, l’API répond `404`.
 
 ## Étapes suivantes {#next-steps}
 

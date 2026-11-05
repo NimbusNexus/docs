@@ -2,7 +2,7 @@
 title: "Usuarios"
 description: "Registros de identidad dentro de un workspace — asigna roles y genera claves de API."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-03
+updatedAt: 2026-11-05
 kind: reference
 ---
 
@@ -27,7 +27,7 @@ Lo que un usuario puede hacer en un proyecto depende de los roles que tiene en �
 - **Actualizar** — cambiar el nombre, la descripción, el indicador de activado o la contraseña.
 - **Borrar** — eliminar de forma permanente. Todas las asignaciones de rol y las claves de API del usuario se revocan de forma atómica.
 
-Las cuatro requieren el rol `admin`. Actualizar y borrar también aceptan la clave de API de un administrador. Crear y obtener necesitan una sesión con el alcance del propio workspace, no de uno de sus proyectos. Una clave de API siempre tiene el alcance de un único proyecto, así que una llamada con una clave a cualquiera de las dos responde `400`.
+Las cuatro requieren el rol `admin` y una sesión con el alcance del propio workspace, no de uno de sus proyectos. Una clave de API siempre tiene el alcance de un único proyecto, así que una llamada con una clave a cualquiera de ellas responde `400`.
 
 Una contraseña entra y nunca sale: el registro de un usuario solo contiene `id`, `name`, `description` y `enabled`.
 
@@ -36,7 +36,7 @@ No hay un "desactivar" separado de "borrar". Si quieres una desactivación suave
 ## Qué no puedes hacer {#cant-do}
 
 - **Mover un usuario a otro workspace.** Crea un usuario nuevo en el workspace de destino, concédele allí los roles que quieras y borra el antiguo. Dentro de un mismo workspace no hay nada que mover: concede al usuario un rol en el otro proyecto.
-- **Obtener un usuario de otro workspace.** Obtener solo encuentra usuarios del workspace de quien llama. Para cualquier otro responde `404`.
+- **Llegar a un usuario de otro workspace.** Obtener, actualizar y borrar solo encuentran usuarios del workspace de quien llama. Para cualquier otro responden `404`.
 
 ## Próximos pasos {#next-steps}
 

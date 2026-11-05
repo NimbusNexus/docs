@@ -2,7 +2,7 @@
 title: "Funções"
 description: "Funções predefinidas e personalizadas, mais os endpoints de atribuição de função que concedem a um usuário uma função em um projeto."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-03
+updatedAt: 2026-11-05
 kind: reference
 ---
 
@@ -12,7 +12,7 @@ Uma função é um pacote de permissões. A **atribuição de função** é o at
 
 ## Funções predefinidas {#built-in}
 
-`GET /api/v1/roles/` lista as funções que você pode conceder: as funções globais da plataforma, marcadas com `is_global: true`, e as funções personalizadas que o seu workspace criou. Entre as funções globais estão `reader`, `member`, `manager` e `admin`. `GET /api/v1/roles/{role_id}` lê uma delas.
+`GET /api/v1/roles/` lista as funções globais da plataforma, marcadas com `is_global: true`, e as funções personalizadas que o seu workspace criou; `GET /api/v1/roles/{role_id}` lê uma delas. Das funções globais, você pode conceder `manager`, `member`, `reader` e `billing`. As outras, `admin` incluída, não podem ser concedidas.
 
 ## Funções personalizadas {#custom}
 
@@ -20,7 +20,9 @@ Uma função é um pacote de permissões. A **atribuição de função** é o at
 
 ## Conceder e revogar {#grant}
 
-`POST /api/v1/roles/grant` recebe uma lista de atribuições, então uma única chamada pode conceder várias. Cada atribuição indica uma `role`, um `user` ou um `group`, e um `project` ou, para o próprio workspace, um `domain`, tudo por ID. `POST /api/v1/roles/revoke` recebe a mesma lista e remove essas atribuições.
+`POST /api/v1/roles/grant` recebe uma lista de atribuições, então uma única chamada pode conceder várias. Cada atribuição indica uma `role`, exatamente um `user` ou um `group`, e exatamente um alvo: um `project` ou, para o próprio workspace, um `domain`, tudo por ID. Uma atribuição sem sujeito ou sem alvo, ou com dois, recebe `422`. `POST /api/v1/roles/revoke` recebe a mesma lista e remove essas atribuições.
+
+Conceder e revogar ficam dentro do seu próprio workspace. O alvo precisa ser o seu workspace ou um dos projetos dele (para uma chave de API, o workspace a que pertence o projeto dela), e a função precisa ser `manager`, `member`, `reader`, `billing` ou uma das funções próprias do seu workspace. A API confere todas as atribuições antes de fazer qualquer uma: se uma for recusada, a chamada recebe `403` e nada da lista é aplicado.
 
 `GET /api/v1/roles/assignments` lista as atribuições do workspace, nos projetos dele e no próprio workspace, incluindo as que vêm por meio de um grupo. Filtre por `role`, `user`, `group`, `project` ou `domain`.
 

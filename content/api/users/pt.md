@@ -2,7 +2,7 @@
 title: "Usuários"
 description: "Registros de identidade dentro de um workspace — atribua funções, gere chaves de API."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-03
+updatedAt: 2026-11-05
 kind: reference
 ---
 
@@ -27,7 +27,7 @@ O que um usuário pode fazer em um projeto vem das funções que ele tem ali, co
 - **Atualizar** — altera o nome, a descrição, a flag enabled ou a senha.
 - **Excluir** — remove permanentemente. Todas as atribuições de função e chaves de API do usuário são revogadas de forma atômica.
 
-As quatro exigem a função `admin`. Atualizar e excluir também aceitam a chave de API de um admin. Criar e obter precisam de uma sessão com escopo do próprio workspace, não de um dos projetos dele. Uma chave de API sempre tem escopo de um único projeto, então uma chamada com uma chave a qualquer uma das duas recebe `400`.
+As quatro exigem a função `admin` e uma sessão com escopo do próprio workspace, não de um dos projetos dele. Uma chave de API sempre tem escopo de um único projeto, então uma chamada com uma chave a qualquer uma delas recebe `400`.
 
 Uma senha entra e nunca sai: o registro de um usuário só tem `id`, `name`, `description` e `enabled`.
 
@@ -36,7 +36,7 @@ Não existe "desativar" separado de "excluir". Se você quer uma desativação l
 ## O que você não pode fazer {#cant-do}
 
 - **Mover um usuário para outro workspace.** Crie um novo usuário no workspace de destino, conceda ali as funções que quiser e exclua o antigo. Dentro de um workspace não há nada para mover: conceda ao usuário uma função no outro projeto.
-- **Obter um usuário de outro workspace.** Obter só encontra usuários do workspace de quem chama. Para qualquer outro, a API retorna `404`.
+- **Alcançar um usuário de outro workspace.** Obter, atualizar e excluir só encontram usuários do workspace de quem chama. Para qualquer outro, a API retorna `404`.
 
 ## Próximos passos {#next-steps}
 

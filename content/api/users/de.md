@@ -2,7 +2,7 @@
 title: "Benutzer"
 description: "Identitätsdatensätze in einem Workspace — Rollen zuweisen, API-Keys generieren."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-03
+updatedAt: 2026-11-05
 kind: reference
 ---
 
@@ -27,7 +27,7 @@ Was ein Benutzer in einem Projekt tun kann, ergibt sich aus den Rollen, die er d
 - **Aktualisieren** — Name, Beschreibung, Aktivierungs-Flag oder Passwort ändern.
 - **Löschen** — dauerhaft entfernen. Alle Rollenzuweisungen und API-Keys des Benutzers werden atomar widerrufen.
 
-Alle vier erfordern die Rolle `admin`. Aktualisieren und Löschen akzeptieren auch den API-Key eines Admins. Erstellen und Abrufen brauchen eine Sitzung, die für den Workspace selbst gilt, nicht für eines seiner Projekte. Ein API-Key gilt immer für ein einzelnes Projekt, deshalb antwortet die API auf den Aufruf eines Keys bei beiden mit `400`.
+Alle vier erfordern die Rolle `admin` und eine Sitzung, die für den Workspace selbst gilt, nicht für eines seiner Projekte. Ein API-Key gilt immer für ein einzelnes Projekt, deshalb antwortet die API auf den Aufruf eines Keys bei allen vier mit `400`.
 
 Ein Passwort geht hinein und kommt nie wieder heraus: Ein Benutzerdatensatz enthält nur `id`, `name`, `description` und `enabled`.
 
@@ -36,7 +36,7 @@ Es gibt kein „Deaktivieren“ getrennt vom „Löschen“. Wenn Sie einen Benu
 ## Was Sie nicht tun können {#cant-do}
 
 - **Einen Benutzer in einen anderen Workspace verschieben.** Legen Sie im Ziel-Workspace einen neuen Benutzer an, erteilen Sie dort die gewünschten Rollen und löschen Sie den alten. Innerhalb eines Workspaces gibt es nichts zu verschieben: Erteilen Sie dem Benutzer eine Rolle im anderen Projekt.
-- **Einen Benutzer aus einem anderen Workspace abrufen.** Abrufen findet nur Benutzer im Workspace des Aufrufers. Für alle anderen antwortet die API mit `404`.
+- **Einen Benutzer aus einem anderen Workspace erreichen.** Abrufen, Aktualisieren und Löschen finden nur Benutzer im Workspace des Aufrufers. Für alle anderen antwortet die API mit `404`.
 
 ## Nächste Schritte {#next-steps}
 

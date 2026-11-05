@@ -2,7 +2,7 @@
 title: "Rollen"
 description: "Integrierte und benutzerdefinierte Rollen sowie die Endpoints für Rollenzuweisungen, die einem Benutzer eine Rolle in einem Projekt erteilen."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-03
+updatedAt: 2026-11-05
 kind: reference
 ---
 
@@ -12,7 +12,7 @@ Eine Rolle ist ein Bündel von Berechtigungen. Eine **Rollenzuweisung** erteilt 
 
 ## Integrierte Rollen {#built-in}
 
-`GET /api/v1/roles/` listet die Rollen auf, die Sie erteilen können: die globalen Rollen der Plattform, markiert mit `is_global: true`, und alle benutzerdefinierten Rollen, die Ihr Workspace angelegt hat. Zu den globalen Rollen gehören `reader`, `member`, `manager` und `admin`. `GET /api/v1/roles/{role_id}` liest eine davon.
+`GET /api/v1/roles/` listet die globalen Rollen der Plattform auf, markiert mit `is_global: true`, und alle benutzerdefinierten Rollen, die Ihr Workspace angelegt hat; `GET /api/v1/roles/{role_id}` liest eine davon. Von den globalen Rollen können Sie `manager`, `member`, `reader` und `billing` erteilen. Die anderen, `admin` eingeschlossen, lassen sich nicht erteilen.
 
 ## Benutzerdefinierte Rollen {#custom}
 
@@ -20,7 +20,9 @@ Eine Rolle ist ein Bündel von Berechtigungen. Eine **Rollenzuweisung** erteilt 
 
 ## Erteilen und widerrufen {#grant}
 
-`POST /api/v1/roles/grant` nimmt eine Liste von Zuweisungen entgegen, sodass ein Aufruf mehrere erteilen kann. Jede Zuweisung nennt eine `role`, einen `user` oder eine `group` und ein `project` oder, für den Workspace selbst, eine `domain`, jeweils per ID. `POST /api/v1/roles/revoke` nimmt dieselbe Liste entgegen und entfernt diese Zuweisungen.
+`POST /api/v1/roles/grant` nimmt eine Liste von Zuweisungen entgegen, sodass ein Aufruf mehrere erteilen kann. Jede Zuweisung nennt eine `role`, genau einen `user` oder eine `group` und genau ein Ziel: ein `project` oder, für den Workspace selbst, eine `domain`, jeweils per ID. Eine Zuweisung ohne Subjekt oder Ziel oder mit zweien erhält `422`. `POST /api/v1/roles/revoke` nimmt dieselbe Liste entgegen und entfernt diese Zuweisungen.
+
+Erteilen und Widerrufen bleiben in Ihrem eigenen Workspace. Ein Ziel muss Ihr Workspace oder eines seiner Projekte sein (bei einem API-Key der Workspace, zu dem sein Projekt gehört), und die Rolle muss `manager`, `member`, `reader`, `billing` oder eine der eigenen Rollen Ihres Workspaces sein. Die API prüft jede Zuweisung, bevor sie eine vornimmt: Wird eine abgelehnt, antwortet der Aufruf mit `403`, und nichts aus der Liste wird angewendet.
 
 `GET /api/v1/roles/assignments` listet die Zuweisungen des Workspaces auf, in seinen Projekten und im Workspace selbst, einschließlich derer, die über eine Gruppe kommen. Filtern Sie nach `role`, `user`, `group`, `project` oder `domain`.
 
