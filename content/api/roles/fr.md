@@ -2,7 +2,7 @@
 title: "Rôles"
 description: "Rôles intégrés et personnalisés, et les endpoints d’attribution qui donnent à un utilisateur un rôle sur un projet."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-03
+updatedAt: 2026-11-05
 kind: reference
 ---
 
@@ -12,7 +12,7 @@ Un rôle est un ensemble de permissions. **L’attribution de rôle** consiste �
 
 ## Rôles intégrés {#built-in}
 
-`GET /api/v1/roles/` liste les rôles que vous pouvez accorder : les rôles globaux de la plateforme, marqués `is_global: true`, et les rôles personnalisés créés par votre espace de travail. Parmi les rôles globaux figurent `reader`, `member`, `manager` et `admin`. `GET /api/v1/roles/{role_id}` en lit un.
+`GET /api/v1/roles/` liste les rôles globaux de la plateforme, marqués `is_global: true`, et les rôles personnalisés créés par votre espace de travail ; `GET /api/v1/roles/{role_id}` en lit un. Parmi les rôles globaux, vous pouvez accorder `manager`, `member`, `reader` et `billing`. Les autres, `admin` compris, ne peuvent pas être accordés.
 
 ## Rôles personnalisés {#custom}
 
@@ -20,7 +20,9 @@ Un rôle est un ensemble de permissions. **L’attribution de rôle** consiste �
 
 ## Accorder et révoquer {#grant}
 
-`POST /api/v1/roles/grant` prend une liste d’attributions, si bien qu’un seul appel peut en accorder plusieurs. Chaque attribution indique un `role`, un `user` ou un `group`, et un `project` ou, pour l’espace de travail lui-même, un `domain`, le tout par ID. `POST /api/v1/roles/revoke` prend la même liste et retire ces attributions.
+`POST /api/v1/roles/grant` prend une liste d’attributions, si bien qu’un seul appel peut en accorder plusieurs. Chaque attribution indique un `role`, exactement un `user` ou un `group`, et exactement une cible : un `project` ou, pour l’espace de travail lui-même, un `domain`, le tout par ID. Une attribution sans sujet ou sans cible, ou avec deux, reçoit `422`. `POST /api/v1/roles/revoke` prend la même liste et retire ces attributions.
+
+Les attributions et les révocations restent dans votre propre espace de travail. La cible doit être votre espace de travail ou l’un de ses projets (pour une clé API, l’espace de travail auquel appartient son projet), et le rôle doit être `manager`, `member`, `reader`, `billing` ou l’un des rôles propres à votre espace de travail. L’API vérifie chaque attribution avant d’en faire une seule : si l’une est refusée, l’appel reçoit `403` et rien de la liste n’est appliqué.
 
 `GET /api/v1/roles/assignments` liste les attributions de l’espace de travail, sur ses projets et sur l’espace de travail lui-même, y compris celles qui passent par un groupe. Filtrez-la par `role`, `user`, `group`, `project` ou `domain`.
 

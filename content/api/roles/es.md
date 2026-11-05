@@ -2,7 +2,7 @@
 title: "Roles"
 description: "Roles predefinidos y personalizados, y los endpoints de asignación de roles que conceden a un usuario un rol en un proyecto."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-03
+updatedAt: 2026-11-05
 kind: reference
 ---
 
@@ -12,7 +12,7 @@ Un rol es un conjunto de permisos. La **asignación de rol** es el acto de conce
 
 ## Roles predefinidos {#built-in}
 
-`GET /api/v1/roles/` lista los roles que puedes conceder: los roles globales de la plataforma, marcados con `is_global: true`, y los roles personalizados que haya creado tu workspace. Entre los roles globales están `reader`, `member`, `manager` y `admin`. `GET /api/v1/roles/{role_id}` lee uno.
+`GET /api/v1/roles/` lista los roles globales de la plataforma, marcados con `is_global: true`, y los roles personalizados que haya creado tu workspace; `GET /api/v1/roles/{role_id}` lee uno. De los roles globales, puedes conceder `manager`, `member`, `reader` y `billing`. Los demás, incluido `admin`, no se pueden conceder.
 
 ## Roles personalizados {#custom}
 
@@ -20,7 +20,9 @@ Un rol es un conjunto de permisos. La **asignación de rol** es el acto de conce
 
 ## Conceder y revocar {#grant}
 
-`POST /api/v1/roles/grant` recibe una lista de asignaciones, así que una sola llamada puede conceder varias. Cada asignación indica un `role`, un `user` o un `group`, y un `project` o, para el propio workspace, un `domain`, todo por ID. `POST /api/v1/roles/revoke` recibe la misma lista y elimina esas asignaciones.
+`POST /api/v1/roles/grant` recibe una lista de asignaciones, así que una sola llamada puede conceder varias. Cada asignación indica un `role`, exactamente un `user` o un `group`, y exactamente un destino: un `project` o, para el propio workspace, un `domain`, todo por ID. Una asignación sin sujeto o sin destino, o con dos, responde `422`. `POST /api/v1/roles/revoke` recibe la misma lista y elimina esas asignaciones.
+
+Conceder y revocar no salen de tu propio workspace. El destino tiene que ser tu workspace o uno de sus proyectos (para una clave de API, el workspace al que pertenece su proyecto), y el rol tiene que ser `manager`, `member`, `reader`, `billing` o uno de los roles propios de tu workspace. La API comprueba todas las asignaciones antes de hacer ninguna: si rechaza una, la llamada responde `403` y no se aplica nada de la lista.
 
 `GET /api/v1/roles/assignments` lista las asignaciones del workspace, en sus proyectos y en el propio workspace, incluidas las que llegan a través de un grupo. Fíltralo por `role`, `user`, `group`, `project` o `domain`.
 

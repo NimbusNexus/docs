@@ -2,7 +2,7 @@
 title: Users
 description: Identity records in a workspace — assign roles, generate API keys.
 publishedAt: 2026-05-20
-updatedAt: 2026-11-03
+updatedAt: 2026-11-05
 kind: reference
 ---
 
@@ -27,7 +27,7 @@ What a user can do in a project comes from the roles it holds there, granted dir
 - **Update** — change the name, description, enabled flag or password.
 - **Delete** — permanently remove. All role assignments and API keys owned by the user are revoked atomically.
 
-All four need the `admin` role. Update and delete also accept an admin's API key. Create and get need a session scoped to the workspace itself, not to one of its projects. An API key is always scoped to one project, so a key's call to either answers `400`.
+All four need the `admin` role and a session scoped to the workspace itself, not to one of its projects. An API key is always scoped to one project, so a key's call to any of them answers `400`.
 
 A password goes in and never comes out: a user record holds only `id`, `name`, `description` and `enabled`.
 
@@ -36,7 +36,7 @@ There's no "disable" separate from "delete." If you want a soft-disable (keep au
 ## What you can't do {#cant-do}
 
 - **Move a user to another workspace.** Create a new user in the target workspace, grant the roles you want there, delete the old one. Inside one workspace there's nothing to move: grant the user a role on the other project.
-- **Look up a user in another workspace.** Get only finds users in the caller's workspace. For anyone else it answers `404`.
+- **Reach a user in another workspace.** Get, update and delete only find users in the caller's workspace. For anyone else they answer `404`.
 
 ## What's next {#next-steps}
 
