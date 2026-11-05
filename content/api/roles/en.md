@@ -2,7 +2,7 @@
 title: Roles
 description: Built-in and custom roles, plus the role-assignment endpoints that grant a user a role on a project.
 publishedAt: 2026-05-20
-updatedAt: 2026-11-03
+updatedAt: 2026-11-05
 kind: reference
 ---
 
@@ -12,7 +12,7 @@ A role is a bundle of permissions. **Role assignment** is the act of granting a 
 
 ## Built-in roles {#built-in}
 
-`GET /api/v1/roles/` lists the roles you can grant: the platform's global roles, marked `is_global: true`, and any custom roles your workspace has created. The global roles include `reader`, `member`, `manager` and `admin`. `GET /api/v1/roles/{role_id}` reads one.
+`GET /api/v1/roles/` lists the platform's global roles, marked `is_global: true`, and any custom roles your workspace has created; `GET /api/v1/roles/{role_id}` reads one. Of the global roles, you can grant `manager`, `member`, `reader` and `billing`. The others, `admin` included, can't be granted.
 
 ## Custom roles {#custom}
 
@@ -20,7 +20,9 @@ A role is a bundle of permissions. **Role assignment** is the act of granting a 
 
 ## Granting and revoking {#grant}
 
-`POST /api/v1/roles/grant` takes a list of assignments, so one call can grant several. Each assignment names a `role`, a `user` or a `group`, and a `project`, or a `domain` for the workspace itself, all by ID. `POST /api/v1/roles/revoke` takes the same list and removes those assignments.
+`POST /api/v1/roles/grant` takes a list of assignments, so one call can grant several. Each assignment names a `role`, exactly one `user` or `group`, and exactly one target: a `project`, or a `domain` for the workspace itself, all by ID. An assignment with no subject or target, or with two, answers `422`. `POST /api/v1/roles/revoke` takes the same list and removes those assignments.
+
+Grants and revokes stay inside your own workspace. A target must be your workspace or one of its projects (for an API key, the workspace its project belongs to), and the role must be `manager`, `member`, `reader`, `billing` or one of your workspace's own roles. The API checks every assignment before it makes any: if one is refused, the call answers `403` and nothing in the list is applied.
 
 `GET /api/v1/roles/assignments` lists the workspace's assignments, on its projects and on the workspace itself, including the ones that come through a group. Filter it by `role`, `user`, `group`, `project` or `domain`.
 
