@@ -186,7 +186,7 @@ Un pipeline n’a ni boucles, ni horloge, ni réseau, et des plafonds fixes born
 | Le corps que lit une étape | 256 KiB | `input_too_large` |
 | Le corps que renvoie une exécution | 256 KiB | `output_too_large` |
 | Une valeur produite par une étape | 64 KiB | `value_too_large` |
-| Travail d’une exécution | 100,000 valeurs lues ou copiées, le texte comptant pour une par KiB | `too_many_nodes` |
+| Travail d’une exécution | 100,000 valeurs lues ou copiées, le texte comptant pour une tous les 128 caractères | `too_many_nodes` |
 | Headers à la fin d’une exécution | 50 | `too_many_headers` |
 | Une valeur de header | 8 KiB | `header_too_large` |
 

@@ -186,7 +186,7 @@ Um pipeline não tem loops, relógio nem rede, e limites fixos restringem cada e
 | O corpo que uma etapa lê | 256 KiB | `input_too_large` |
 | O corpo com que uma execução responde | 256 KiB | `output_too_large` |
 | Um valor gerado por uma etapa | 64 KiB | `value_too_large` |
-| Trabalho em uma execução | 100,000 valores lidos ou copiados; texto conta um por KiB | `too_many_nodes` |
+| Trabalho em uma execução | 100,000 valores lidos ou copiados; texto conta um a cada 128 caracteres | `too_many_nodes` |
 | Headers no fim de uma execução | 50 | `too_many_headers` |
 | Um valor de header | 8 KiB | `header_too_large` |
 

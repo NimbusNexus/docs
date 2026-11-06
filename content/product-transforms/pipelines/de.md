@@ -186,7 +186,7 @@ Eine Pipeline hat keine Schleifen, keine Uhr und kein Netzwerk, und feste Obergr
 | Der Body, den ein Schritt liest | 256 KiB | `input_too_large` |
 | Der Body, mit dem eine Ausführung antwortet | 256 KiB | `output_too_large` |
 | Ein Wert, den ein Schritt erzeugt | 64 KiB | `value_too_large` |
-| Arbeit in einer Ausführung | 100,000 gelesene oder kopierte Werte, Text zählt einen pro KiB | `too_many_nodes` |
+| Arbeit in einer Ausführung | 100,000 gelesene oder kopierte Werte, Text zählt einen pro 128 Zeichen | `too_many_nodes` |
 | Header am Ende einer Ausführung | 50 | `too_many_headers` |
 | Ein Header-Wert | 8 KiB | `header_too_large` |
 

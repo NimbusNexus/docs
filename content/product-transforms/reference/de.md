@@ -68,7 +68,7 @@ Jede Version in `GET /v1/pipelines/{id}/versions` hat `version`, `created_by` un
 | Feld | Bedeutung |
 | --- | --- |
 | `body` | Ein beliebiger JSON-Wert, bis zu 256 KiB als kompaktes JSON und höchstens 32 Ebenen tief verschachtelt. |
-| `headers` | Ein Wert pro Name. |
+| `headers` | Ein Wert pro Name, höchstens 256. Ein Name hat bis zu 256 Zeichen, ein Wert bis zu 8,192. Darüber antwortet die API mit `422` `validation_error`. |
 | `meta` | Schreibgeschützter Kontext für `$meta`: ein beliebiger JSON-Wert, höchstens 32 Ebenen tief verschachtelt. |
 | `version` | Die aufbewahrte Version, die laufen soll. Ohne das Feld die aktuelle. |
 

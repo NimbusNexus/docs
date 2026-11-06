@@ -68,7 +68,7 @@ Cada versión en `GET /v1/pipelines/{id}/versions` tiene `version`, `created_by`
 | Campo | Qué es |
 | --- | --- |
 | `body` | Cualquier valor JSON, de hasta 256 KiB como JSON compacto y con 32 niveles de anidamiento como máximo. |
-| `headers` | Un valor por cada nombre. |
+| `headers` | Un valor por cada nombre, 256 como máximo. Un nombre tiene hasta 256 caracteres y un valor hasta 8,192. Por encima de cualquiera de ellos, la respuesta es `422` `validation_error`. |
 | `meta` | Contexto de solo lectura para `$meta`: cualquier valor JSON, con 32 niveles de anidamiento como máximo. |
 | `version` | La versión guardada que se ejecuta. Sin este campo, la actual. |
 

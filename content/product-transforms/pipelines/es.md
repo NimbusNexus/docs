@@ -186,7 +186,7 @@ Una pipeline no tiene bucles, ni reloj, ni red, y unos límites fijos acotan cad
 | El cuerpo que lee un paso | 256 KiB | `input_too_large` |
 | El cuerpo con el que responde una ejecución | 256 KiB | `output_too_large` |
 | Un valor que genera un paso | 64 KiB | `value_too_large` |
-| Trabajo en una ejecución | 100,000 valores leídos o copiados; el texto cuenta uno por KiB | `too_many_nodes` |
+| Trabajo en una ejecución | 100,000 valores leídos o copiados; el texto cuenta uno por cada 128 caracteres | `too_many_nodes` |
 | Cabeceras al final de una ejecución | 50 | `too_many_headers` |
 | Un valor de cabecera | 8 KiB | `header_too_large` |
 

@@ -186,7 +186,7 @@ A pipeline has no loops, no clock and no network, and fixed caps bound each run.
 | The body a step reads | 256 KiB | `input_too_large` |
 | The body a run answers with | 256 KiB | `output_too_large` |
 | One value a step renders | 64 KiB | `value_too_large` |
-| Work in one run | 100,000 values read or copied, text counting one per KiB | `too_many_nodes` |
+| Work in one run | 100,000 values read or copied, text counting one per 128 characters | `too_many_nodes` |
 | Headers at the end of a run | 50 | `too_many_headers` |
 | One header value | 8 KiB | `header_too_large` |
 
