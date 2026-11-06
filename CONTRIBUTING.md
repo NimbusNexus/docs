@@ -69,9 +69,6 @@ stays in sync with the apex domain and other canonical values:
 | `{{WEBHOOKS_BASE_URL}}`       | `https://webhooks.nimbusnexus.net`             |
 | `{{STATUS_URL}}`              | `https://status.nimbusnexus.net`               |
 | `{{DNS_NS1}}`–`{{DNS_NS4}}`   | `ns1.dns.nimbusnexus.net` … `ns4.dns.nim…`     |
-| `{{S3_ENDPOINT_US_EAST_1}}`   | `https://s3.us-east-1.nimbusnexus.net`         |
-| `{{S3_HOST_US_EAST_1}}`       | `s3.us-east-1.nimbusnexus.net`                 |
-| `{{DB_HOST_DEMO}}`            | `db-postgres-prod-01.us-east-1.nimbusnexus.net` |
 | `{{INBOXES_BASE_URL}}`, `{{QR_BASE_URL}}`, `{{NEWSLETTERS_BASE_URL}}` | each app's root, e.g. `https://qr.nimbusnexus.net` |
 | `{{ACCOUNT_BASE_URL}}`        | `https://account.nimbusnexus.net` (API keys live at `/api-keys`) |
 | `{{WEBHOOKS_CLI_VERSION}}`    | the newest webhooks-go release with binaries, e.g. `0.5.2` |
@@ -90,11 +87,17 @@ signed-in reader's own workspace and project, and `<workspace-id>`,
 or a token into an example: read it from an environment variable.
 
 ```markdown
-Send the key in the `Authorization` header:
+Send the key in the `X-API-Key` header:
 
-curl {{API_BASE_URL}}/v1/vms \
-  -H "Authorization: Bearer $NIMBUS_KEY"
+curl {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY"
 ```
+
+The infrastructure API at `{{API_BASE_URL}}` has its routes under `/api/v1/`
+and takes a key in `X-API-Key`. The app APIs have their routes under `/v1/`
+on their own base URLs, and take a key as `Authorization: Bearer`. Check every
+infrastructure example against production's spec,
+<https://api.nimbusnexus.net/openapi/external.json>, before you publish it.
 
 ### Code blocks
 
@@ -191,8 +194,8 @@ npm run lint
 
 NimbusNexus docs are written for someone reading on the job. Three rules:
 
-1. **Plain language wins.** "Latency between regions is free" beats
-   "Inter-region traffic incurs no charges."
+1. **Plain language wins.** "A stopped VM is still billed" beats
+   "Billing persists across power-state transitions."
 2. **Show the why.** When a constraint exists, explain it — it makes
    the constraint feel less arbitrary and helps readers decide if it
    applies to them.

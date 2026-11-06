@@ -10,7 +10,7 @@ kind: sdk
 
 Webhooks has official SDKs for Python, TypeScript and Go, all at version {{WEBHOOKS_SDK_VERSION}}. They retry transient failures, verify webhook signatures and can buffer events while the API is unreachable. Pick a language at the top of the page and every example follows it.
 
-Inboxes and QR Codes have no SDK yet; call them [over REST](/docs/setup/rest). The [API reference](/docs/reference) shows each of their calls with your language's usual HTTP client. SDKs for Infrastructure (VMs, storage, databases) are not available yet either.
+Inboxes and QR Codes have no SDK yet; call them [over REST](/docs/setup/rest). The [API reference](/docs/reference) shows each of their calls with your language's usual HTTP client. SDKs for Infrastructure (VMs, storage, networking) are not available yet either.
 
 ## 1 · Install {#install}
 

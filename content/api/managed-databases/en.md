@@ -51,7 +51,7 @@ Each database's GET response includes a `connection` object:
 ```json
 {
   "connection": {
-    "host": "{{DB_HOST_DEMO}}",
+    "host": "db.example.com",
     "port": 5432,
     "database": "main",
     "username": "nimbus",

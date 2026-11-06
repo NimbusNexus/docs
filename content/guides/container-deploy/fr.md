@@ -223,4 +223,3 @@ Pour conserver les logs plus longtemps, envoyez-les depuis journald là où vous
 - [Déploiements blue/green avec IP flottantes](/docs/guides/blue-green) — la version sans interruption du déploiement décrit ci-dessus.
 - [Machines virtuelles](/docs/api/vms) — toutes les options de l’appel de création.
 - [Surveiller une flotte de VM](/docs/guides/monitoring-vms) — mise en place de Prometheus + Grafana.
-- [Déployer un site statique](/docs/guides/static-site) — pour du contenu purement statique, ce modèle est excessif ; utilisez plutôt le stockage objet.

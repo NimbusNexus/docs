@@ -54,8 +54,8 @@ curl -X POST {{API_BASE_URL}}/v1/buckets \
 ```json
 {
   "id": "bkt_01HG7Y3...",
-  "url": "https://my-site.{{S3_HOST_US_EAST_1}}",
-  "website_endpoint": "https://my-site.{{S3_HOST_US_EAST_1}}"
+  "url": "https://my-site.s3.example.com",
+  "website_endpoint": "https://my-site.s3.example.com"
 }
 ```
 
@@ -65,7 +65,7 @@ curl -X POST {{API_BASE_URL}}/v1/buckets \
 aws configure set aws_access_key_id $NIMBUS_KEY
 aws configure set aws_secret_access_key $NIMBUS_SECRET
 aws configure set region $REGION
-aws configure set s3.endpoint_url {{S3_ENDPOINT_US_EAST_1}}
+aws configure set s3.endpoint_url https://s3.example.com
 ```
 
 `$NIMBUS_SECRET` — секретна частина S3-сумісного ключа доступу, який генерується в дашборді в розділі **Settings → Object Storage Keys → New key**. Не плутайте його зі звичайним API-ключем — це різні ключі.
@@ -76,7 +76,7 @@ aws configure set s3.endpoint_url {{S3_ENDPOINT_US_EAST_1}}
 aws s3 sync ./dist s3://$BUCKET \
   --delete \
   --cache-control "public, max-age=3600" \
-  --endpoint-url {{S3_ENDPOINT_US_EAST_1}}
+  --endpoint-url https://s3.example.com
 ```
 
 `--delete` видаляє з bucket-а файли, яких уже немає в `./dist`. `--cache-control` задає кожному обʼєкту заголовок кешування на 1 годину — достатньо довго, щоб браузери не завантажували файли заново під час кожного відкриття сторінки, і достатньо коротко, щоб не скидати кеш вручну після виправлення опечатки.
@@ -86,14 +86,14 @@ aws s3 sync ./dist s3://$BUCKET \
 ```bash
 aws s3 cp ./dist/index.html s3://$BUCKET/index.html \
   --cache-control "no-cache, max-age=0" \
-  --endpoint-url {{S3_ENDPOINT_US_EAST_1}}
+  --endpoint-url https://s3.example.com
 ```
 
 Патерн: довге кешування для ресурсів із хешем у назві (`/_app/[hash].js`), no-cache для вхідного HTML, який на них посилається. Той самий патерн під капотом використовують Vercel + Netlify + Cloudflare Pages.
 
 ## 4 · Перевірте, що все працює {#verify}
 
-Відкрийте `https://my-site.{{S3_HOST_US_EAST_1}}` у браузері. Ви маєте побачити свій сайт.
+Відкрийте `https://my-site.s3.example.com` у браузері. Ви маєте побачити свій сайт.
 
 Якщо замість нього бачите XML, ендпоінт сайту маршрутизує неправильно — найчастіше тому, що не задано `public_read` або `website.enabled`. Ще раз перевірте конфігурацію bucket-а:
 
@@ -107,7 +107,7 @@ curl {{API_BASE_URL}}/v1/buckets/$BUCKET \
 Додайте в реєстратора DNS-запис, що спрямовує ваш домен на bucket:
 
 ```text
-www.example.com   CNAME   my-site.{{S3_HOST_US_EAST_1}}
+www.example.com   CNAME   my-site.s3.example.com
 ```
 
 Для кореневого домену (`example.com` без `www.`) CNAME не працює — записи CNAME на корені домену заборонені RFC. Є два варіанти:
@@ -141,7 +141,7 @@ curl -X PATCH {{API_BASE_URL}}/v1/buckets/$BUCKET \
     AWS_ACCESS_KEY_ID:     ${{ secrets.NIMBUS_S3_KEY }}
     AWS_SECRET_ACCESS_KEY: ${{ secrets.NIMBUS_S3_SECRET }}
     BUCKET:                my-site
-    ENDPOINT:              {{S3_ENDPOINT_US_EAST_1}}
+    ENDPOINT:              https://s3.example.com
 ```
 
 У більшості CI-систем уже є дії розгортання для S3-сумісних сховищ; ви націлюєте їх на наш ендпоінт, і вони працюють без змін.

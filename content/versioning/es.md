@@ -2,7 +2,7 @@
 title: "Política de versionado"
 description: "Cómo hacemos evolucionar la API sin romper tu código."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-15
+updatedAt: 2026-11-06
 kind: concept
 ---
 
@@ -49,27 +49,27 @@ Tres reglas:
 
 ```ts
 // Correct
-const { id, name, state } = await res.json()
+const { id, name, status } = await res.json()
 
 // Wrong (will reject responses with new fields)
-const allowedKeys = ['id', 'name', 'state']
+const allowedKeys = ['id', 'name', 'status']
 for (const k of Object.keys(json)) {
   if (!allowedKeys.includes(k)) throw new Error('unknown field')
 }
 ```
 
-**2. Trata los enums desconocidos como opacos.** Si decides según `state`, trata los valores conocidos; para los desconocidos, muestra la cadena en bruto y no falles.
+**2. Trata los enums desconocidos como opacos.** Si decides según `status`, trata los valores conocidos; para los desconocidos, muestra la cadena en bruto y no falles.
 
 ```ts
-switch (vm.state) {
-  case 'running': return 'green'
-  case 'stopped': return 'gray'
-  case 'provisioning': return 'amber'
-  default: return 'gray' // Don't throw, don't assume — we may add 'migrating'
+switch (vm.status) {
+  case 'ACTIVE': return 'green'
+  case 'SHUTOFF': return 'gray'
+  case 'BUILD': return 'amber'
+  default: return 'gray' // Don't throw, don't assume: there are others, such as 'VERIFY_RESIZE'
 }
 ```
 
-**3. Decide según `error.code`, no según `status`.** Los códigos de estado agrupan los errores (`4xx` frente a `5xx`); `error.code` los distingue. Podemos añadir códigos nuevos a códigos de estado existentes; tu código debería caer en el caso por defecto en lugar de tratar los códigos no reconocidos como bugs fatales.
+**3. En las APIs de las apps, decide según `error.code`, no según el estado.** Los códigos de estado agrupan los errores (`4xx` frente a `5xx`); `error.code` los distingue. Podemos añadir códigos nuevos a códigos de estado existentes; tu código debería caer en el caso por defecto en lugar de tratar los códigos no reconocidos como bugs fatales. La API de infraestructura no tiene códigos de error: allí, decide según el estado ([Convenciones](/docs/conventions#errors)).
 
 ## Política de obsolescencia {#deprecation}
 
@@ -86,11 +86,11 @@ Doce meses es mucho tiempo. En la práctica, marcar algo como obsoleto en la v1 
 
 Si algún día publicamos la v2 (no tenemos intención de hacerlo pronto), el despliegue sería así:
 
-- La v2 se lanzaría en `/v2/...` junto a `/v1/...` — las dos activas en paralelo
+- La v2 se lanzaría en rutas nuevas junto a la v1 (`/api/v2/` junto a `/api/v1/` en la API de infraestructura, `/v2/` junto a `/v1/` en las APIs de las apps) — las dos activas en paralelo
 - La v1 seguiría recibiendo correcciones de bugs y funciones nuevas (aditivas) durante al menos 24 meses
-- La v2 tendría una URL base distinta (`{{API_BASE_URL}}/v2/...`), para que la propia URL indique la versión
+- Las URLs de la v2 llevarían la versión, como `{{API_BASE_URL}}/api/v2/...`, para que la propia URL la indique
 
-Migrarías cuando estuvieras listo, no cuando te obligaran. El camino es empezar a usar los endpoints `/v2` en el código nuevo y migrar el código antiguo a tu ritmo — no hay un cutover de golpe en una fecha fijada.
+Migrarías cuando estuvieras listo, no cuando te obligaran. El camino es empezar a usar los endpoints de la v2 en el código nuevo y migrar el código antiguo a tu ritmo — no hay un cutover de golpe en una fecha fijada.
 
 ## Por qué importa {#why}
 

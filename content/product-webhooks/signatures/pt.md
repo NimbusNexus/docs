@@ -22,8 +22,6 @@ Esta página é o contrato. Se você usa um dos [SDKs](/docs/product-webhooks/sd
 | `X-Webhook-Event-Type` | O tipo do evento |
 | `X-Webhook-Delivery-Id` | O id desta entrega; cite-o nas solicitações ao suporte |
 
-> Estes **não** são os headers usados pelos [webhooks da plataforma](/docs/webhooks), que assinam as notificações de infraestrutura com o prefixo `NN-`. Os dois produtos são sistemas separados. Um handler escrito com os nomes de header errados não vai encontrar nada para verificar e vai rejeitar todas as entregas.
-
 ## A construção {#construction}
 
 ```text
@@ -102,4 +100,3 @@ A consequência é a armadilha: um verificador que compara o valor inteiro do he
 - [SDKs](/docs/product-webhooks/sdks) — helpers `verify` que implementam esta página.
 - [Início rápido](/docs/product-webhooks/quickstart) — o fluxo completo do qual isto faz parte.
 - [Visão geral de Webhooks](/docs/product-webhooks) — semântica de entrega e a dead-letter queue.
-- [Webhooks da plataforma](/docs/webhooks) — as notificações de infraestrutura separadas, assinadas com `NN-`.

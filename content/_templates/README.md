@@ -27,7 +27,7 @@ generation.
 |---------------|-------------------------|---------------------------------------------------------------|
 | `reference`   | `reference.md`          | Per-resource API reference (e.g. `/docs/api/vms`)             |
 | `concept`     | `concept.md`            | Conceptual explainers (e.g. `/docs/authentication`)           |
-| `guide`       | `guide.md`              | Step-by-step tutorials (e.g. `/docs/guides/postgres-production`) |
+| `guide`       | `guide.md`              | Step-by-step tutorials (e.g. `/docs/guides/blue-green`)       |
 | `quickstart`  | `quickstart.md`         | Onboarding flows where the goal is "running in 5 minutes"     |
 | `sdk`         | `sdk.md`                | Language-specific SDK docs (e.g. `/docs/sdks/typescript`)     |
 | `cli`         | `cli.md`                | Command-line tool docs (e.g. `/docs/cli`)                     |

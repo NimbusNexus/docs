@@ -22,8 +22,6 @@ Diese Seite ist die Spezifikation. Wenn Sie eines der [SDKs](/docs/product-webho
 | `X-Webhook-Event-Type` | Der Event-Typ |
 | `X-Webhook-Delivery-Id` | Die ID dieser Zustellung; nennen Sie sie in Supportanfragen |
 
-> Das sind **nicht** die Header, die [Plattform-Webhooks](/docs/webhooks) verwenden; diese signieren Benachrichtigungen zur Infrastruktur mit dem Präfix `NN-`. Die beiden Produkte sind getrennte Systeme. Ein Handler, der für die falschen Header-Namen geschrieben ist, findet nichts zu prüfen und weist jede Zustellung ab.
-
 ## Die Konstruktion {#construction}
 
 ```text
@@ -102,4 +100,3 @@ Daraus folgt die Falle: Ein Prüfer, der den gesamten Header-Wert vergleicht, fu
 - [SDKs](/docs/product-webhooks/sdks) — Helfer `verify`, die diese Seite umsetzen.
 - [Schnellstart](/docs/product-webhooks/quickstart) — der durchgängige Ablauf, in den das gehört.
 - [Überblick über Webhooks](/docs/product-webhooks) — Zustellsemantik und die Dead-Letter-Queue.
-- [Plattform-Webhooks](/docs/webhooks) — die getrennten Benachrichtigungen zur Infrastruktur, signiert mit `NN-`.

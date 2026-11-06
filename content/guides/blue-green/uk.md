@@ -164,4 +164,3 @@ curl -X POST {{API_BASE_URL}}/api/v1/floating_ip/allocate \
 
 - [Довідник плаваючих IP](/docs/api/floating-ips) — усі ендпоінти ресурсу, завдяки якому цей патерн можливий.
 - [Балансувальники навантаження](/docs/api/load-balancers) — той самий патерн для кількох VM.
-- [Failover між регіонами](/docs/guides/multi-region) — та сама ідея, застосована до пар у географічно віддалених місцях.

@@ -2,19 +2,19 @@
 title: Set up the REST API
 description: Get an API key, send it in one header, and make a first call to a NimbusNexus product from curl, TypeScript, Python or Go.
 publishedAt: 2026-10-19
-updatedAt: 2026-10-22
+updatedAt: 2026-11-06
 kind: quickstart
 ---
 
 # Set up the REST API
 
-Every NimbusNexus product is a REST API: JSON over HTTPS, with your API key in the `Authorization` header. This page takes you from no key to a first successful call. Pick a language at the top of the page and the examples follow it. REST means `curl`; TypeScript, Python and Go use each language's usual HTTP client, with no SDK needed.
+Every NimbusNexus product is a REST API: JSON over HTTPS, with your API key in a header. This page takes you from no key to a first successful call. Pick a language at the top of the page and the examples follow it. REST means `curl`; TypeScript, Python and Go use each language's usual HTTP client, with no SDK needed.
 
 ## 1 · Get an API key {#key}
 
 **Apps: Webhooks, Inboxes, QR Codes and Request Bins.** Open **API keys** in your [account console]({{ACCOUNT_BASE_URL}}/api-keys) and create a key for the product you want to call. Each key belongs to one product. Choose its scope there: `admin`, `read`, or for Webhooks also `publish`. Copy the key when it appears, because it is shown only once. An app key is a JWT, so it starts with `eyJ`.
 
-**Infrastructure: VMs, storage, databases and networking.** Create the key in the dashboard under **Settings → API keys**. It is scoped to one project. [Authentication](/docs/authentication) covers scopes and rotation.
+**Infrastructure: VMs, storage, networking and DNS.** Create the key in the dashboard under **Security → API tokens**, with the **Admin** scope, and copy the value labelled **API key** ([Quickstart](/docs/quickstart#api-key)). It is scoped to one project. [Authentication](/docs/authentication) covers roles, access rules and replacing a key.
 
 Keep the key out of your source code. Export it in your shell or keep it in your secret store:
 
@@ -24,10 +24,16 @@ export WEBHOOKS_API_KEY="<your-api-key>"
 
 ## 2 · Send it on every request {#auth}
 
-Send the key as a bearer token. The app APIs also accept it as `X-API-Key: <key>`.
+On the apps, send the key as a bearer token. They also accept it as `X-API-Key: <key>`.
 
 ```http
 Authorization: Bearer <your-api-key>
+```
+
+On the infrastructure API, send the key in `X-API-Key`. A bearer token there is a signed-in session, not an API key.
+
+```http
+X-API-Key: <your-api-key>
 ```
 
 Each product has its own base URL:
@@ -38,7 +44,7 @@ Each product has its own base URL:
 | Inboxes | `{{INBOXES_BASE_URL}}/v1` |
 | QR Codes | `{{QR_BASE_URL}}/v1` |
 | Request Bins | `https://bins.nimbusnexus.net/v1` |
-| Infrastructure | `{{API_BASE_URL}}` |
+| Infrastructure | `{{API_BASE_URL}}/api/v1` |
 
 ## 3 · Make a first call {#first-call}
 
@@ -91,9 +97,18 @@ The response names your workspace:
 
 The other fields say what kind of credential this is. For an API key, `email` and `created_at` are `null`.
 
+On the infrastructure API, `GET /api/v1/account/get_session_auth_data` does the same job: any valid key can call it, whatever its access rules. [Quickstart](/docs/quickstart) goes on from there to your first VM.
+
+```bash
+export NIMBUS_KEY="<your-api-key>"
+
+curl {{API_BASE_URL}}/api/v1/account/get_session_auth_data \
+  -H "X-API-Key: $NIMBUS_KEY"
+```
+
 ## 4 · Read errors {#errors}
 
-A failed request answers with a 4xx or 5xx status and one error shape across every product:
+On the apps, a failed request answers with a 4xx or 5xx status and one error shape:
 
 ```json
 {
@@ -107,6 +122,8 @@ A failed request answers with a 4xx or 5xx status and one error shape across eve
 ```
 
 Branch on `code`, not on the status or the message. `unauthorized` means no key arrived or the key was revoked. `invalid_credential` means the key is not valid: mint a new one, because retrying will not help. `forbidden` means the key is valid but cannot do this: its scope or role is missing, or the product is not enabled for your workspace. [Authentication](/docs/authentication#errors) and [Errors](/docs/errors) list every code. Quote the `request_id` when you contact support.
+
+The infrastructure API answers differently, with `success: false` and a `message`, and no codes: branch on the status ([Conventions](/docs/conventions#errors)).
 
 ## What's next {#next-steps}
 

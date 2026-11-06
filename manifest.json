@@ -202,12 +202,12 @@
             "uk": "Ліміти запитів"
           },
           "description": {
-            "en": "Per-key request budgets, the headers we return, and the right backoff strategy.",
-            "de": "Request-Budgets pro Key, die Header, die wir zurückgeben, und die richtige Backoff-Strategie.",
-            "es": "Presupuestos de peticiones por clave, las cabeceras que devolvemos y la estrategia de backoff adecuada.",
-            "fr": "Budgets de requêtes par clé, les headers que nous renvoyons et la bonne stratégie de backoff.",
-            "pt": "Orçamentos de requisições por chave, os headers que retornamos e a estratégia de backoff correta.",
-            "uk": "Бюджети запитів на кожен ключ, заголовки, які ми повертаємо, і правильна стратегія backoff."
+            "en": "What each API limits, the headers and errors a limit answers with, and how to back off.",
+            "de": "Was jede API begrenzt, mit welchen Headern und Fehlern ein Limit antwortet, und die richtige Backoff-Strategie.",
+            "es": "Qué limita cada API, con qué cabeceras y errores responde un límite y cuál es la estrategia de backoff adecuada.",
+            "fr": "Ce que limite chaque API, les headers et les erreurs renvoyés par une limite, et la bonne stratégie de backoff.",
+            "pt": "O que cada API limita, os headers e erros com que um limite responde e a estratégia de backoff correta.",
+            "uk": "Що обмежує кожен API, якими заголовками й помилками відповідає ліміт і яка стратегія backoff правильна."
           },
           "published": true
         },
@@ -223,12 +223,12 @@
             "uk": "Пагінація"
           },
           "description": {
-            "en": "Cursor pagination on every list endpoint. Stable across inserts, no offset drift.",
-            "de": "Cursor-Paginierung auf jedem Listen-Endpoint. Stabil, wenn Einträge hinzukommen, ohne Offset-Drift.",
-            "es": "Paginación por cursor en todos los endpoints de listado. Estable ante inserciones y sin desfases por offset.",
-            "fr": "Pagination par curseur sur chaque endpoint de liste. Stable malgré les insertions, sans dérive d’offset.",
-            "pt": "Paginação por cursor em todo endpoint de listagem. Estável mesmo com inserções, sem desvio de offset.",
-            "uk": "Пагінація за курсором на кожному ендпоінті списку: стабільна під час вставок, без зсуву сторінок."
+            "en": "How each API pages its lists, with limit and offset or marker, and how to know you've reached the end.",
+            "de": "Wie jede API ihre Listen paginiert, mit limit und offset oder marker, und woran Sie das Ende erkennen.",
+            "es": "Cómo pagina sus listas cada API, con limit y offset o marker, y cómo saber que has llegado al final.",
+            "fr": "Comment chaque API pagine ses listes, avec limit et offset ou marker, et comment savoir que vous êtes à la fin.",
+            "pt": "Como cada API pagina suas listas, com limit e offset ou marker, e como saber que você chegou ao fim.",
+            "uk": "Як кожен API розбиває списки на сторінки: limit з offset або marker, і як зрозуміти, що ви дійшли до кінця."
           },
           "published": true
         },
@@ -286,12 +286,12 @@
             "uk": "Модель безпеки"
           },
           "description": {
-            "en": "How keys, scopes, projects, and audit logs combine to bound blast radius.",
-            "de": "Wie Keys, Scopes, Projekte und Audit-Logs zusammen den Schadensradius begrenzen.",
-            "es": "Cómo se combinan claves, alcances, proyectos y registros de auditoría para acotar el radio de impacto.",
-            "fr": "Comment clés, portées, projets et journaux d’audit se combinent pour limiter le rayon d’impact.",
-            "pt": "Como chaves, escopos, projetos e logs de auditoria se combinam para limitar o raio de impacto.",
-            "uk": "Як ключі, області дії, проєкти та журнали аудиту разом обмежують радіус ураження."
+            "en": "How API keys, roles, access rules and projects combine to bound blast radius.",
+            "de": "Wie API-Keys, Rollen, Zugriffsregeln und Projekte zusammen den Schadensradius begrenzen.",
+            "es": "Cómo se combinan claves de API, roles, reglas de acceso y proyectos para acotar el radio de impacto.",
+            "fr": "Comment clés API, rôles, règles d’accès et projets se combinent pour limiter le rayon d’impact.",
+            "pt": "Como chaves de API, funções, regras de acesso e projetos se combinam para limitar o raio de impacto.",
+            "uk": "Як API-ключі, ролі, правила доступу та проєкти разом обмежують радіус ураження."
           },
           "published": true
         },
@@ -370,7 +370,7 @@
             "pt": "Inscreva-se nos eventos de ciclo de vida da sua infraestrutura. POSTs assinados com HMAC para uma URL que você controla.",
             "uk": "Підпишіться на події життєвого циклу вашої інфраструктури: POST-запити з підписом HMAC на URL, який ви контролюєте."
           },
-          "published": true
+          "published": false
         }
       ]
     },
@@ -405,7 +405,7 @@
             "pt": "Provisione um Postgres gerenciado com HA, backups e upgrades sem downtime — em três chamadas de API.",
             "uk": "Розгорніть керований Postgres із HA, бекапами й оновленнями без даунтайму — трьома викликами API."
           },
-          "published": true
+          "published": false
         },
         {
           "path": "guides/static-site",
@@ -426,7 +426,7 @@
             "pt": "O armazenamento de objetos como destino de hospedagem — bucket, leitura pública, domínio próprio, ~5 minutos.",
             "uk": "Обʼєктне сховище як хостинг: bucket, публічний доступ на читання, власний домен, ~5 хвилин."
           },
-          "published": true
+          "published": false
         },
         {
           "path": "guides/migrate-from-rds",
@@ -447,7 +447,7 @@
             "pt": "Migre Postgres ou MySQL do RDS ao vivo, sem perda de dados e com ~30 s de downtime.",
             "uk": "Перенесіть Postgres або MySQL з RDS наживо — без втрати даних і з даунтаймом ~30 с."
           },
-          "published": true
+          "published": false
         },
         {
           "path": "guides/blue-green",
@@ -489,7 +489,7 @@
             "pt": "Failover no nível do DNS entre duas regiões, com roteamento por verificação de integridade.",
             "uk": "Failover на рівні DNS між двома регіонами з маршрутизацією за перевірками стану."
           },
-          "published": true
+          "published": false
         },
         {
           "path": "guides/monitoring-vms",
@@ -566,12 +566,12 @@
             "uk": "Оптимізація місячного рахунку"
           },
           "description": {
-            "en": "The five highest-leverage things to do if your invoice is bigger than you expected.",
-            "de": "Die fünf wirksamsten Maßnahmen, wenn Ihre Rechnung höher ausfällt als erwartet.",
-            "es": "Las cinco medidas más eficaces si tu factura es mayor de lo que esperabas.",
-            "fr": "Les cinq leviers les plus efficaces si votre facture est plus élevée que prévu.",
-            "pt": "As cinco ações de maior impacto se sua fatura veio maior do que você esperava.",
-            "uk": "Пʼять найдієвіших кроків, якщо рахунок більший, ніж ви очікували."
+            "en": "Where an infrastructure bill goes, and how to find the resources you can stop paying for.",
+            "de": "Wohin die Kosten Ihrer Infrastruktur gehen und wie Sie die Ressourcen finden, für die Sie nicht mehr zahlen müssen.",
+            "es": "A dónde va la factura de tu infraestructura y cómo encontrar los recursos por los que puedes dejar de pagar.",
+            "fr": "Où part votre facture d’infrastructure, et comment trouver les ressources que vous pouvez cesser de payer.",
+            "pt": "Para onde vai a fatura da sua infraestrutura e como encontrar os recursos pelos quais você pode parar de pagar.",
+            "uk": "На що йде рахунок за інфраструктуру і як знайти ресурси, за які можна більше не платити."
           },
           "published": true
         }

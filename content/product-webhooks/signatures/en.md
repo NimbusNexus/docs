@@ -22,8 +22,6 @@ This page is the contract. If you use one of the [SDKs](/docs/product-webhooks/s
 | `X-Webhook-Event-Type` | The event type |
 | `X-Webhook-Delivery-Id` | This delivery's id; quote it in support requests |
 
-> These are **not** the headers used by [platform webhooks](/docs/webhooks), which sign infrastructure notifications with an `NN-` prefix. The two products are separate systems. A handler written against the wrong header names will find nothing to verify and reject every delivery.
-
 ## The construction {#construction}
 
 ```text
@@ -102,4 +100,3 @@ The corollary is the trap: a verifier that compares the whole header value works
 - [SDKs](/docs/product-webhooks/sdks) — `verify` helpers that implement this page.
 - [Quickstart](/docs/product-webhooks/quickstart) — the end-to-end flow this fits into.
 - [Webhooks overview](/docs/product-webhooks) — delivery semantics and the dead-letter queue.
-- [Platform webhooks](/docs/webhooks) — the separate, `NN-`-signed infrastructure notifications.

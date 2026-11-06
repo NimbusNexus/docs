@@ -164,4 +164,3 @@ This pattern is more work than "always deploy schema + code together" but it pre
 
 - [Floating IPs reference](/docs/api/floating-ips) — every endpoint on the resource that makes this pattern possible.
 - [Load balancers](/docs/api/load-balancers) — the multi-VM version of the same pattern.
-- [Multi-region failover](/docs/guides/multi-region) — same idea, applied across geographically distant pairs.

@@ -2,7 +2,7 @@
 title: Versioning policy
 description: How we evolve the API without breaking your code.
 publishedAt: 2026-05-20
-updatedAt: 2026-10-15
+updatedAt: 2026-11-06
 kind: concept
 ---
 
@@ -49,27 +49,27 @@ Three rules:
 
 ```ts
 // Correct
-const { id, name, state } = await res.json()
+const { id, name, status } = await res.json()
 
 // Wrong (will reject responses with new fields)
-const allowedKeys = ['id', 'name', 'state']
+const allowedKeys = ['id', 'name', 'status']
 for (const k of Object.keys(json)) {
   if (!allowedKeys.includes(k)) throw new Error('unknown field')
 }
 ```
 
-**2. Treat unknown enums as opaque.** If you're branching on `state`, handle the known values; for unknowns, render the raw string and don't blow up.
+**2. Treat unknown enums as opaque.** If you're branching on `status`, handle the known values; for unknowns, render the raw string and don't blow up.
 
 ```ts
-switch (vm.state) {
-  case 'running': return 'green'
-  case 'stopped': return 'gray'
-  case 'provisioning': return 'amber'
-  default: return 'gray' // Don't throw, don't assume — we may add 'migrating'
+switch (vm.status) {
+  case 'ACTIVE': return 'green'
+  case 'SHUTOFF': return 'gray'
+  case 'BUILD': return 'amber'
+  default: return 'gray' // Don't throw, don't assume: there are others, such as 'VERIFY_RESIZE'
 }
 ```
 
-**3. Switch on `error.code`, not `status`.** Status codes group errors (`4xx` vs `5xx`); `error.code` distinguishes them. We may add new codes to existing status codes; your code should default-case rather than treat unrecognized codes as fatal bugs.
+**3. On the app APIs, switch on `error.code`, not the status.** Status codes group errors (`4xx` vs `5xx`); `error.code` distinguishes them. We may add new codes to existing status codes; your code should default-case rather than treat unrecognized codes as fatal bugs. The infrastructure API has no error codes: branch on the status there ([Conventions](/docs/conventions#errors)).
 
 ## Deprecation policy {#deprecation}
 
@@ -86,11 +86,11 @@ Twelve months is a long time. In practice, deprecated-on-v1 has happened zero ti
 
 If we ever ship v2 (we don't intend to soon), the rollout would be:
 
-- v2 launched at `/v2/...` alongside `/v1/...` — both live in parallel
+- v2 launched at new paths alongside v1 (`/api/v2/` beside `/api/v1/` on the infrastructure API, `/v2/` beside `/v1/` on the app APIs) — both live in parallel
 - v1 continues to receive bug fixes and new features (additive) for at least 24 months
-- v2 carries a separate base URL (`{{API_BASE_URL}}/v2/...`) so the URL itself signals the version
+- v2's URLs carry the version, such as `{{API_BASE_URL}}/api/v2/...`, so the URL itself signals it
 
-You'd migrate when ready, not when forced. The path is to start using `/v2` endpoints in new code and migrate old code at your own pace — there's no flag-day cutover.
+You'd migrate when ready, not when forced. The path is to start using v2 endpoints in new code and migrate old code at your own pace — there's no flag-day cutover.
 
 ## Why this matters {#why}
 

@@ -1,49 +1,54 @@
 ---
 title: "Limitation de débit"
-description: "Budgets de requêtes par clé, les headers que nous renvoyons et la bonne stratégie de backoff."
+description: "Ce que limite chaque API, les headers et les erreurs renvoyés par une limite, et la bonne stratégie de backoff."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-06
 kind: concept
 ---
 
 # Limitation de débit
 
-Chaque clé API reçoit un budget de requêtes par seconde et par heure. Ces limites vous protègent autant que nous — elles empêchent une boucle incontrôlée de faire flamber votre carte bancaire et empêchent un tenant, quel qu’il soit, de saturer une région.
+L’API d’infrastructure limite le nombre de requêtes qu’elle accepte par minute. Les API des apps limitent certaines actions, comme la publication d’un événement. Dans les deux cas, une requête au-delà d’une limite répond `429`, généralement avec un header `Retry-After` qui indique combien de secondes attendre.
 
-## Les valeurs par défaut {#defaults}
+## L’API d’infrastructure {#defaults}
 
-| Niveau | Par seconde | Par heure |
+Chaque requête vers `{{API_HOST}}` compte dans un budget par minute :
+
+| Qui appelle | Requêtes par minute | Décompte par |
 |---|---|---|
-| Free | 5 | 1,000 |
-| Starter | 25 | 10,000 |
-| Production | 100 | 100,000 |
-| Enterprise | Sur mesure | Sur mesure |
+| Une session connectée (`Authorization: Bearer` ou le cookie de session) | 120 | Utilisateur |
+| Une clé API, ou aucun justificatif d’identité | 60 | Adresse IP |
 
-Elles s’appliquent par **clé API**, pas par projet — si vous avez trois clés dans un projet, chacune a son propre budget. La plupart des équipes n’approchent jamais la limite du niveau Production ; si c’est votre cas, le panneau « rate limit usage » de la console fait ressortir les points d’appel qui consomment le quota le plus vite.
+Une clé API n’a pas de budget propre. Les clés utilisées depuis une même adresse se partagent ses 60 requêtes par minute, avec tout ce qui appelle aussi depuis cette adresse. `GET /api/v1/notifications/list` a une limite plus basse, de 30 par minute, mesurée sur le même décompte.
 
-## Comment fonctionne la limitation {#mechanics}
-
-Un token bucket sur chaque clé. Le bucket se remplit au rythme par seconde ; sa taille est fixée pour qu’après un bref burst qui épuise le budget, celui-ci se reconstitue en ~10 secondes. La limite horaire est un plafond strict — une fois qu’elle est atteinte, aucune requête n’aboutit tant que la fenêtre glissante d’une heure n’a pas avancé.
-
-Les limites sont évaluées à la passerelle, avant que la requête n’atteigne le handler de la ressource. Une requête limitée en débit ne touche jamais aux ressources de votre projet : elle ne vous coûte donc jamais rien au-delà de l’entrée de log de la requête refusée.
+La minute commence à votre première requête et n’est pas glissante : quand elle se termine, le décompte repart de zéro.
 
 ## Headers de réponse {#headers}
 
-Chaque réponse de l’API porte quatre headers qui décrivent votre budget actuel :
+Les réponses de l’API d’infrastructure portent la limite appliquée et ce qu’il en reste :
 
 ```http
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 87
-X-RateLimit-Reset: 1763410812
-X-RateLimit-Window: 1
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 59
 ```
 
-- `X-RateLimit-Limit` — budget total pour la fenêtre en cours
-- `X-RateLimit-Remaining` — requêtes restantes
-- `X-RateLimit-Reset` — l’instant, en epoch Unix, où le budget se remplit (ou où la fenêtre horaire avance)
-- `X-RateLimit-Window` — `1` pour la limite par seconde, `3600` pour la limite par heure. Nous indiquons le budget que vous êtes le plus près d’épuiser
+Au-delà de la limite, la réponse est `429`, avec `X-RateLimit-Remaining: 0` et un header `Retry-After`, en secondes, pour ce qu’il reste de la minute :
 
-Quand `Remaining` atteint zéro, la requête suivante renvoie `429 Too Many Requests` avec un header `Retry-After` (en secondes) qui vous indique quand réessayer.
+```json
+{
+  "success": false,
+  "message": "Too many requests. Please try again later."
+}
+```
+
+## Les API des apps {#apps}
+
+Les API des apps n’envoient pas de headers `X-RateLimit` et ne limitent pas toutes les requêtes. Ce qu’elles limitent, elles le refusent avec `429` `rate_limited`, comme le décrit [Erreurs](/docs/errors#codes-rate) :
+
+- **Webhooks :** la publication (`POST /v1/events`) se fait au débit de publication de votre plan, par espace de travail. La relivraison et le rejeu (`POST /v1/deliveries/{delivery_id}/redeliver`, `POST /v1/deliveries/redeliver`, `POST /v1/deliveries/replay` et `POST /v1/events/{event_id}/replay`) se font au même débit, sur un décompte qui leur est propre. Les événements entrants vers `POST /v1/ingest/{source_id}` sont limités à 600 par minute et par source, puis au débit de publication de votre plan ([Ce que voit le fournisseur](/docs/product-webhooks/sources#responses)). L’enregistrement et le test de scripts sont limités à 60 par minute et par espace de travail ([Transformations](/docs/product-webhooks/transformations#errors)).
+- **Inboxes :** chaque boîte accepte du courrier jusqu’à une limite par minute fixée par votre plan ([Limites par plan](/docs/product-inboxes#limits)).
+- **Request Bins :** un bin peut envoyer 10 tests de transfert par minute ([Tester une URL de transfert](/docs/product-bins/reference#forward-test)). Une URL de bin accepte 120 requêtes par minute d’un même expéditeur et 600 par minute au total ([Ce que répond une URL de bin](/docs/product-bins/reference#edge-answers)).
+- **QR Codes :** un espace de travail peut envoyer 10 tests de webhook par minute.
 
 ## Stratégie de backoff {#backoff}
 
@@ -67,31 +72,25 @@ async function callWithBackoff(fn: () => Promise<Response>) {
 
 Deux remarques :
 
-- **Respectez toujours `Retry-After`.** Ne réessayez pas plus tôt — vous retomberiez simplement sur la limite et épuiseriez votre budget plus vite.
-- **Ajoutez du jitter** si vous appelez depuis plusieurs workers. Sans jitter, tous vos workers réessaient au même instant et retombent tous ensemble sur la limite.
+- **Respectez toujours `Retry-After`.** Ne réessayez pas plus tôt : vous ne recevriez qu’un autre `429`.
+- **Ajoutez du jitter** si vous appelez depuis plusieurs workers. Sans jitter, ils réessaient tous au même instant et retombent tous ensemble sur la limite.
 
 ## Ce qui compte comme une requête {#counted}
 
-Chaque appel HTTP à l’API compte comme une requête, y compris :
+Sur l’API d’infrastructure, chaque appel HTTP compte, y compris :
 
-- Les `GET` (oui, même `GET /v1/regions`)
-- Les appels de pagination (chaque page est une requête)
-- Les réessais idempotents (la réponse servie par le cache compte quand même comme une requête — mais elle est peu coûteuse, et la déduplication vous évite de payer deux fois l’opération sous-jacente)
+- Les `GET`, comme `GET /api/v1/instance/`
+- Chaque page d’une [liste paginée](/docs/pagination), et chaque interrogation pendant que vous attendez qu’une VM passe à `ACTIVE`
+- Les appels qui échouent, comme un `401`, et les `429` eux-mêmes
 
-Ce qui ne compte **pas** :
-
-- Les ressources statiques servies par le site marketing (CDN, pas l’API)
-- Les livraisons de webhooks vers vos systèmes (c’est nous qui les envoyons, pas vous)
-- Les tentatives de connexion échouées (aucune entrée de log à la passerelle)
+Pour rester sous la limite depuis une même adresse, étalez le travail : interrogez moins souvent, et ne listez pas ce que vous pourriez lire une fois et conserver.
 
 ## Relever vos limites {#raising}
 
-Les niveaux Starter et Production sont généralement assez généreux ; moins de 5 % des comptes atteignent un jour le plafond horaire. Si cela vous arrive, la marche à suivre passe par le formulaire de contact du support, pas par l’API — comme pour les [augmentations de quota](/docs/api/quotas). Les migrations de production obtiennent une réponse dans la journée.
-
-Si vous atteignez les limites par seconde mais pas la limite horaire, vous n’avez généralement pas besoin d’une augmentation — vous devez répartir la charge (regrouper les requêtes, utiliser `Idempotency-Key` pour dédupliquer les réessais, paginer avec des tailles de page raisonnables). Le panneau « rate limit usage » de la console détaille les endpoints qui connaissent des pics.
+Aucun appel d’API ni réglage de plan ne relève ces limites. Si la vôtre gêne une vraie charge de travail, [contactez le support]({{BASE_URL}}/contact/support).
 
 ## Étapes suivantes {#next-steps}
 
 - [Conventions](/docs/conventions) — format des requêtes, codes de statut, les règles plus générales de l’API.
-- [Idempotence](/docs/idempotency) — le modèle de réessai sans risque quand des pannes réseau ressemblent à des limites de débit.
+- [Idempotence](/docs/idempotency) — comment réessayer une écriture sans risque.
 - [Quotas](/docs/api/quotas) — les limites de *ressources* (VM, vCPU, stockage), à distinguer des limites de débit des requêtes.

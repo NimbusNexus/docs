@@ -1,108 +1,125 @@
 ---
 title: "Paginierung"
-description: "Cursor-Paginierung auf jedem Listen-Endpoint. Stabil, wenn Einträge hinzukommen, ohne Offset-Drift."
+description: "Wie jede API ihre Listen paginiert, mit limit und offset oder marker, und woran Sie das Ende erkennen."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-15
+updatedAt: 2026-11-06
 kind: concept
 ---
 
 # Paginierung
 
-Listen-Endpoints (`GET /v1/vms`, `GET /v1/snapshots` usw.) paginieren mit opaken Cursors, nicht mit numerischen Offsets. Cursor-Paginierung ist der richtige Standard für Ressourcenlisten, die sich ändern, während Sie paginieren — sie liefert jeden Eintrag genau einmal, auch wenn zwischen dem Abruf zweier Seiten Zeilen eingefügt oder gelöscht werden.
+NimbusNexus hat zwei Arten von APIs, und sie paginieren Listen unterschiedlich. Die APIs der Apps paginieren mit `limit` und `offset`. Bei der Infrastruktur-API antworten die meisten Listen mit allen Einträgen auf einmal, und einige wenige nehmen `limit` zusammen mit `marker` oder `offset` entgegen.
 
-## Aufbau {#shape}
+## Die APIs der Apps {#shape}
 
-Zwei Query-Parameter auf jedem Listen-Endpoint:
+Die meisten Listen bei Webhooks, Inboxes und Request Bins nehmen zwei Query-Parameter entgegen:
 
 - `limit` — Seitengröße. Standard 50, max. 200. Über 200 schlägt die Validierung des Requests fehl: `422` `validation_error` ([Fehler](/docs/errors#codes-validation)).
-- `cursor` — opaker Zeiger auf die nächste Seite. Lassen Sie ihn beim ersten Request weg.
+- `offset` — wie viele Einträge übersprungen werden. Standard 0, max. 10.000.
 
-Jede Listenantwort enthält:
+Jede Liste antwortet mit ihren Einträgen und dem nächsten Offset:
 
 ```json
 {
-  "items": [ /* ... */ ],
-  "pagination": {
-    "next_cursor": "eyJpZCI6InZtXzAxSEc3Li4uIn0=",
-    "total_count": null
-  }
+  "items": [],
+  "next_offset": 50
 }
 ```
 
-Wenn `next_cursor` `null` ist, haben Sie die letzte Seite erreicht.
+Geben Sie `next_offset` für die nächste Seite als `offset` zurück. Wenn der Wert `null` ist, sind Sie auf der letzten Seite.
+
+Ein Offset zählt Positionen: Wird ein Eintrag erstellt oder gelöscht, während Sie eine Liste durchlaufen, sehen Sie möglicherweise einen anderen Eintrag doppelt oder verpassen einen. Wenn das wichtig ist, vergleichen Sie die IDs. Behalten Sie für den gesamten Durchlauf dieselben Filter bei, und beginnen Sie wieder bei Offset 0, wenn Sie sie ändern.
+
+Zwei Fälle weichen davon ab:
+
+- **Suchen** bei Inboxes und Request Bins paginieren stattdessen mit `next_until`; siehe [Nachrichten durchsuchen](/docs/product-inboxes#search) und [Erfasste Requests](/docs/product-bins/reference#requests).
+- **QR-Codes** liefert die meisten Listen in einer einzigen Antwort. Die Scans eines Codes (`GET /v1/qr-tracked/codes/{code_id}/scans`) nehmen nur `limit` entgegen, und die Zustellungen eines Webhooks (`GET /v1/qr-tracked/webhooks/{webhook_id}/deliveries`) paginieren mit `limit` und `cursor`, wobei der nächste Cursor in `nextCursor` steht.
+
+## Die Infrastruktur-API {#infrastructure}
+
+Die meisten Listen, etwa `GET /api/v1/instance/`, antworten mit der gesamten Liste und nehmen keine Paginierungsparameter entgegen. Diejenigen, die paginieren, tun das auf eine von zwei Arten.
+
+### `limit` und `marker` {#marker}
+
+`marker` ist der letzte Eintrag, den Sie gesehen haben: seine ID oder, beim Objektspeicher, sein Name. Die Antwort beginnt danach.
+
+- VM-Images: `GET /api/v1/image/`.
+- DNS: `GET /api/v1/zones/`, `GET /api/v1/recordsets/`, `GET /api/v1/zones/{zone_id}/recordsets/`, `GET /api/v1/zones/{zone_id}/ptr/` und `GET /api/v1/zones/{zone_id}/shares/`.
+- Objektspeicher: `GET /api/v1/object_storage/` für Container und `GET /api/v1/object_storage/{container_name}/objects` für Objekte. Bei Objekten liefert `full_listing=true` alle in einer Antwort.
+
+Diese Antworten enthalten nur `data`, und nichts darin sagt, ob noch weitere Einträge folgen. Blättern Sie weiter, bis eine Seite kürzer ist als Ihr `limit`.
+
+### `limit` und `offset` {#offset}
+
+`offset` gibt an, wie viele Einträge übersprungen werden.
+
+- Volume-Backups: `GET /api/v1/backup_restore/volume_backups/`, mit einem `limit` von standardmäßig 10.
+- Backup-Zeitpläne: `GET /api/v1/backup_restore/backup_scheduler/list` und `GET /api/v1/backup_restore/volume_scheduler/list`.
+- Externe Speicherverbindungen: `GET /api/v1/external/connections/`.
+- Benachrichtigungen: `GET /api/v1/notifications/list`, mit einem `limit` von standardmäßig 50 und höchstens 200.
+
+Diese Antworten tragen außerdem `total`, die Anzahl der Einträge über alle Seiten hinweg. Sie haben das Ende also erreicht, wenn Sie so viele gelesen haben.
 
 ## Seiten durchlaufen {#walking}
 
+Folgen Sie bei einer API der Apps `next_offset`:
+
 ```ts
-async function listAllVms(): Promise<VM[]> {
-  const all: VM[] = []
-  let cursor: string | undefined
+async function listAllEndpoints() {
+  const all = []
+  let offset = 0
 
-  do {
-    const url = new URL('{{API_BASE_URL}}/v1/vms')
+  while (offset !== null) {
+    const url = new URL('{{WEBHOOKS_BASE_URL}}/v1/endpoints')
     url.searchParams.set('limit', '200')
-    if (cursor) url.searchParams.set('cursor', cursor)
+    url.searchParams.set('offset', String(offset))
 
-    const res = await fetch(url, { headers: auth })
-    const { items, pagination } = await res.json()
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${process.env.WEBHOOKS_API_KEY}` },
+    })
+    const page = await res.json()
 
-    all.push(...items)
-    cursor = pagination.next_cursor ?? undefined
-  } while (cursor)
+    all.push(...page.items)
+    offset = page.next_offset
+  }
 
   return all
 }
 ```
 
-Drei Regeln:
+Folgen Sie bei der Infrastruktur-API der letzten ID, bis eine kurze Seite kommt:
 
-1. **Cursors sind opak.** Versuchen Sie nicht, sie zu parsen oder selbst zu bauen. Sie kodieren Sortierung + Filterzustand Ihres ursprünglichen Requests, daher funktioniert ein Cursor aus einer Abfrage nicht in einer anderen.
-2. **Ändern Sie Filter nicht mitten in der Paginierung.** Wenn Sie mit `?status=running` beginnen und für Seite 2 `?region=us-east-1` hinzufügen, ist das Verhalten undefiniert. Beginnen Sie neu (ohne Cursor), wenn sich Filter ändern.
-3. **Hören Sie auf, wenn `next_cursor` null ist.** Paginieren Sie nicht „sicherheitshalber“ weiter — der Cursor ist das einzige verbindliche Signal für das Listenende.
+```ts
+async function listAllZones() {
+  const all = []
+  const limit = 100
+  let marker
 
-## Warum Cursors und nicht `?page=2&per_page=50` {#why-cursors}
+  while (true) {
+    const url = new URL('{{API_BASE_URL}}/api/v1/zones/')
+    url.searchParams.set('limit', String(limit))
+    if (marker) url.searchParams.set('marker', marker)
 
-Offset-Paginierung versagt in zwei realen Szenarien:
+    const res = await fetch(url, {
+      headers: { 'X-API-Key': process.env.NIMBUS_KEY },
+    })
+    const { data } = await res.json()
 
-**Einfügungen während der Paginierung.** Wenn Sie Seite 1 abrufen (Einträge 1–50), dann jemand eine neue VM erstellt und Sie anschließend Seite 2 abrufen (Einträge 51–100), sehen Sie Eintrag 50 zweimal (er steht jetzt an Position 51) und den neuen Eintrag nie. Cursors halten fest, „wo Sie waren“ — die nächste Seite beginnt nach der Stelle, an der Sie tatsächlich waren, nicht an einem absoluten Offset.
+    all.push(...data)
+    if (data.length < limit) return all
+    marker = data.at(-1).id
+  }
+}
+```
 
-**Löschungen während der Paginierung.** Dasselbe Problem umgekehrt: Wird eine VM zwischen zwei Seitenabrufen gelöscht, überspringt ein Client mit Offset-Paginierung einen Eintrag. Clients mit Cursor-Paginierung nicht.
-
-Diese Randfälle spielen bei jeder nicht trivialen Größenordnung eine Rolle. Wir verwenden standardmäßig Cursor-Paginierung, damit sie Sie nicht treffen.
-
-## `total_count` {#total-count}
-
-Das Feld `total_count` in `pagination` ist **bei den meisten Endpoints null**, und zwar absichtlich. Alle Einträge einer paginierten Liste zu zählen, ist eine teure Abfrage, die mit wachsendem N weniger nützlich wird („Sie haben 14.328 VMs in all Ihren Projekten“ — was fangen Sie damit an?). Wenn `total_count` vorhanden ist, dokumentiert die Referenzseite des Endpoints das; wenn es fehlt, verlassen Sie sich nicht darauf.
-
-Wenn Sie wirklich eine exakte Anzahl brauchen, paginieren Sie bis zum Ende und zählen, was Sie erhalten haben.
+Jede Seite ist ein Request und zählt gegen das [Rate-Limit](/docs/rate-limiting).
 
 ## Sortierreihenfolge {#sort}
 
-Listen-Endpoints haben eine Standardsortierung (meist `created_at desc`, neueste zuerst), die pro Endpoint dokumentiert ist. Manche Endpoints akzeptieren `?sort=`, um sie zu überschreiben; die Referenzseite listet auf, was akzeptiert wird.
-
-Der Cursor kodiert die Sortierung; `?sort=` zwischen zwei Seitenabrufen zu ändern, ist daher einer der Fälle mit „undefiniertem Verhalten“ — beginnen Sie neu, wenn Sie die Sortierung ändern.
-
-## Filter {#filters}
-
-Jeder Listen-Endpoint akzeptiert einige Standard-Filterparameter:
-
-- `created_after` / `created_before` — Timestamps nach RFC 3339
-- `updated_after` / `updated_before` — Timestamps nach RFC 3339
-- Ressourcenspezifische Filter (z. B. `?region=us-east-1&state=running` bei VMs)
-
-Filter lassen sich kombinieren; die Antwort ist die UND-Verknüpfung aller Filter. Die Referenzseite der Ressource dokumentiert, welche Filter sie akzeptiert.
-
-## Wenn Sie wirklich alle Einträge brauchen {#listing}
-
-Listen mit Paginierung in einer engen Schleife aufzurufen, um jede Ressource aufzuzählen, ist für Ad-hoc-Arbeit in Ordnung, für wiederholt laufende Daemons aber teuer. Zwei bessere Muster:
-
-1. **Webhooks.** Abonnieren Sie die Events `resource.created` / `resource.deleted` und pflegen Sie Ihren eigenen Index. Siehe [Plattform-Webhooks](/docs/webhooks).
-2. **Bulk-Export-Endpoints.** Für manche Ressourcen (Snapshots, Backups, Audit-Logs) gibt es einen eigenen Export-Endpoint, der den vollständigen Bestand in einer Antwort streamt. Die Referenzseite der Ressource dokumentiert diese, wo es sie gibt.
-
-Das Paginierungsmuster ist für die interaktive Nutzung gedacht (eine Tabelle im Dashboard, ein List-Befehl der CLI). Bei kontinuierlicher Synchronisierung überwiegen die Kosten der Paginierung, und Webhooks sind die richtige Antwort.
+Sortierbare Listen nennen ihre Parameter auf ihren Referenzseiten. Bei der Infrastruktur-API sind das `sort_by` und `sort_desc` bei den sortierbaren `offset`-Listen und `sort_key` und `sort_dir` bei VM-Images und DNS-Record-Sets. Behalten Sie für den gesamten Durchlauf dieselbe Sortierung bei.
 
 ## Nächste Schritte {#next-steps}
 
-- [Konventionen](/docs/conventions) — der Rest des Request-Aufbaus (Statuscodes, Fehler, Idempotenz).
-- [Plattform-Webhooks](/docs/webhooks) — die Push-basierte Alternative für kontinuierliche Synchronisierung.
-- Die Referenzseite jedes Listen-Endpoints — Endpoint-spezifische Filter und Sortieroptionen.
+- [Konventionen](/docs/conventions) — der Rest des Request-Aufbaus: IDs, Statuscodes, Fehler.
+- [Rate-Limiting](/docs/rate-limiting) — wie viele Requests ein Durchlauf senden kann.
+- [Fehler](/docs/errors) — womit ein abgelehnter Request antwortet.

@@ -151,7 +151,7 @@ Der Aufruf zum Hochstufen ist zugleich ein Bestätigungsschritt — bis Sie ihn 
 Senden Sie nach dem Cutover eine kurze Abfrage zur Bestätigung:
 
 ```bash
-psql "postgresql://app:••••@{{DB_HOST_DEMO}}:5432/app?sslmode=verify-full" \
+psql "postgresql://app:••••@db.example.com:5432/app?sslmode=verify-full" \
   -c "SELECT count(*) FROM users;"
 ```
 

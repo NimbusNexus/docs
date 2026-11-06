@@ -1,49 +1,54 @@
 ---
 title: Rate limiting
-description: Per-key request budgets, the headers we return, and the right backoff strategy.
+description: What each API limits, the headers and errors a limit answers with, and how to back off.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-06
 kind: concept
 ---
 
 # Rate limiting
 
-Every API key gets a per-second and per-hour request budget. The limits protect both you and us — they prevent a runaway loop from burning your credit card and prevent any one tenant from saturating a region.
+The infrastructure API limits how many requests it takes in a minute. The app APIs limit particular actions, such as publishing an event. Either way, a request over a limit answers `429`, usually with a `Retry-After` header that says how many seconds to wait.
 
-## The defaults {#defaults}
+## The infrastructure API {#defaults}
 
-| Tier | Per second | Per hour |
+Every request to `{{API_HOST}}` counts toward a budget for the minute:
+
+| Who's calling | Requests a minute | Counted per |
 |---|---|---|
-| Free | 5 | 1,000 |
-| Starter | 25 | 10,000 |
-| Production | 100 | 100,000 |
-| Enterprise | Custom | Custom |
+| A signed-in session (`Authorization: Bearer` or the session cookie) | 120 | User |
+| An API key, or no credential | 60 | IP address |
 
-These apply per **API key**, not per project — if you have three keys in one project, each gets its own budget. Most teams never come close to the production-tier limit; if you do, the dashboard's "rate limit usage" panel surfaces the call sites burning quota fastest.
+An API key doesn't have a budget of its own. Keys used from one address share its 60 requests a minute, along with anything else calling from there. `GET /api/v1/notifications/list` has a lower limit of 30 a minute, measured against the same count.
 
-## How limiting works {#mechanics}
-
-A token-bucket on every key. The bucket refills at the per-second rate; the bucket size is set so a brief burst that drains the budget recovers in ~10 seconds. The hourly limit is a hard ceiling — once you hit it, no requests succeed until the rolling hour rolls forward.
-
-Limits are evaluated at the gateway, before the request reaches the resource handler. A rate-limited request never touches your project's resources, so it never costs you anything beyond the failed-request log entry.
+The minute starts at your first request and doesn't slide: when it ends, the count starts again from zero.
 
 ## Response headers {#headers}
 
-Every API response carries four headers documenting your current budget:
+Responses from the infrastructure API carry the limit that applied and what's left of it:
 
 ```http
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 87
-X-RateLimit-Reset: 1763410812
-X-RateLimit-Window: 1
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 59
 ```
 
-- `X-RateLimit-Limit` — total budget for the current window
-- `X-RateLimit-Remaining` — requests left
-- `X-RateLimit-Reset` — Unix epoch when the budget refills (or the hourly window rolls)
-- `X-RateLimit-Window` — `1` for per-second, `3600` for per-hour. We surface whichever budget you're closer to consuming
+Past the limit, the answer is `429`, with `X-RateLimit-Remaining: 0` and a `Retry-After` header, in seconds, for what's left of the minute:
 
-When `Remaining` hits zero, the next request returns `429 Too Many Requests` with a `Retry-After` header (in seconds) telling you when to retry.
+```json
+{
+  "success": false,
+  "message": "Too many requests. Please try again later."
+}
+```
+
+## The app APIs {#apps}
+
+The app APIs don't send `X-RateLimit` headers, and they don't limit every request. What they limit, they refuse with `429` `rate_limited`, as [Errors](/docs/errors#codes-rate) describes:
+
+- **Webhooks:** publishing (`POST /v1/events`) runs at your plan's publish rate, per workspace. Redelivering and replaying (`POST /v1/deliveries/{delivery_id}/redeliver`, `POST /v1/deliveries/redeliver`, `POST /v1/deliveries/replay` and `POST /v1/events/{event_id}/replay`) run at the same rate, on a count of their own. Inbound events to `POST /v1/ingest/{source_id}` are limited to 600 a minute per source, then your plan's publish rate ([What the provider sees](/docs/product-webhooks/sources#responses)). Saving and testing scripts is limited to 60 a minute per workspace ([Transformations](/docs/product-webhooks/transformations#errors)).
+- **Inboxes:** each inbox accepts mail up to a per-minute limit set by your plan ([Limits by plan](/docs/product-inboxes#limits)).
+- **Request Bins:** a bin can send 10 forward tests a minute ([Test a forward URL](/docs/product-bins/reference#forward-test)). A bin URL takes 120 requests a minute from one sender and 600 a minute in all ([What a bin URL answers](/docs/product-bins/reference#edge-answers)).
+- **QR Codes:** a workspace can send 10 webhook tests a minute.
 
 ## Backoff strategy {#backoff}
 
@@ -67,31 +72,25 @@ async function callWithBackoff(fn: () => Promise<Response>) {
 
 Two notes:
 
-- **Always honor `Retry-After`.** Don't retry sooner — you'll just hit the limit again and burn your budget faster.
-- **Add jitter** if you're calling from multiple workers. Without jitter, all your workers retry on the same tick and all hit the limit again together.
+- **Always honor `Retry-After`.** Don't retry sooner: you'll only get another `429`.
+- **Add jitter** if you're calling from multiple workers. Without it, they all retry on the same tick and all hit the limit again together.
 
 ## What counts as a request {#counted}
 
-Every HTTP call to the API counts as one request, including:
+On the infrastructure API, every HTTP call counts, including:
 
-- `GET`s (yes, even `GET /v1/regions`)
-- Pagination calls (each page is a request)
-- Idempotent retries (the cache hit still counts as one request — but it's cheap, and the dedupe means you don't pay for the underlying operation twice)
+- `GET`s, such as `GET /api/v1/instance/`
+- Each page of a [paged list](/docs/pagination), and each poll while you wait for a VM to reach `ACTIVE`
+- Calls that fail, such as a `401`, and the `429`s themselves
 
-What **doesn't** count:
-
-- Static assets served from the marketing site (CDN, not the API)
-- Webhook deliveries to your side (we send them, not you)
-- Failed connection attempts (no gateway log entry)
+To stay under the limit from one address, spread the work out: poll less often, and don't list what you could read once and keep.
 
 ## Raising your limits {#raising}
 
-The starter and production tiers are usually generous enough; less than 5 % of accounts ever hit the per-hour cap. If you do, the path is the support contact form, not the API — same as [quota raises](/docs/api/quotas). Production migrations get same-day turnaround.
-
-If you're hitting per-second limits but not per-hour, you usually don't need a raise — you need to spread load (batch requests, use `Idempotency-Key` to dedupe retries, paginate with reasonable page sizes). The "rate limit usage" panel in the dashboard breaks down which endpoints are spiking.
+No API call or plan setting raises these limits. If yours gets in the way of a real workload, [contact support]({{BASE_URL}}/contact/support).
 
 ## What's next {#next-steps}
 
 - [Conventions](/docs/conventions) — request shape, status codes, the broader API patterns.
-- [Idempotency](/docs/idempotency) — safe retry pattern when network failures look like rate limits.
+- [Idempotency](/docs/idempotency) — how to retry a write safely.
 - [Quotas](/docs/api/quotas) — the *resource* limits (VMs, vCPU, storage), as distinct from request-rate limits.

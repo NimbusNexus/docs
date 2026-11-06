@@ -106,7 +106,7 @@ curl -s {{API_BASE_URL}}/v1/databases/$DB_ID/connection \
 
 ```json
 {
-  "host": "{{DB_HOST_DEMO}}",
+  "host": "db.example.com",
   "port": 5432,
   "pooler_port": 6432,
   "database": "app",
@@ -125,7 +125,7 @@ curl -o ~/.postgresql/nn-root.crt {{BASE_URL}}/ca-certs/nimbusnexus-root.pem
 Підключіться:
 
 ```bash
-psql "postgresql://app:••••@{{DB_HOST_DEMO}}:6432/app?sslmode=verify-full&sslrootcert=~/.postgresql/nn-root.crt"
+psql "postgresql://app:••••@db.example.com:6432/app?sslmode=verify-full&sslrootcert=~/.postgresql/nn-root.crt"
 ```
 
 Із серверів застосунків використовуйте порт `6432` (пулер); порт `5432` — лише для інструментів адміністрування/міграцій, яким потрібен прямий доступ до головного вузла (напр., `pg_dump`, `pg_restore`, інструменти міграції схеми, що беруть advisory-блокування).

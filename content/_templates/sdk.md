@@ -29,7 +29,7 @@ kind: sdk
     - Configuration block — every constructor option with type +
       explanation. Stay aligned with what's available in the other
       SDK templates.
-    - Helper sections (webhooks verification, pagination, errors)
+    - Helper sections (signature verification, pagination, errors)
       with one code example each.
     - "Where it stands today" section. Honest about what's shipped
       vs. what's promised.
@@ -94,7 +94,7 @@ const client = new NimbusNexus({
 ## Pagination helper {#pagination}
 
 ```language
-// Auto-flatten over cursor walks. See /docs/pagination for the
+// Auto-flatten over page walks. See /docs/pagination for the
 // underlying mechanics.
 ```
 
@@ -116,6 +116,6 @@ Be honest:
 ## What's next {#next-steps}
 
 - [Authentication](/docs/authentication) — what `apiKey` does on the wire.
-- [Webhooks](/docs/webhooks) — what the verification helper is checking.
+- [Signature verification](/docs/product-webhooks/signatures) — what the verification helper is checking.
 - [Pagination](/docs/pagination) — what the pagination helpers walk.
 - [Errors](/docs/errors) — the codes that map to the typed errors above.

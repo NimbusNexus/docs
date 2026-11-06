@@ -164,4 +164,3 @@ Ce modèle demande plus de travail que « toujours déployer schéma + code ense
 
 - [Référence des IP flottantes](/docs/api/floating-ips) — tous les endpoints de la ressource qui rend ce modèle possible.
 - [Load balancers](/docs/api/load-balancers) — la version multi-VM du même modèle.
-- [Basculement multi-région](/docs/guides/multi-region) — la même idée, appliquée à des paires géographiquement éloignées.

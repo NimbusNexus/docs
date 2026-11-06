@@ -2,7 +2,7 @@
 title: "Webhooks"
 description: "La plateforme de webhooks managée — publiez un événement une fois, nous signons, réessayons et rejouons chaque livraison vers vos abonnés."
 publishedAt: 2026-08-05
-updatedAt: 2026-11-03
+updatedAt: 2026-11-06
 kind: concept
 ---
 
@@ -10,9 +10,7 @@ kind: concept
 
 NimbusNexus Webhooks est un produit autonome pour envoyer des webhooks à *vos* abonnés. Vous publiez un événement une fois ; nous le diffusons vers chaque endpoint abonné à ce type, signons chaque livraison, réessayons les échecs et conservons tout ce qui n’arrive jamais dans une dead-letter queue que vous pouvez rejouer.
 
-> **Ce n’est pas la page que vous cherchez ?** Si vous êtes ici pour recevoir des notifications sur *votre propre infrastructure NimbusNexus* — `vm.created`, `snapshot.completed`, `invoice.generated` — il s’agit d’une autre fonctionnalité, documentée dans [Webhooks de la plateforme](/docs/webhooks). Les deux sont des systèmes sans rapport entre eux et **leurs headers de signature diffèrent** : un code de vérification écrit pour l’un rejettera chaque livraison de l’autre.
-
-La distinction en une ligne : les webhooks de la plateforme sont des événements que *nous* vous envoyons au sujet de votre compte ; ce produit livre des événements que *vous* envoyez à vos propres clients.
+> **Ce n’est pas la page que vous cherchez ?** Ce produit livre des événements que *vous* envoyez à vos propres clients. NimbusNexus n’envoie pas de webhooks au sujet de *votre propre infrastructure* : pour suivre une VM ou un volume, lisez cette ressource et surveillez son `status` ([Opérations longues](/docs/conventions#operations)) ; pour les messages qui vous sont destinés, voir [Notifications](/docs/api/notifications).
 
 ## À quoi ça sert {#what-for}
 
@@ -88,4 +86,3 @@ Choisissez la portée à la création. `admin` donne le contrôle total ; `publi
 - [Vérification de signature](/docs/product-webhooks/signatures) — le contrat de signature et les trois règles pour la vérifier.
 - [SDK](/docs/product-webhooks/sdks) — des clients typés pour Python, TypeScript et Go.
 - [CLI](/docs/product-webhooks/cli) — `nn-webhooks`, un binaire statique unique.
-- [Webhooks de la plateforme](/docs/webhooks) — l’autre chose appelée webhooks : les notifications sur votre propre infrastructure.

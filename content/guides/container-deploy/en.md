@@ -223,4 +223,3 @@ For longer-term log retention, ship from journald to wherever you store logs:
 - [Blue/green deploys](/docs/guides/blue-green) — zero-downtime version of the deploy story above.
 - [Virtual machines](/docs/api/vms) — every option for the create call.
 - [Monitor a VM fleet](/docs/guides/monitoring-vms) — Prometheus + Grafana setup.
-- [Static site guide](/docs/guides/static-site) — for pure static content, this pattern is overkill; use object storage instead.

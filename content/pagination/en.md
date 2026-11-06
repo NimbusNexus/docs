@@ -1,108 +1,125 @@
 ---
 title: Pagination
-description: Cursor pagination on every list endpoint. Stable across inserts, no offset drift.
+description: How each API pages its lists, with limit and offset or marker, and how to know you've reached the end.
 publishedAt: 2026-05-20
-updatedAt: 2026-10-15
+updatedAt: 2026-11-06
 kind: concept
 ---
 
 # Pagination
 
-List endpoints (`GET /v1/vms`, `GET /v1/snapshots`, etc.) page using opaque cursors, not numeric offsets. Cursor pagination is the right default for resource lists that change while you're paginating — it returns each item exactly once even if rows get inserted or deleted between page fetches.
+NimbusNexus has two kinds of API, and they page lists differently. The app APIs page with `limit` and `offset`. On the infrastructure API, most lists answer with everything at once, and a few take `limit` with `marker` or `offset`.
 
-## The shape {#shape}
+## The app APIs {#shape}
 
-Two query parameters on every list endpoint:
+Most lists on Webhooks, Inboxes and Request Bins take two query parameters:
 
 - `limit` — page size. Default 50, max 200. Past 200 the request fails validation: `422` `validation_error` ([Errors](/docs/errors#codes-validation)).
-- `cursor` — opaque pointer to the next page. Omit on the first request.
+- `offset` — how many items to skip. Default 0, max 10,000.
 
-Every list response includes:
+Each list answers with its items and the next offset:
 
 ```json
 {
-  "items": [ /* ... */ ],
-  "pagination": {
-    "next_cursor": "eyJpZCI6InZtXzAxSEc3Li4uIn0=",
-    "total_count": null
-  }
+  "items": [],
+  "next_offset": 50
 }
 ```
 
-When `next_cursor` is `null`, you've reached the last page.
+Pass `next_offset` back as `offset` for the next page. When it's `null`, you're on the last page.
+
+An offset counts positions, so an item created or deleted while you walk a list can make you see another item twice, or miss one. If that matters, compare ids. Keep the same filters for the whole walk, and start again from offset 0 when you change them.
+
+Two cases differ:
+
+- **Searches** on Inboxes and Request Bins page with `next_until` instead: see [Searching messages](/docs/product-inboxes#search) and [Captured requests](/docs/product-bins/reference#requests).
+- **QR Codes** answers most lists in one response. A code's scans (`GET /v1/qr-tracked/codes/{code_id}/scans`) take `limit` alone, and a webhook's deliveries (`GET /v1/qr-tracked/webhooks/{webhook_id}/deliveries`) page with `limit` and `cursor`, with the next cursor in `nextCursor`.
+
+## The infrastructure API {#infrastructure}
+
+Most lists, such as `GET /api/v1/instance/`, answer with the whole list and take no paging parameters. The ones that page do it one of two ways.
+
+### `limit` and `marker` {#marker}
+
+`marker` is the last item you've seen: its id or, on object storage, its name. The answer starts after it.
+
+- VM images: `GET /api/v1/image/`.
+- DNS: `GET /api/v1/zones/`, `GET /api/v1/recordsets/`, `GET /api/v1/zones/{zone_id}/recordsets/`, `GET /api/v1/zones/{zone_id}/ptr/` and `GET /api/v1/zones/{zone_id}/shares/`.
+- Object storage: `GET /api/v1/object_storage/` for containers and `GET /api/v1/object_storage/{container_name}/objects` for objects. On objects, `full_listing=true` returns them all in one response.
+
+These answers hold only `data`, with nothing to say whether more remain. Keep going until a page comes back shorter than your `limit`.
+
+### `limit` and `offset` {#offset}
+
+`offset` is how many items to skip.
+
+- Volume backups: `GET /api/v1/backup_restore/volume_backups/`, with a default `limit` of 10.
+- Backup schedules: `GET /api/v1/backup_restore/backup_scheduler/list` and `GET /api/v1/backup_restore/volume_scheduler/list`.
+- External storage connections: `GET /api/v1/external/connections/`.
+- Notifications: `GET /api/v1/notifications/list`, with a default `limit` of 50 and a maximum of 200.
+
+These answers also carry `total`, the number of items across all pages, so you've reached the end when you've read that many.
 
 ## Walking pages {#walking}
 
+On an app API, follow `next_offset`:
+
 ```ts
-async function listAllVms(): Promise<VM[]> {
-  const all: VM[] = []
-  let cursor: string | undefined
+async function listAllEndpoints() {
+  const all = []
+  let offset = 0
 
-  do {
-    const url = new URL('{{API_BASE_URL}}/v1/vms')
+  while (offset !== null) {
+    const url = new URL('{{WEBHOOKS_BASE_URL}}/v1/endpoints')
     url.searchParams.set('limit', '200')
-    if (cursor) url.searchParams.set('cursor', cursor)
+    url.searchParams.set('offset', String(offset))
 
-    const res = await fetch(url, { headers: auth })
-    const { items, pagination } = await res.json()
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${process.env.WEBHOOKS_API_KEY}` },
+    })
+    const page = await res.json()
 
-    all.push(...items)
-    cursor = pagination.next_cursor ?? undefined
-  } while (cursor)
+    all.push(...page.items)
+    offset = page.next_offset
+  }
 
   return all
 }
 ```
 
-Three rules:
+On the infrastructure API, follow the last id until a short page:
 
-1. **Cursors are opaque.** Don't try to parse them, don't try to construct them. They encode sort + filter state from your original request, so a cursor from one query doesn't work in another.
-2. **Don't change filters mid-pagination.** If you start with `?status=running` and then add `?region=us-east-1` for page 2, you get undefined behavior. Start fresh (no cursor) when filters change.
-3. **Stop when `next_cursor` is null.** Don't try to keep paginating "just in case" — the cursor is the only authoritative end-of-list signal.
+```ts
+async function listAllZones() {
+  const all = []
+  const limit = 100
+  let marker
 
-## Why cursors and not `?page=2&per_page=50` {#why-cursors}
+  while (true) {
+    const url = new URL('{{API_BASE_URL}}/api/v1/zones/')
+    url.searchParams.set('limit', String(limit))
+    if (marker) url.searchParams.set('marker', marker)
 
-Offset pagination breaks in two real-world scenarios:
+    const res = await fetch(url, {
+      headers: { 'X-API-Key': process.env.NIMBUS_KEY },
+    })
+    const { data } = await res.json()
 
-**Inserts during pagination.** If you fetch page 1 (items 1–50), then someone creates a new VM, then you fetch page 2 (items 51–100), you'll see item 50 twice (it's now at position 51) and you'll never see the new item. Cursors capture "where you were" — the next page starts after where you actually were, not at an absolute offset.
+    all.push(...data)
+    if (data.length < limit) return all
+    marker = data.at(-1).id
+  }
+}
+```
 
-**Deletes during pagination.** Same problem in reverse: if a VM gets deleted between page fetches, an offset-paginated client skips one item. Cursor-paginated clients don't.
-
-These edge cases matter at any non-trivial scale. We default to cursor pagination so they don't bite you.
-
-## `total_count` {#total-count}
-
-The `total_count` field in `pagination` is **null on most endpoints**, by design. Counting all items in a paginated list is an expensive query that gets less useful as N grows ("you have 14,328 VMs across all your projects" — what do you do with that?). When `total_count` is present, the endpoint's reference page documents it; when it's absent, don't depend on it.
-
-If you really need an exact count, paginate to the end and count what you got.
+Each page is a request, and it counts toward the [rate limit](/docs/rate-limiting).
 
 ## Sort order {#sort}
 
-List endpoints have a default sort (usually `created_at desc`, newest first) documented per-endpoint. Some endpoints accept `?sort=` to override; the reference page lists what's accepted.
-
-The cursor encodes the sort, so changing `?sort=` between page fetches is one of the "undefined behavior" cases — start fresh when you change it.
-
-## Filters {#filters}
-
-Every list endpoint accepts a few standard filter parameters:
-
-- `created_after` / `created_before` — RFC 3339 timestamps
-- `updated_after` / `updated_before` — RFC 3339 timestamps
-- Resource-specific filters (e.g. `?region=us-east-1&state=running` on VMs)
-
-Filters compose; the response is the AND of every filter. The resource's reference page documents which filters it accepts.
-
-## When you actually want all the items {#listing}
-
-Calling list-with-pagination in a tight loop to enumerate every resource is fine for ad-hoc work but expensive for repeated daemons. Two better patterns:
-
-1. **Webhooks.** Subscribe to `resource.created` / `resource.deleted` events and maintain your own index. See [Webhooks](/docs/webhooks).
-2. **Bulk export endpoints.** For some resources (snapshots, backups, audit logs), there's a dedicated export endpoint that streams the full set in one response. The resource reference page documents these where they exist.
-
-The pagination pattern is for interactive use (a dashboard table, a CLI list command). For continuous sync, the cost of pagination dominates and webhooks are the right answer.
+Lists that sort name their parameters on their reference pages. On the infrastructure API, those are `sort_by` and `sort_desc` on the `offset` lists that sort, and `sort_key` and `sort_dir` on VM images and DNS record sets. Keep the same sort for the whole walk.
 
 ## What's next {#next-steps}
 
-- [Conventions](/docs/conventions) — the rest of the request shape (status codes, errors, idempotency).
-- [Webhooks](/docs/webhooks) — push-based alternative for continuous sync.
-- Any list endpoint's reference page — endpoint-specific filters and sort options.
+- [Conventions](/docs/conventions) — the rest of the request shape: ids, status codes, errors.
+- [Rate limiting](/docs/rate-limiting) — how many requests a walk can make.
+- [Errors](/docs/errors) — what a refused request answers.
