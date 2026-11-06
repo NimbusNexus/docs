@@ -104,7 +104,7 @@ Ein Slot ist das, was ein `auth`-Schritt nennt: eine ID und eine Bezeichnung, oh
 | `pipeline_count` | Bei wie vielen Pipelines die aktuelle Version den Slot nennt. |
 | `created_at`, `updated_at` | Wann er hinzugefügt und wann er zuletzt umbenannt wurde. |
 
-`PATCH /v1/slots/{id}` erwartet `label`. `DELETE /v1/slots/{id}` antwortet mit `204` oder, solange die aktuelle Version einer Pipeline den Slot nennt, mit `409` `conflict` und `details.reason` `slot_in_use`, `details.id` und `details.pipelines`. Hat der Workspace bereits so viele Slots, wie sein Tarif erlaubt, antwortet das Hinzufügen mit `402` `quota_exceeded`, mit `details.metric` `slots`.
+`PATCH /v1/slots/{id}` erwartet `label`. `DELETE /v1/slots/{id}` antwortet mit `204` oder, solange die aktuelle Version einer Pipeline den Slot nennt, mit `409` `conflict` und `details.reason` `slot_in_use`, `details.id` und `details.pipelines`, der Anzahl der Pipelines. Hat der Workspace bereits so viele Slots, wie sein Tarif erlaubt, antwortet das Hinzufügen mit `402` `quota_exceeded`, mit `details.metric` `slots`.
 
 ## Wer eine Pipeline ausführt {#destinations}
 

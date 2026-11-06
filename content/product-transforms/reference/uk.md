@@ -104,7 +104,7 @@ API за адресою `https://transforms.nimbusnexus.net/v1` створює, 
 | `pipeline_count` | У поточних версіях скількох конвеєрів він названий. |
 | `created_at`, `updated_at` | Коли його додано і коли востаннє перейменовано. |
 
-`PATCH /v1/slots/{id}` приймає `label`. `DELETE /v1/slots/{id}` відповідає `204` або, поки слот називає поточна версія якогось конвеєра, `409` `conflict` з `details.reason` `slot_in_use`, `details.id` і `details.pipelines`. Коли всі слоти плану вже використано, додавання нового відповідає `402` `quota_exceeded` з `details.metric` `slots`.
+`PATCH /v1/slots/{id}` приймає `label`. `DELETE /v1/slots/{id}` відповідає `204` або, поки слот називає поточна версія якогось конвеєра, `409` `conflict` з `details.reason` `slot_in_use`, `details.id` і `details.pipelines`, кількістю конвеєрів. Коли всі слоти плану вже використано, додавання нового відповідає `402` `quota_exceeded` з `details.metric` `slots`.
 
 ## Хто виконує конвеєр {#destinations}
 

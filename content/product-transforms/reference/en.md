@@ -104,7 +104,7 @@ A slot is what an `auth` step names: an id and a label, with no value. Transform
 | `pipeline_count` | How many pipelines' current versions name it. |
 | `created_at`, `updated_at` | When it was added, and last renamed. |
 
-`PATCH /v1/slots/{id}` takes `label`. `DELETE /v1/slots/{id}` answers `204`, or `409` `conflict` with `details.reason` `slot_in_use`, `details.id` and `details.pipelines` while a pipeline's current version names it. Over the plan's slots, adding one answers `402` `quota_exceeded`, with `details.metric` `slots`.
+`PATCH /v1/slots/{id}` takes `label`. `DELETE /v1/slots/{id}` answers `204`, or `409` `conflict` with `details.reason` `slot_in_use`, `details.id` and `details.pipelines`, the number of pipelines, while a pipeline's current version names it. Over the plan's slots, adding one answers `402` `quota_exceeded`, with `details.metric` `slots`.
 
 ## Who runs a pipeline {#destinations}
 

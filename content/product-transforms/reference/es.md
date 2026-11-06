@@ -104,7 +104,7 @@ Un slot es lo que nombra un paso `auth`: un id y una etiqueta, sin ningún valor
 | `pipeline_count` | En cuántas pipelines lo nombra la versión actual. |
 | `created_at`, `updated_at` | Cuándo se añadió, y cuándo se renombró por última vez. |
 
-`PATCH /v1/slots/{id}` acepta `label`. `DELETE /v1/slots/{id}` responde `204`, o `409` `conflict` con `details.reason` `slot_in_use`, `details.id` y `details.pipelines` mientras lo nombre la versión actual de una pipeline. Por encima de los slots del plan, añadir uno responde `402` `quota_exceeded`, con `details.metric` `slots`.
+`PATCH /v1/slots/{id}` acepta `label`. `DELETE /v1/slots/{id}` responde `204`, o `409` `conflict` con `details.reason` `slot_in_use`, `details.id` y `details.pipelines`, el número de pipelines, mientras lo nombre la versión actual de una pipeline. Por encima de los slots del plan, añadir uno responde `402` `quota_exceeded`, con `details.metric` `slots`.
 
 ## Quién ejecuta una pipeline {#destinations}
 

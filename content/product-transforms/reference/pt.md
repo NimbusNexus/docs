@@ -104,7 +104,7 @@ Um slot é o que uma etapa `auth` indica: um id e um rótulo, sem valor. O Trans
 | `pipeline_count` | Quantos pipelines o indicam na versão atual. |
 | `created_at`, `updated_at` | Quando ele foi adicionado e quando foi renomeado pela última vez. |
 
-`PATCH /v1/slots/{id}` recebe `label`. `DELETE /v1/slots/{id}` responde `204`, ou `409` `conflict`, com `details.reason` `slot_in_use`, `details.id` e `details.pipelines`, enquanto a versão atual de um pipeline o indicar. Acima dos slots do plano, adicionar um responde `402` `quota_exceeded`, com `details.metric` `slots`.
+`PATCH /v1/slots/{id}` recebe `label`. `DELETE /v1/slots/{id}` responde `204`, ou `409` `conflict`, com `details.reason` `slot_in_use`, `details.id` e `details.pipelines`, o número de pipelines, enquanto a versão atual de um pipeline o indicar. Acima dos slots do plano, adicionar um responde `402` `quota_exceeded`, com `details.metric` `slots`.
 
 ## Quem executa um pipeline {#destinations}
 

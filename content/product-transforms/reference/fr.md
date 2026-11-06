@@ -104,7 +104,7 @@ Un emplacement est ce que nomme une étape `auth` : un identifiant et un libell�
 | `pipeline_count` | Le nombre de pipelines dont la version actuelle le nomme. |
 | `created_at`, `updated_at` | Le moment où il a été ajouté, et celui où il a été renommé pour la dernière fois. |
 
-`PATCH /v1/slots/{id}` prend `label`. `DELETE /v1/slots/{id}` répond `204`, ou `409` `conflict` avec `details.reason` `slot_in_use`, `details.id` et `details.pipelines` tant que la version actuelle d’un pipeline le nomme. Au-delà des emplacements du plan, en ajouter un répond `402` `quota_exceeded`, avec `details.metric` `slots`.
+`PATCH /v1/slots/{id}` prend `label`. `DELETE /v1/slots/{id}` répond `204`, ou `409` `conflict` avec `details.reason` `slot_in_use`, `details.id` et `details.pipelines`, le nombre de pipelines, tant que la version actuelle d’un pipeline le nomme. Au-delà des emplacements du plan, en ajouter un répond `402` `quota_exceeded`, avec `details.metric` `slots`.
 
 ## Qui exécute un pipeline {#destinations}
 
