@@ -1,14 +1,14 @@
 ---
 title: "Erreurs"
-description: "Le format des erreurs, les codes d’erreur qu’envoient les API Webhooks, Inboxes et Request Bins, et la façon de traiter chacun."
+description: "Le format des erreurs, les codes d’erreur qu’envoient les API Webhooks, Inboxes, Request Bins et Transforms, et la façon de traiter chacun."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-30
+updatedAt: 2026-11-06
 kind: concept
 ---
 
 # Erreurs
 
-Chaque réponse d’erreur des API Webhooks, Inboxes et Request Bins utilise le même format JSON. Pour traiter chaque cas, basez-vous sur `error.code`, ou sur `error.next_code` quand une erreur en porte un. N’analysez pas `message`, et ne décidez pas d’après le statut seul : un même statut peut porter plusieurs codes, et sur chaque API, `402` en porte quatre.
+Chaque réponse d’erreur des API Webhooks, Inboxes, Request Bins et Transforms utilise le même format JSON. Pour traiter chaque cas, basez-vous sur `error.code`, ou sur `error.next_code` quand une erreur en porte un. N’analysez pas `message`, et ne décidez pas d’après le statut seul : un même statut peut porter plusieurs codes, et sur chaque API, `402` en porte quatre.
 
 > **Mis à jour le 2026-10-16.** Dans Webhooks, un nom de header personnalisé qui est un token HTTP valide suivi d’un saut de ligne final est désormais refusé comme tout autre nom qui n’est pas un token HTTP valide : `webhooks.custom_header_name_invalid`, avec le `msg` de cette règle et sans `params` ([Validation des requêtes](#codes-validation)). Auparavant, le saut de ligne passait la vérification du token et le nom était refusé comme caractère de contrôle, avec `params.header` : en tant que `webhooks.custom_header_control_character` à partir du 2026-10-15, et en tant que `value_error` avant cela. La requête reste un `422` `validation_error`, et rien d’autre n’a changé.
 >
@@ -220,6 +220,16 @@ Ces codes concernent les objets propres à l’API Webhooks (types d’événeme
 | `schema_ref_unsupported` | Votre schéma utilise un `$ref` que l’API ne résout pas. |
 | `provider_secret_required` | La rotation d’une source Stripe ou GitHub nécessite le nouveau secret de ce fournisseur, et la rotation d’une source RabbitMQ nécessite le nouveau mot de passe du broker. `details.provider` indique lequel : `stripe`, `github` ou `rabbitmq`. |
 | `broker_not_allowed` | Une source RabbitMQ nomme un broker auquel l’API refuse de se connecter. |
+
+### Codes de l’API Transforms {#codes-transforms}
+
+Transforms envoie les mêmes codes que Request Bins dans les mêmes situations, et la [référence Transforms](/docs/product-transforms/reference#errors) les liste tous. Voici ceux qui lui sont propres :
+
+| `code` | Statut | Description |
+|---|---|---|
+| `invalid_pipeline` | 422 | Un pipeline qui ne pourrait jamais s’exécuter, à l’enregistrement ou au test. `details.reason`, `details.path` et `details.step` nomment le premier problème ([Pipelines non valides](/docs/product-transforms/reference#invalid-pipeline)). |
+| `conflict` | 409 | `details.reason` vaut `pipeline_disabled`, pour l’exécution d’un pipeline que vous avez désactivé, avec `details.id` ; ou `destinations_unconfirmed`, pour une nouvelle version avec une étape `auth` ou une suppression qui ne nomme pas chaque produit qui exécute le pipeline, avec `details.id` et `details.destinations` ([Qui exécute un pipeline](/docs/product-transforms/reference#destinations)). |
+| `rate_limited` | 429 | Au-delà des exécutions par minute du plan. `details.retry_after` indique combien de secondes attendre. |
 
 ### Plan et facturation {#codes-plan}
 

@@ -1,14 +1,14 @@
 ---
 title: Errors
-description: The error shape, the error codes the Webhooks, Inboxes and Request Bins APIs send, and how to handle each.
+description: The error shape, the error codes the Webhooks, Inboxes, Request Bins and Transforms APIs send, and how to handle each.
 publishedAt: 2026-05-20
-updatedAt: 2026-10-30
+updatedAt: 2026-11-06
 kind: concept
 ---
 
 # Errors
 
-Every error response from the Webhooks, Inboxes and Request Bins APIs uses the same JSON shape. Switch on `error.code`, or on `error.next_code` when an error carries one, to handle each case. Don't parse `message`, and don't decide from the status alone: one status can carry several codes, and on every API `402` carries four.
+Every error response from the Webhooks, Inboxes, Request Bins and Transforms APIs uses the same JSON shape. Switch on `error.code`, or on `error.next_code` when an error carries one, to handle each case. Don't parse `message`, and don't decide from the status alone: one status can carry several codes, and on every API `402` carries four.
 
 > **Updated on 2026-10-16.** In Webhooks, a custom header name that is a valid HTTP token with one line feed at the end is now refused like any other name that isn't a valid HTTP token: `webhooks.custom_header_name_invalid`, with that rule's `msg` and no `params` ([Request validation](#codes-validation)). Before, the line feed got past the token check and the name was refused as a control character, with `params.header`: as `webhooks.custom_header_control_character` from 2026-10-15, and as `value_error` before that. The request is still a `422` `validation_error`, and nothing else changed.
 >
@@ -220,6 +220,16 @@ These belong to the Webhooks API's own objects (event types, schemas, sources, e
 | `schema_ref_unsupported` | Your schema uses a `$ref` the API doesn't resolve. |
 | `provider_secret_required` | Rotating a Stripe or GitHub source needs the new secret from that provider, and rotating a RabbitMQ source needs the broker's new password. `details.provider` says which: `stripe`, `github` or `rabbitmq`. |
 | `broker_not_allowed` | A RabbitMQ source names a broker the API won't connect to. |
+
+### Transforms API codes {#codes-transforms}
+
+Transforms sends the codes Request Bins sends for the same situations, and the [Transforms reference](/docs/product-transforms/reference#errors) lists them all. These are its own:
+
+| `code` | Status | What |
+|---|---|---|
+| `invalid_pipeline` | 422 | A pipeline that could never run, when it is saved or tested. `details.reason`, `details.path` and `details.step` name the first problem ([Invalid pipelines](/docs/product-transforms/reference#invalid-pipeline)). |
+| `conflict` | 409 | `details.reason` is `pipeline_disabled`, for a run of a pipeline you have switched off, with `details.id`; or `destinations_unconfirmed`, for a new version with an `auth` step or a delete that doesn't name every product running the pipeline, with `details.id` and `details.destinations` ([Who runs a pipeline](/docs/product-transforms/reference#destinations)). |
+| `rate_limited` | 429 | Past the plan's runs a minute. `details.retry_after` says how many seconds to wait. |
 
 ### Plan and billing {#codes-plan}
 

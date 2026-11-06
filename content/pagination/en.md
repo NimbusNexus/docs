@@ -12,7 +12,7 @@ NimbusNexus has two kinds of API, and they page lists differently. The app APIs 
 
 ## The app APIs {#shape}
 
-Most lists on Webhooks, Inboxes and Request Bins take two query parameters:
+Most lists on Webhooks, Inboxes, Request Bins and Transforms take two query parameters:
 
 - `limit` — page size. Default 50, max 200. Past 200 the request fails validation: `422` `validation_error` ([Errors](/docs/errors#codes-validation)).
 - `offset` — how many items to skip. Default 0, max 10,000.

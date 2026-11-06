@@ -1,14 +1,14 @@
 ---
 title: "Помилки"
-description: "Формат помилки, коди помилок, які надсилають API Webhooks, Inboxes і Request Bins, і як обробляти кожен із них."
+description: "Формат помилки, коди помилок, які надсилають API Webhooks, Inboxes, Request Bins і Transforms, і як обробляти кожен із них."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-30
+updatedAt: 2026-11-06
 kind: concept
 ---
 
 # Помилки
 
-Кожна відповідь із помилкою від API Webhooks, Inboxes і Request Bins має той самий формат JSON. Щоб обробити кожен випадок, розгалужуйте обробку за `error.code` або за `error.next_code`, якщо помилка його містить. Не розбирайте `message` і не вирішуйте лише за статусом: один статус може мати кілька кодів, а `402` у кожному API має чотири.
+Кожна відповідь із помилкою від API Webhooks, Inboxes, Request Bins і Transforms має той самий формат JSON. Щоб обробити кожен випадок, розгалужуйте обробку за `error.code` або за `error.next_code`, якщо помилка його містить. Не розбирайте `message` і не вирішуйте лише за статусом: один статус може мати кілька кодів, а `402` у кожному API має чотири.
 
 > **Оновлено 2026-10-16.** У Webhooks назва користувацького заголовка, яка є дійсним HTTP-токеном з одним символом переведення рядка в кінці, тепер відхиляється так само, як будь-яка інша назва, що не є дійсним HTTP-токеном: `webhooks.custom_header_name_invalid` з `msg` цього правила й без `params` ([Валідація запиту](#codes-validation)). Раніше символ переведення рядка проходив перевірку токена, і назву відхиляли як керувальний символ, з `params.header`: як `webhooks.custom_header_control_character` з 2026-10-15 і як `value_error` до того. Запит, як і раніше, — `422` `validation_error`, і більше нічого не змінилося.
 >
@@ -220,6 +220,16 @@ Request Bins надсилає три:
 | `schema_ref_unsupported` | Ваша схема використовує `$ref`, який API не розвʼязує. |
 | `provider_secret_required` | Для ротації джерела Stripe чи GitHub потрібен новий секрет від цього провайдера, а для ротації джерела RabbitMQ — новий пароль брокера. `details.provider` указує, який саме: `stripe`, `github` або `rabbitmq`. |
 | `broker_not_allowed` | Джерело RabbitMQ називає брокер, до якого API не підключатиметься. |
+
+### Коди API Transforms {#codes-transforms}
+
+Transforms надсилає ті самі коди, що й Request Bins, для тих самих ситуацій, а [довідник Transforms](/docs/product-transforms/reference#errors) перелічує їх усі. Ось його власні:
+
+| `code` | Статус | Що це |
+|---|---|---|
+| `invalid_pipeline` | 422 | Конвеєр, який ніколи не зміг би виконатися, під час збереження чи тестування. `details.reason`, `details.path` і `details.step` вказують на першу проблему ([Недійсні конвеєри](/docs/product-transforms/reference#invalid-pipeline)). |
+| `conflict` | 409 | `details.reason` дорівнює `pipeline_disabled` — для запуску конвеєра, який ви вимкнули, з `details.id`; або `destinations_unconfirmed` — для нової версії з кроком `auth` чи видалення, що не називає кожен продукт, який виконує конвеєр, з `details.id` і `details.destinations` ([Хто виконує конвеєр](/docs/product-transforms/reference#destinations)). |
+| `rate_limited` | 429 | Перевищено кількість запусків на хвилину, яку дозволяє план. `details.retry_after` показує, скільки секунд зачекати. |
 
 ### План і білінг {#codes-plan}
 

@@ -48,6 +48,7 @@ API застосунків не надсилають заголовків `X-Rat
 - **Webhooks:** публікація (`POST /v1/events`) обмежена частотою публікацій вашого плану, окремо для кожного робочого простору. Повторне надсилання й реплей (`POST /v1/deliveries/{delivery_id}/redeliver`, `POST /v1/deliveries/redeliver`, `POST /v1/deliveries/replay` і `POST /v1/events/{event_id}/replay`) обмежені тією самою частотою, але з власним лічильником. Для вхідних подій на `POST /v1/ingest/{source_id}` ліміт — 600 на хвилину на джерело, а потім — частота публікацій вашого плану ([Що бачить провайдер](/docs/product-webhooks/sources#responses)). Для збереження й тестування скриптів ліміт — 60 на хвилину на робочий простір ([Трансформації](/docs/product-webhooks/transformations#errors)).
 - **Inboxes:** кожна скринька приймає пошту до ліміту на хвилину, який задає ваш план ([Ліміти за планами](/docs/product-inboxes#limits)).
 - **Request Bins:** bin може надсилати 10 тестів пересилання на хвилину ([Протестуйте URL пересилання](/docs/product-bins/reference#forward-test)). URL bin-а приймає 120 запитів на хвилину від одного відправника й 600 на хвилину загалом ([Що відповідає URL bin-а](/docs/product-bins/reference#edge-answers)).
+- **Transforms:** запуски й тести мають спільний ліміт запусків на хвилину, який задає ваш план, окремо для кожного робочого простору ([Плани й ліміти](/docs/product-transforms/reference#limits)).
 - **QR-коди:** робочий простір може надсилати 10 тестів вебхуків на хвилину.
 
 ## Стратегія backoff {#backoff}

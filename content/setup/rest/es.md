@@ -12,7 +12,7 @@ Cada producto de NimbusNexus es una API REST: JSON sobre HTTPS, con tu clave de 
 
 ## 1 · Obtén una clave de API {#key}
 
-**Apps: Webhooks, Inboxes, códigos QR y Request Bins.** Abre **API keys** en la [consola de tu cuenta]({{ACCOUNT_BASE_URL}}/api-keys) y crea una clave para el producto al que quieras llamar. Cada clave pertenece a un producto. Elige allí su alcance: `admin`, `read` o, para Webhooks, también `publish`. Copia la clave cuando aparezca, porque se muestra una sola vez. Una clave de app es un JWT, así que empieza por `eyJ`.
+**Apps: Webhooks, Inboxes, códigos QR, Request Bins y Transforms.** Abre **API keys** en la [consola de tu cuenta]({{ACCOUNT_BASE_URL}}/api-keys) y crea una clave para el producto al que quieras llamar. Cada clave pertenece a un producto. Elige allí su alcance: `admin`, `read` o, para Webhooks, también `publish`. Copia la clave cuando aparezca, porque se muestra una sola vez. Una clave de app es un JWT, así que empieza por `eyJ`.
 
 **Infraestructura: VMs, almacenamiento, red y DNS.** Crea la clave en el panel, en **Seguridad → Tokens de API**, con el alcance **Admin**, y copia el valor con la etiqueta **Clave de API** ([Inicio rápido](/docs/quickstart#api-key)). Tiene el alcance de un proyecto. [Autenticación](/docs/authentication) explica los roles, las reglas de acceso y cómo sustituir una clave.
 
@@ -44,6 +44,7 @@ Cada producto tiene su propia URL base:
 | Inboxes | `{{INBOXES_BASE_URL}}/v1` |
 | Códigos QR | `{{QR_BASE_URL}}/v1` |
 | Request Bins | `https://bins.nimbusnexus.net/v1` |
+| Transforms | `https://transforms.nimbusnexus.net/v1` |
 | Infraestructura | `{{API_BASE_URL}}/api/v1` |
 
 ## 3 · Haz una primera llamada {#first-call}
@@ -129,4 +130,4 @@ La API de infraestructura responde de otra forma, con `success: false` y un `mes
 
 - [Referencia de la API](/docs/reference): todas las operaciones de todos los productos, con la llamada en tu lenguaje.
 - [SDKs](/docs/setup/sdk) y la [CLI](/docs/setup/cli): las mismas llamadas, con los reintentos, la comprobación de firmas y la paginación resueltos por ti.
-- Inicios rápidos de los productos: [Webhooks](/docs/product-webhooks/quickstart), [Inboxes](/docs/product-inboxes/quickstart), [Request Bins](/docs/product-bins/quickstart) y [tu primera VM](/docs/quickstart).
+- Inicios rápidos de los productos: [Webhooks](/docs/product-webhooks/quickstart), [Inboxes](/docs/product-inboxes/quickstart), [Request Bins](/docs/product-bins/quickstart), [Transforms](/docs/product-transforms/quickstart) y [tu primera VM](/docs/quickstart).
