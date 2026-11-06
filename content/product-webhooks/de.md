@@ -2,7 +2,7 @@
 title: "Webhooks"
 description: "Die Managed-Webhook-Plattform — Sie veröffentlichen ein Event einmal, wir signieren jede Zustellung an Ihre Abonnenten, wiederholen sie und spielen sie erneut ab."
 publishedAt: 2026-08-05
-updatedAt: 2026-11-03
+updatedAt: 2026-11-06
 kind: concept
 ---
 
@@ -10,9 +10,7 @@ kind: concept
 
 Webhooks ist ein eigenständiges Produkt von NimbusNexus, mit dem Sie Webhooks an *Ihre* Abonnenten senden. Sie veröffentlichen ein Event einmal; wir verteilen es an jeden Endpoint, der diesen Typ abonniert hat, signieren jede Zustellung, wiederholen die fehlgeschlagenen und halten alles, was nie ankommt, in einer Dead-Letter-Queue bereit, die Sie erneut abspielen können.
 
-> **Nicht die gesuchte Seite?** Wenn Sie Benachrichtigungen über *Ihre eigene Infrastruktur bei NimbusNexus* empfangen möchten — `vm.created`, `snapshot.completed`, `invoice.generated` —, ist das eine andere Funktion, dokumentiert unter [Plattform-Webhooks](/docs/webhooks). Die beiden sind voneinander unabhängige Systeme, und **ihre Signatur-Header unterscheiden sich**, daher weist Prüfcode, der für das eine geschrieben wurde, jede Zustellung des anderen ab.
-
-Der Unterschied in einem Satz: Plattform-Webhooks sind Events, die *wir* Ihnen über Ihr Konto senden; dieses Produkt stellt Events zu, die *Sie* Ihren eigenen Kunden senden.
+> **Nicht die gesuchte Seite?** Dieses Produkt stellt Events zu, die *Sie* Ihren eigenen Kunden senden. NimbusNexus sendet keine Webhooks über *Ihre eigene Infrastruktur*: Um eine VM oder ein Volume zu verfolgen, lesen Sie die Ressource und beobachten ihren `status` ([Lang laufende Operationen](/docs/conventions#operations)), und für Nachrichten an Sie siehe [Benachrichtigungen](/docs/api/notifications).
 
 ## Wofür es gedacht ist {#what-for}
 
@@ -88,4 +86,3 @@ Wählen Sie den Scope beim Erstellen. `admin` hat volle Kontrolle; `publish` kan
 - [Signaturprüfung](/docs/product-webhooks/signatures) — die Signaturspezifikation und die drei Regeln für die Prüfung.
 - [SDKs](/docs/product-webhooks/sdks) — typisierte Clients für Python, TypeScript und Go.
 - [CLI](/docs/product-webhooks/cli) — `nn-webhooks`, ein einzelnes statisches Binary.
-- [Plattform-Webhooks](/docs/webhooks) — das andere, das ebenfalls Webhooks heißt: Benachrichtigungen über Ihre eigene Infrastruktur.

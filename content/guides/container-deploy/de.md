@@ -223,4 +223,3 @@ Für eine längerfristige Aufbewahrung der Logs leiten Sie sie aus journald dort
 - [Blue-Green-Deployments](/docs/guides/blue-green) — die Variante des obigen Deployment-Ablaufs ohne Downtime.
 - [Virtuelle Maschinen](/docs/api/vms) — alle Optionen für den Aufruf zum Erstellen.
 - [VM-Flotte überwachen](/docs/guides/monitoring-vms) — Setup mit Prometheus + Grafana.
-- [Anleitung für statische Sites](/docs/guides/static-site) — für rein statische Inhalte ist dieses Muster überdimensioniert; verwenden Sie stattdessen Objektspeicher.

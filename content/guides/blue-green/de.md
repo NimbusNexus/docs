@@ -164,4 +164,3 @@ Dieses Muster macht mehr Arbeit als „Schema + Code immer zusammen deployen“,
 
 - [Referenz für Floating-IPs](/docs/api/floating-ips) — alle Endpoints der Ressource, die dieses Muster möglich macht.
 - [Load Balancer](/docs/api/load-balancers) — die Version desselben Musters für mehrere VMs.
-- [Multi-Region-Failover](/docs/guides/multi-region) — dieselbe Idee, angewendet auf geografisch weit entfernte Paare.

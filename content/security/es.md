@@ -1,88 +1,57 @@
 ---
 title: "Modelo de seguridad"
-description: "Cómo se combinan claves, alcances, proyectos y registros de auditoría para acotar el radio de impacto."
+description: "Cómo se combinan claves de API, roles, reglas de acceso y proyectos para acotar el radio de impacto."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-16
+updatedAt: 2026-11-06
 kind: concept
 ---
 
 # Modelo de seguridad
 
-La postura de seguridad de NimbusNexus se apoya en cuatro pilares: las claves de API son la única forma de autenticarse, los proyectos son la unidad de aislamiento, los alcances restringen lo que puede hacer cada clave y los registros de auditoría recogen todo lo que importa. Esta página es la visión general conceptual; cada pieza tiene su propia página de referencia con los detalles.
+En la API de infraestructura, tres cosas acotan lo que puede hacer una credencial: los proyectos son la unidad de aislamiento, los roles indican lo que una clave puede hacer en su proyecto y las reglas de acceso restringen qué llamadas puede hacer. Esta página es la visión general conceptual; cada pieza tiene su propia página de referencia con los detalles.
 
 ## El límite de confianza {#trust-boundary}
 
-Un único proyecto es el límite de confianza. Dentro de un proyecto, cualquier llamante autorizado puede afectar a cualquier recurso. Entre proyectos, nada puede afectar a nada — los proyectos no comparten redes, ni concesiones de IAM, ni cuotas.
+Un único proyecto es el límite de confianza. Dentro de un proyecto, cualquier llamante autorizado puede afectar a cualquier recurso. Entre proyectos, nada puede afectar a nada a menos que lo abras: un recurso pertenece a un proyecto, las cuotas son por proyecto y una clave funciona en un proyecto.
 
-Así está diseñado. Si dos cargas de trabajo tienen que estar aisladas entre sí (producción de staging, el cliente A del cliente B), ponlas en proyectos distintos. No intentes aislarlas con alcances o etiquetas dentro de un mismo proyecto — los alcances restringen lo que puede hacer una sola clave, pero una clave de administrador comprometida en el proyecto sigue teniendo acceso a todo.
+Así está diseñado. Si dos cargas de trabajo tienen que estar aisladas entre sí (producción de staging, el cliente A del cliente B), ponlas en proyectos distintos. No intentes aislarlas con reglas de acceso dentro de un mismo proyecto: restringen lo que puede hacer una sola clave, pero otra clave del proyecto con reglas más amplias sigue teniendo acceso a todo.
 
-## Claves de API {#api-keys}
+## Credenciales {#api-keys}
 
-La única credencial que acepta la API es una clave de API. No hay flujo OAuth por usuario, ni flujo de firma de JWT, ni mTLS — solo claves bearer. Por qué un único mecanismo: cada tipo de credencial adicional añade superficie de ataque (flujo de emisión, flujo de revocación, propagación), y preferimos que el que tenemos sea hermético.
+La API acepta dos tipos de credencial: una **clave de API** en la cabecera `X-API-Key`, para herramientas y scripts, y una **sesión iniciada**, para una persona en el panel.
 
 Las claves son:
 
 - **Por proyecto.** Una clave con el alcance del proyecto `acme-prod` no puede leer nada de `acme-staging`, aunque sea de la misma cuenta.
-- **De larga duración, pero rotables.** Una clave creada hoy es válida hasta que la rotes o la revoques. La rotación tiene un periodo de solapamiento de 24 horas para que puedas desplegar la clave nueva sin cortes de servicio.
-- **Se crean solo desde el panel.** No hay API para crear claves. Una clave comprometida no puede generar otra clave — la recuperación tiene que pasar por un canal fuera de banda.
+- **Personales.** Cada clave pertenece a la persona que la creó y actúa con roles que esa persona tiene.
+- **Creadas desde una sesión iniciada**, en el panel o con `POST /api/v1/api_keys/`.
+- **Válidas hasta que las borres**, o hasta el `expires_at` que les pusiste. No hay ninguna llamada para rotar: para sustituir una clave, crea la nueva, pasa tus herramientas a ella y después borra la antigua.
 
-Consulta [Autenticación](/docs/authentication) para ver el formato de las peticiones, la lista de alcances, el flujo de rotación y los códigos de error.
+Consulta [Autenticación](/docs/authentication) para ver el formato de las peticiones y los detalles.
 
-## Alcances {#scopes}
+## Roles y reglas de acceso {#scopes}
 
-Cada clave lleva un conjunto de alcances que limitan lo que puede hacer dentro de su proyecto. La lista completa refleja los tipos de recurso:
+Una clave actúa con `roles` en su proyecto, y sus `access_rules` limitan qué llamadas puede hacer: cada regla indica un servicio, un método y una ruta. `unrestricted: true` significa que no hay reglas de acceso, así que la clave puede hacer cualquier llamada que permitan sus roles. Una clave sin ninguna de las dos cosas solo puede leer su propia sesión.
 
-- `vms:read`, `vms:write`, `vms:create`, `vms:delete`
-- `databases:*`, `block-storage:*`, `object-storage:*`, `iam:*`, ...
-
-Los alcances son un sistema aditivo: una clave tiene la unión de todos los alcances que se le han concedido. No hay negación, ni reglas de precedencia, ni roles que tengas que analizar.
-
-El patrón adecuado: **empieza restringido y amplía cuando algo falle**. Crea la clave solo con los alcances que sabes que necesitas; deja que la aplicación falle con `403 forbidden` (`details.reason` es `scope`) si te has dejado alguno, y luego añádelo. Así detectas errores del tipo "le he dado permisos de administrador a mi job de CI sin querer" durante el desarrollo, no en producción.
+El patrón adecuado: **empieza restringido y amplía cuando algo falle**. Crea la clave solo con las llamadas que sabes que necesitas. Una llamada fuera de ellas responde `403`, y creas una clave nueva que la incluya. Así detectas errores del tipo "le he dado permisos de administrador a mi job de CI sin querer" durante el desarrollo, no en producción.
 
 ## Proyectos {#projects}
 
-Los proyectos son la primitiva de aislamiento más fuerte — son el límite de los recursos, el de la facturación y el del control de acceso. Un usuario con permisos de administrador en el proyecto `acme-prod` no puede ver los recursos del proyecto `acme-staging` a menos que también tenga permisos de administrador (o cualquier alcance) allí.
+Los proyectos son la primitiva de aislamiento más fuerte: son el límite de los recursos y el del control de acceso. La facturación es por workspace. Una persona con un rol en el proyecto `acme-prod` no puede ver los recursos del proyecto `acme-staging` a menos que también tenga un rol allí.
 
 La mayoría de los equipos quieren **al menos un proyecto por entorno** (`prod`, `staging`, `dev`). El motivo: una clave de desarrollo comprometida no debería poder llegar a los datos de producción. Mejor aún: un proyecto por cada combinación de entorno + servicio (`acme-prod-api`, `acme-prod-batch`), para que una filtración de credenciales en el job batch no pueda leer los datos de los clientes de la API.
 
-Consulta [Proyectos](/docs/api/projects) para ver el formato del recurso y cómo funciona la jerarquía.
+Consulta [Proyectos](/docs/api/projects) para ver los detalles.
 
 ## Modelo de red {#network}
 
-Por defecto, una VM está aislada. Para salir a internet, asóciale una [IP flotante](/docs/api/floating-ips) o colócala en una red con un router. Para aceptar tráfico entrante, asóciale la IP flotante y (normalmente) pon delante un [grupo de seguridad](/docs/api/security-groups) para tener un firewall con estado.
+Desde internet no se puede llegar a una VM en una red privada. Para salir a internet, conecta la red a un [router](/docs/api/routers) con gateway externo. Para aceptar tráfico entrante, asocia una [IP flotante](/docs/api/floating-ips). Cada VM tiene al menos un [grupo de seguridad](/docs/api/security-groups), que deniega todo el tráfico entrante hasta que lo permitas.
 
-La red entre proyectos no existe. Una VM del proyecto `acme-prod` no puede enviar tráfico a una VM del proyecto `acme-staging`, y punto, ni siquiera por IPs privadas — el switch virtual subyacente impone el aislamiento a nivel de proyecto. Si necesitas comunicación entre proyectos (algo poco habitual), el patrón adecuado es "expón una API pública y llámala por internet" — el mismo límite de confianza que si las dos cargas de trabajo estuvieran en empresas distintas.
-
-El VPC peering y otras primitivas de red entre proyectos parecidas podrían llegar más adelante; hoy no existen, y es una restricción deliberada.
-
-## Registros de auditoría {#audit}
-
-Cada petición autenticada que modifica el estado se registra con:
-
-- `request_id` — el mismo id que aparece en las respuestas de error
-- `key_id` — qué clave hizo la llamada (prefijo + 4 últimos caracteres, nunca el secreto completo)
-- `user_id` — el usuario que creó la clave
-- `operation` — `vms.create`, `database.delete`, etc.
-- `resource_id` — el recurso afectado
-- `project_id` — qué proyecto
-- `result` — `success`, `validation_error`, `unauthorized`, etc.
-- `client_ip` — la IP de origen
-- `timestamp` — ISO 8601 en UTC
-
-Los registros de auditoría están disponibles en el panel, con filtros + exportación, y a través de la API de auditoría de IAM. La retención es de **365 días** en los tiers Free y Starter, de **2 años** en Production y configurable en Enterprise.
-
-Los `GET` se registran para los recursos marcados como sensibles (IAM, facturación, métodos de pago); no se registran para las lecturas rutinarias (listar VMs), para que el volumen de logs siga siendo manejable. La lista de "lecturas sensibles" está documentada en la página de referencia de IAM.
-
-## Datos en reposo {#at-rest}
-
-- **Volúmenes de bloques:** AES-256-XTS con claves por volumen, gestionadas por nosotros. Las claves de cifrado gestionadas por el cliente (CMK) están en la hoja de ruta; todavía no están disponibles.
-- **Almacenamiento de objetos:** AES-256 en el servidor por defecto; SSE-C (claves proporcionadas por el cliente) y SSE-KMS (CMK a través de KMS) disponibles.
-- **Backups + snapshots:** el mismo cifrado que el volumen/objeto de origen.
-- **Backups de bases de datos:** el mismo cifrado + el cifrado en reposo propio del motor de la base de datos, si está activado.
+Las redes pertenecen a un proyecto. Una VM del proyecto `acme-prod` no puede enviar tráfico a una VM del proyecto `acme-staging` por IPs privadas a menos que compartas una red entre ellos con [redes compartidas](/docs/api/network-sharing). No hay peering entre las redes de los proyectos. Si no, el patrón es "expón una API pública y llámala por internet", el mismo límite de confianza que si las dos cargas de trabajo estuvieran en empresas distintas.
 
 ## Datos en tránsito {#in-transit}
 
-Todo el tráfico de la API va por TLS 1.3 (se acepta TLS 1.2; las versiones anteriores se rechazan en el gateway). Las conexiones al almacenamiento de objetos y a las bases de datos usan TLS 1.3, y nuestros certificados se rotan automáticamente. Las entregas de webhooks que te enviamos usan TLS; no aceptamos URLs `http://` sin cifrar para los endpoints de webhooks.
+La API se sirve por HTTPS. En el producto [Webhooks](/docs/product-webhooks), las entregas también usan TLS: la URL de un endpoint debe ser `https`.
 
 ## Cómo notificar una vulnerabilidad {#disclosure}
 
@@ -92,6 +61,6 @@ Las condiciones de puerto seguro (safe harbor) están en [{{BASE_URL}}/legal/sec
 
 ## Próximos pasos {#next-steps}
 
-- [Autenticación](/docs/authentication) — cómo funcionan en la práctica las claves, los alcances y la rotación.
+- [Autenticación](/docs/authentication) — cómo funcionan en la práctica las claves, los roles y las reglas de acceso.
 - [Proyectos](/docs/api/projects) — la unidad de aislamiento.
-- [Webhooks de la plataforma](/docs/webhooks) — cómo proteger las entregas entrantes que enviamos a tus endpoints.
+- [Redes compartidas](/docs/api/network-sharing) — la forma controlada de conectar las redes de dos proyectos.

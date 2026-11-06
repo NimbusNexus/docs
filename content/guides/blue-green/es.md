@@ -164,4 +164,3 @@ Este patrón da más trabajo que "desplegar siempre esquema + código a la vez",
 
 - [Referencia de IPs flotantes](/docs/api/floating-ips) — todos los endpoints del recurso que hace posible este patrón.
 - [Balanceadores de carga](/docs/api/load-balancers) — la versión de varias VMs del mismo patrón.
-- [Failover multirregión](/docs/guides/multi-region) — la misma idea, aplicada a parejas geográficamente distantes.

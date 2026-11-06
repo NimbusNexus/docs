@@ -2,7 +2,7 @@
 title: "Webhooks"
 description: "A plataforma de webhooks gerenciada — publique um evento uma vez e nós assinamos, repetimos e reenviamos cada entrega aos seus assinantes."
 publishedAt: 2026-08-05
-updatedAt: 2026-11-03
+updatedAt: 2026-11-06
 kind: concept
 ---
 
@@ -10,9 +10,7 @@ kind: concept
 
 O NimbusNexus Webhooks é um produto independente para enviar webhooks aos *seus* assinantes. Você publica um evento uma vez; nós o distribuímos para todos os endpoints inscritos naquele tipo, assinamos cada entrega, repetimos as que falham e guardamos o que nunca chega ao destino em uma dead-letter queue que você pode reenviar.
 
-> **Não é a página que você procurava?** Se você está aqui para receber notificações sobre *a sua própria infraestrutura na NimbusNexus* — `vm.created`, `snapshot.completed`, `invoice.generated` —, isso é outra funcionalidade, documentada em [Webhooks da plataforma](/docs/webhooks). Os dois são sistemas sem relação entre si e **os headers de assinatura deles são diferentes**, então um código de verificação escrito para um vai rejeitar todas as entregas do outro.
-
-A diferença em uma linha: os webhooks da plataforma são eventos que *nós* enviamos a você sobre a sua conta; este produto entrega eventos que *você* envia aos seus próprios clientes.
+> **Não é a página que você procurava?** Este produto entrega eventos que *você* envia aos seus próprios clientes. A NimbusNexus não envia webhooks sobre *a sua própria infraestrutura*: para acompanhar uma VM ou um volume, leia o recurso e observe o `status` dele ([Operações de longa duração](/docs/conventions#operations)) e, para mensagens destinadas a você, veja [Notificações](/docs/api/notifications).
 
 ## Para que serve {#what-for}
 
@@ -88,4 +86,3 @@ Escolha o escopo ao gerá-la. `admin` dá controle total; `publish` pode produzi
 - [Verificação de assinatura](/docs/product-webhooks/signatures) — o contrato de assinatura e as três regras para verificá-la.
 - [SDKs](/docs/product-webhooks/sdks) — clientes tipados para Python, TypeScript e Go.
 - [CLI](/docs/product-webhooks/cli) — `nn-webhooks`, um único binário estático.
-- [Webhooks da plataforma](/docs/webhooks) — a outra coisa chamada webhooks: notificações sobre a sua própria infraestrutura.

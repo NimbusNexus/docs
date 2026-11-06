@@ -223,4 +223,3 @@ Para reter logs por mais tempo, envie-os do journald para onde você armazena lo
 - [Deploys blue/green](/docs/guides/blue-green) — a versão sem downtime do fluxo de deploy acima.
 - [Máquinas virtuais](/docs/api/vms) — todas as opções da chamada de criação.
 - [Monitorar uma frota de VMs](/docs/guides/monitoring-vms) — configuração do Prometheus + Grafana.
-- [Guia de site estático](/docs/guides/static-site) — para conteúdo puramente estático, este padrão é exagero; use o armazenamento de objetos.

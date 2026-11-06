@@ -223,4 +223,3 @@ Para conservar los logs más tiempo, envíalos desde journald adonde los guardes
 - [Despliegues blue/green](/docs/guides/blue-green) — la versión sin downtime del despliegue descrito arriba.
 - [Máquinas virtuales](/docs/api/vms) — todas las opciones de la llamada de creación.
 - [Monitoriza una flota de VMs](/docs/guides/monitoring-vms) — configuración de Prometheus + Grafana.
-- [Guía de sitios estáticos](/docs/guides/static-site) — para contenido puramente estático, este patrón es excesivo; usa el almacenamiento de objetos.

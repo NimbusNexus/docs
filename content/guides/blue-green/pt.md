@@ -164,4 +164,3 @@ Esse padrão dá mais trabalho do que "sempre implantar schema + código juntos"
 
 - [Referência de IPs flutuantes](/docs/api/floating-ips) — todos os endpoints do recurso que torna esse padrão possível.
 - [Balanceadores de carga](/docs/api/load-balancers) — a versão com várias VMs do mesmo padrão.
-- [Failover entre regiões](/docs/guides/multi-region) — a mesma ideia, aplicada a pares geograficamente distantes.

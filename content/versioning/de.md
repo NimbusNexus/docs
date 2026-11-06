@@ -2,7 +2,7 @@
 title: "Versionierungsrichtlinie"
 description: "Wie wir die API weiterentwickeln, ohne dass Ihr Code bricht."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-15
+updatedAt: 2026-11-06
 kind: concept
 ---
 
@@ -49,27 +49,27 @@ Drei Regeln:
 
 ```ts
 // Correct
-const { id, name, state } = await res.json()
+const { id, name, status } = await res.json()
 
 // Wrong (will reject responses with new fields)
-const allowedKeys = ['id', 'name', 'state']
+const allowedKeys = ['id', 'name', 'status']
 for (const k of Object.keys(json)) {
   if (!allowedKeys.includes(k)) throw new Error('unknown field')
 }
 ```
 
-**2. Behandeln Sie unbekannte Enum-Werte als opak.** Wenn Sie nach `state` verzweigen, behandeln Sie die bekannten Werte; bei unbekannten zeigen Sie den rohen String an und stürzen nicht ab.
+**2. Behandeln Sie unbekannte Enum-Werte als opak.** Wenn Sie nach `status` verzweigen, behandeln Sie die bekannten Werte; bei unbekannten zeigen Sie den rohen String an und stürzen nicht ab.
 
 ```ts
-switch (vm.state) {
-  case 'running': return 'green'
-  case 'stopped': return 'gray'
-  case 'provisioning': return 'amber'
-  default: return 'gray' // Don't throw, don't assume — we may add 'migrating'
+switch (vm.status) {
+  case 'ACTIVE': return 'green'
+  case 'SHUTOFF': return 'gray'
+  case 'BUILD': return 'amber'
+  default: return 'gray' // Don't throw, don't assume: there are others, such as 'VERIFY_RESIZE'
 }
 ```
 
-**3. Verzweigen Sie nach `error.code`, nicht nach `status`.** Statuscodes gruppieren Fehler (`4xx` vs. `5xx`); `error.code` unterscheidet sie. Wir können bestehenden Statuscodes neue Codes hinzufügen; Ihr Code sollte unbekannte Codes in einem Default-Zweig behandeln, statt sie als fatale Bugs zu werten.
+**3. Verzweigen Sie bei den APIs der Apps nach `error.code`, nicht nach dem Status.** Statuscodes gruppieren Fehler (`4xx` vs. `5xx`); `error.code` unterscheidet sie. Wir können bestehenden Statuscodes neue Codes hinzufügen; Ihr Code sollte unbekannte Codes in einem Default-Zweig behandeln, statt sie als fatale Bugs zu werten. Die Infrastruktur-API hat keine Fehlercodes: Verzweigen Sie dort nach dem Status ([Konventionen](/docs/conventions#errors)).
 
 ## Abkündigungsrichtlinie {#deprecation}
 
@@ -86,11 +86,11 @@ Zwölf Monate sind eine lange Zeit. In der Praxis wurde auf v1 seit dem Start no
 
 Falls wir jemals v2 veröffentlichen (was wir in nächster Zeit nicht vorhaben), sähe der Rollout so aus:
 
-- v2 startet unter `/v2/...` neben `/v1/...` — beide laufen parallel
+- v2 startet unter neuen Pfaden neben v1 (`/api/v2/` neben `/api/v1/` bei der Infrastruktur-API, `/v2/` neben `/v1/` bei den APIs der Apps) — beide laufen parallel
 - v1 erhält mindestens 24 Monate lang weiterhin Bugfixes und neue Funktionen (additiv)
-- v2 hat eine eigene Basis-URL (`{{API_BASE_URL}}/v2/...`), sodass schon die URL die Version anzeigt
+- Die URLs von v2 tragen die Version, etwa `{{API_BASE_URL}}/api/v2/...`, sodass schon die URL sie anzeigt
 
-Sie würden migrieren, wenn Sie bereit sind, nicht wenn Sie dazu gezwungen werden. Der Weg: In neuem Code die Endpoints unter `/v2` verwenden und alten Code in Ihrem eigenen Tempo migrieren — es gibt keinen Stichtags-Cutover.
+Sie würden migrieren, wenn Sie bereit sind, nicht wenn Sie dazu gezwungen werden. Der Weg: In neuem Code die Endpoints von v2 verwenden und alten Code in Ihrem eigenen Tempo migrieren — es gibt keinen Stichtags-Cutover.
 
 ## Warum das wichtig ist {#why}
 

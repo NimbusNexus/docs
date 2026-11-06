@@ -1,49 +1,54 @@
 ---
 title: "Limites de requisições"
-description: "Orçamentos de requisições por chave, os headers que retornamos e a estratégia de backoff correta."
+description: "O que cada API limita, os headers e erros com que um limite responde e a estratégia de backoff correta."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-06
 kind: concept
 ---
 
 # Limites de requisições
 
-Toda chave de API recebe um orçamento de requisições por segundo e por hora. Os limites protegem tanto você quanto a nós — eles impedem que um loop descontrolado queime seu cartão de crédito e que um único tenant sature uma região.
+A API de infraestrutura limita quantas requisições recebe por minuto. As APIs dos apps limitam ações específicas, como publicar um evento. Nos dois casos, uma requisição acima de um limite recebe `429`, geralmente com um header `Retry-After` que diz quantos segundos esperar.
 
-## Os valores padrão {#defaults}
+## A API de infraestrutura {#defaults}
 
-| Plano | Por segundo | Por hora |
+Toda requisição a `{{API_HOST}}` conta para o orçamento do minuto:
+
+| Quem chama | Requisições por minuto | Contadas por |
 |---|---|---|
-| Free | 5 | 1.000 |
-| Starter | 25 | 10.000 |
-| Production | 100 | 100.000 |
-| Enterprise | Sob medida | Sob medida |
+| Uma sessão conectada (`Authorization: Bearer` ou o cookie da sessão) | 120 | Usuário |
+| Uma chave de API, ou nenhuma credencial | 60 | Endereço IP |
 
-Eles valem por **chave de API**, não por projeto — se você tem três chaves em um projeto, cada uma recebe seu próprio orçamento. A maioria dos times nunca chega perto do limite do plano Production; se você chegar, o quadro "rate limit usage" do painel mostra os pontos de chamada que consomem a cota mais rápido.
+Uma chave de API não tem um orçamento próprio. As chaves usadas a partir de um endereço compartilham as 60 requisições por minuto dele, junto com qualquer outra coisa que faça chamadas de lá. `GET /api/v1/notifications/list` tem um limite menor, de 30 por minuto, medido sobre a mesma contagem.
 
-## Como a limitação funciona {#mechanics}
-
-Um token bucket em cada chave. O bucket se reabastece na taxa por segundo; o tamanho do bucket é definido para que uma rajada breve que esgote o orçamento se recupere em ~10 segundos. O limite por hora é um teto rígido — depois que você o atinge, nenhuma requisição dá certo até que a janela móvel de uma hora avance.
-
-Os limites são avaliados no gateway, antes que a requisição chegue ao handler do recurso. Uma requisição barrada pelo limite de requisições nunca toca nos recursos do seu projeto, então nunca custa nada além da entrada de log da requisição que falhou.
+O minuto começa na sua primeira requisição e não é uma janela móvel: quando ele termina, a contagem recomeça do zero.
 
 ## Headers de resposta {#headers}
 
-Toda resposta da API traz quatro headers que descrevem seu orçamento atual:
+As respostas da API de infraestrutura trazem o limite aplicado e quanto resta dele:
 
 ```http
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 87
-X-RateLimit-Reset: 1763410812
-X-RateLimit-Window: 1
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 59
 ```
 
-- `X-RateLimit-Limit` — orçamento total da janela atual
-- `X-RateLimit-Remaining` — requisições restantes
-- `X-RateLimit-Reset` — epoch Unix em que o orçamento se reabastece (ou em que a janela de uma hora avança)
-- `X-RateLimit-Window` — `1` para o orçamento por segundo, `3600` para o por hora. Mostramos o orçamento que você está mais perto de esgotar
+Acima do limite, a resposta é `429`, com `X-RateLimit-Remaining: 0` e um header `Retry-After`, em segundos, com o que resta do minuto:
 
-Quando `Remaining` chega a zero, a próxima requisição retorna `429 Too Many Requests` com um header `Retry-After` (em segundos) que diz quando tentar de novo.
+```json
+{
+  "success": false,
+  "message": "Too many requests. Please try again later."
+}
+```
+
+## As APIs dos apps {#apps}
+
+As APIs dos apps não enviam headers `X-RateLimit` e não limitam todas as requisições. O que limitam, elas recusam com `429` `rate_limited`, como [Erros](/docs/errors#codes-rate) descreve:
+
+- **Webhooks:** a publicação (`POST /v1/events`) segue a taxa de publicação do seu plano, por workspace. Os reenvios de entregas e eventos (`POST /v1/deliveries/{delivery_id}/redeliver`, `POST /v1/deliveries/redeliver`, `POST /v1/deliveries/replay` e `POST /v1/events/{event_id}/replay`) seguem a mesma taxa, com uma contagem própria. Os eventos recebidos em `POST /v1/ingest/{source_id}` são limitados a 600 por minuto por fonte e, depois, à taxa de publicação do seu plano ([O que o provedor vê](/docs/product-webhooks/sources#responses)). Os salvamentos e testes de scripts são limitados a 60 por minuto por workspace ([Transformações](/docs/product-webhooks/transformations#errors)).
+- **Inboxes:** cada caixa de entrada aceita e-mails até um limite por minuto definido pelo seu plano ([Limites por plano](/docs/product-inboxes#limits)).
+- **Request Bins:** um bin pode enviar 10 testes de encaminhamento por minuto ([Testar uma URL de encaminhamento](/docs/product-bins/reference#forward-test)). A URL de um bin aceita 120 requisições por minuto de um mesmo remetente e 600 por minuto no total ([O que a URL de um bin responde](/docs/product-bins/reference#edge-answers)).
+- **Códigos QR:** um workspace pode enviar 10 testes de webhook por minuto.
 
 ## Estratégia de backoff {#backoff}
 
@@ -67,31 +72,25 @@ async function callWithBackoff(fn: () => Promise<Response>) {
 
 Duas observações:
 
-- **Sempre respeite o `Retry-After`.** Não tente de novo antes — você só vai bater no limite outra vez e queimar seu orçamento mais rápido.
-- **Adicione jitter** se você chama a API de vários workers. Sem jitter, todos os seus workers tentam de novo no mesmo instante e batem no limite outra vez, todos juntos.
+- **Sempre respeite o `Retry-After`.** Não tente de novo antes: você só vai receber outro `429`.
+- **Adicione jitter** se você chama a API de vários workers. Sem jitter, todos eles tentam de novo no mesmo instante e batem no limite outra vez, todos juntos.
 
 ## O que conta como requisição {#counted}
 
-Toda chamada HTTP à API conta como uma requisição, incluindo:
+Na API de infraestrutura, toda chamada HTTP conta, incluindo:
 
-- `GET`s (sim, até `GET /v1/regions`)
-- Chamadas de paginação (cada página é uma requisição)
-- Retentativas idempotentes (o acerto de cache ainda conta como uma requisição — mas é barato, e a deduplicação faz com que você não pague duas vezes pela operação subjacente)
+- `GET`s, como `GET /api/v1/instance/`
+- Cada página de uma [lista paginada](/docs/pagination) e cada polling enquanto você espera uma VM chegar a `ACTIVE`
+- Chamadas que falham, como um `401`, e os próprios `429`s
 
-O que **não** conta:
-
-- Arquivos estáticos servidos pelo site de marketing (CDN, não a API)
-- Entregas de webhooks para o seu lado (quem as envia somos nós, não você)
-- Tentativas de conexão que falharam (sem entrada de log no gateway)
+Para ficar abaixo do limite a partir de um endereço, distribua o trabalho: faça polling com menos frequência e não liste o que você poderia ler uma vez e guardar.
 
 ## Aumentar seus limites {#raising}
 
-Os planos Starter e Production costumam ser generosos o bastante; menos de 5% das contas chegam ao teto por hora. Se você chegar, o caminho é o formulário de contato do suporte, não a API — o mesmo dos [aumentos de cota](/docs/api/quotas). Migrações de produção recebem resposta no mesmo dia.
-
-Se você está batendo nos limites por segundo, mas não no por hora, normalmente não precisa de um aumento — precisa distribuir a carga (agrupar requisições em lotes, usar `Idempotency-Key` para deduplicar retentativas, paginar com tamanhos de página razoáveis). O quadro "rate limit usage" no painel mostra quais endpoints estão com picos.
+Nenhuma chamada de API nem configuração de plano aumenta esses limites. Se o seu atrapalhar uma carga de trabalho real, [entre em contato com o suporte]({{BASE_URL}}/contact/support).
 
 ## Próximos passos {#next-steps}
 
 - [Convenções](/docs/conventions) — formato da requisição, códigos de status e os padrões mais amplos da API.
-- [Idempotência](/docs/idempotency) — padrão de retentativa segura quando falhas de rede parecem limites de requisições.
+- [Idempotência](/docs/idempotency) — como repetir uma gravação com segurança.
 - [Cotas](/docs/api/quotas) — os limites de *recursos* (VMs, vCPU, armazenamento), diferentes dos limites de requisições.

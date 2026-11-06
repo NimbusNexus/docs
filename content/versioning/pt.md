@@ -2,7 +2,7 @@
 title: "Política de versionamento"
 description: "Como evoluímos a API sem quebrar seu código."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-15
+updatedAt: 2026-11-06
 kind: concept
 ---
 
@@ -49,27 +49,27 @@ Três regras:
 
 ```ts
 // Correct
-const { id, name, state } = await res.json()
+const { id, name, status } = await res.json()
 
 // Wrong (will reject responses with new fields)
-const allowedKeys = ['id', 'name', 'state']
+const allowedKeys = ['id', 'name', 'status']
 for (const k of Object.keys(json)) {
   if (!allowedKeys.includes(k)) throw new Error('unknown field')
 }
 ```
 
-**2. Trate enums desconhecidos como opacos.** Se você toma decisões com base em `state`, trate os valores conhecidos; para os desconhecidos, mostre a string bruta e não quebre.
+**2. Trate enums desconhecidos como opacos.** Se você toma decisões com base em `status`, trate os valores conhecidos; para os desconhecidos, mostre a string bruta e não quebre.
 
 ```ts
-switch (vm.state) {
-  case 'running': return 'green'
-  case 'stopped': return 'gray'
-  case 'provisioning': return 'amber'
-  default: return 'gray' // Don't throw, don't assume — we may add 'migrating'
+switch (vm.status) {
+  case 'ACTIVE': return 'green'
+  case 'SHUTOFF': return 'gray'
+  case 'BUILD': return 'amber'
+  default: return 'gray' // Don't throw, don't assume: there are others, such as 'VERIFY_RESIZE'
 }
 ```
 
-**3. Decida com base em `error.code`, não em `status`.** Os códigos de status agrupam erros (`4xx` vs. `5xx`); `error.code` os distingue. Podemos adicionar novos códigos a códigos de status existentes; seu código deve cair em um caso padrão em vez de tratar códigos não reconhecidos como bugs fatais.
+**3. Nas APIs dos apps, decida com base em `error.code`, não no status.** Os códigos de status agrupam erros (`4xx` vs. `5xx`); `error.code` os distingue. Podemos adicionar novos códigos a códigos de status existentes; seu código deve cair em um caso padrão em vez de tratar códigos não reconhecidos como bugs fatais. A API de infraestrutura não tem códigos de erro: ali, decida com base no status ([Convenções](/docs/conventions#errors)).
 
 ## Política de descontinuação {#deprecation}
 
@@ -86,11 +86,11 @@ Doze meses é bastante tempo. Na prática, nenhuma descontinuação aconteceu na
 
 Se algum dia lançarmos a v2 (não pretendemos fazer isso tão cedo), a implantação seria assim:
 
-- A v2 é lançada em `/v2/...` ao lado de `/v1/...` — as duas ficam no ar em paralelo
+- A v2 é lançada em novos caminhos ao lado da v1 (`/api/v2/` ao lado de `/api/v1/` na API de infraestrutura, `/v2/` ao lado de `/v1/` nas APIs dos apps) — as duas ficam no ar em paralelo
 - A v1 continua recebendo correções de bugs e novas funcionalidades (aditivas) por pelo menos 24 meses
-- A v2 tem uma URL base separada (`{{API_BASE_URL}}/v2/...`), para que a própria URL indique a versão
+- As URLs da v2 trazem a versão, como `{{API_BASE_URL}}/api/v2/...`, para que a própria URL a indique
 
-Você migraria quando estivesse pronto, não quando fosse obrigado. O caminho é começar a usar os endpoints `/v2` em código novo e migrar o código antigo no seu ritmo — não há um cutover com data marcada.
+Você migraria quando estivesse pronto, não quando fosse obrigado. O caminho é começar a usar os endpoints da v2 em código novo e migrar o código antigo no seu ritmo — não há um cutover com data marcada.
 
 ## Por que isso importa {#why}
 

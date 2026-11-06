@@ -2,19 +2,19 @@
 title: "Configurer l’API REST"
 description: "Obtenez une clé API, envoyez-la dans un header et faites un premier appel à un produit NimbusNexus depuis curl, TypeScript, Python ou Go."
 publishedAt: 2026-10-19
-updatedAt: 2026-10-22
+updatedAt: 2026-11-06
 kind: quickstart
 ---
 
 # Configurer l’API REST
 
-Chaque produit NimbusNexus est une API REST : du JSON sur HTTPS, avec votre clé API dans le header `Authorization`. Cette page vous mène de l’absence de clé à un premier appel réussi. Choisissez un langage en haut de la page : les exemples le suivent. REST signifie `curl` ; TypeScript, Python et Go utilisent le client HTTP habituel de chaque langage, sans SDK.
+Chaque produit NimbusNexus est une API REST : du JSON sur HTTPS, avec votre clé API dans un header. Cette page vous mène de l’absence de clé à un premier appel réussi. Choisissez un langage en haut de la page : les exemples le suivent. REST signifie `curl` ; TypeScript, Python et Go utilisent le client HTTP habituel de chaque langage, sans SDK.
 
 ## 1 · Obtenir une clé API {#key}
 
 **Apps : Webhooks, Inboxes, QR Codes et Request Bins.** Ouvrez **API keys** dans votre [console de compte]({{ACCOUNT_BASE_URL}}/api-keys) et créez une clé pour le produit que vous voulez appeler. Chaque clé appartient à un seul produit. Choisissez-y sa portée : `admin`, `read` ou, pour Webhooks, également `publish`. Copiez la clé dès qu’elle s’affiche, car elle n’est montrée qu’une fois. Une clé d’app est un JWT : elle commence donc par `eyJ`.
 
-**Infrastructure : VM, stockage, bases de données et réseau.** Créez la clé dans la console, sous **Settings → API keys**. Elle est propre à un projet. [Authentification](/docs/authentication) couvre les portées et la rotation.
+**Infrastructure : VM, stockage, réseau et DNS.** Créez la clé dans la console, sous **Sécurité → Jetons API**, avec la portée **Admin**, et copiez la valeur intitulée **Clé API** ([Démarrage rapide](/docs/quickstart#api-key)). Elle est propre à un projet. [Authentification](/docs/authentication) couvre les rôles, les règles d’accès et le remplacement d’une clé.
 
 Ne mettez pas la clé dans votre code source. Exportez-la dans votre shell ou conservez-la dans votre gestionnaire de secrets :
 
@@ -24,10 +24,16 @@ export WEBHOOKS_API_KEY="<your-api-key>"
 
 ## 2 · L’envoyer avec chaque requête {#auth}
 
-Envoyez la clé comme token Bearer. Les API des apps l’acceptent aussi sous la forme `X-API-Key: <key>`.
+Sur les apps, envoyez la clé comme token Bearer. Elles l’acceptent aussi sous la forme `X-API-Key: <key>`.
 
 ```http
 Authorization: Bearer <your-api-key>
+```
+
+Sur l’API d’infrastructure, envoyez la clé dans `X-API-Key`. Un token Bearer y désigne une session connectée, pas une clé API.
+
+```http
+X-API-Key: <your-api-key>
 ```
 
 Chaque produit a sa propre URL de base :
@@ -38,7 +44,7 @@ Chaque produit a sa propre URL de base :
 | Inboxes | `{{INBOXES_BASE_URL}}/v1` |
 | QR Codes | `{{QR_BASE_URL}}/v1` |
 | Request Bins | `https://bins.nimbusnexus.net/v1` |
-| Infrastructure | `{{API_BASE_URL}}` |
+| Infrastructure | `{{API_BASE_URL}}/api/v1` |
 
 ## 3 · Faire un premier appel {#first-call}
 
@@ -91,9 +97,18 @@ La réponse indique votre espace de travail :
 
 Les autres champs indiquent de quel type de justificatif d’identité il s’agit. Pour une clé API, `email` et `created_at` valent `null`.
 
+Sur l’API d’infrastructure, `GET /api/v1/account/get_session_auth_data` joue le même rôle : n’importe quelle clé valide peut l’appeler, quelles que soient ses règles d’accès. [Démarrage rapide](/docs/quickstart) poursuit à partir de là jusqu’à votre première VM.
+
+```bash
+export NIMBUS_KEY="<your-api-key>"
+
+curl {{API_BASE_URL}}/api/v1/account/get_session_auth_data \
+  -H "X-API-Key: $NIMBUS_KEY"
+```
+
 ## 4 · Lire les erreurs {#errors}
 
-Une requête en échec répond avec un statut 4xx ou 5xx et un format d’erreur unique, commun à tous les produits :
+Sur les apps, une requête en échec répond avec un statut 4xx ou 5xx et un format d’erreur unique :
 
 ```json
 {
@@ -107,6 +122,8 @@ Une requête en échec répond avec un statut 4xx ou 5xx et un format d’erreur
 ```
 
 Basez votre logique sur `code`, pas sur le statut ni sur le message. `unauthorized` signifie qu’aucune clé n’est arrivée ou que la clé a été révoquée. `invalid_credential` signifie que la clé n’est pas valide : créez-en une nouvelle, car réessayer n’y changera rien. `forbidden` signifie que la clé est valide mais ne peut pas faire cette opération : il lui manque la portée ou le rôle nécessaire, ou le produit n’est pas activé pour votre espace de travail. [Authentification](/docs/authentication#errors) et [Erreurs](/docs/errors) listent tous les codes. Indiquez le `request_id` quand vous contactez le support.
+
+L’API d’infrastructure répond différemment, avec `success: false` et un `message`, et sans code : basez-vous sur le statut ([Conventions](/docs/conventions#errors)).
 
 ## Étapes suivantes {#next-steps}
 

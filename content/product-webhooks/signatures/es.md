@@ -22,8 +22,6 @@ Esta página es el contrato. Si usas uno de los [SDKs](/docs/product-webhooks/sd
 | `X-Webhook-Event-Type` | El tipo de evento |
 | `X-Webhook-Delivery-Id` | El id de esta entrega; indícalo en las solicitudes de soporte |
 
-> Estas **no** son las cabeceras que usan los [webhooks de la plataforma](/docs/webhooks), que firman las notificaciones de infraestructura con el prefijo `NN-`. Los dos productos son sistemas independientes. Un handler escrito con los nombres de cabecera equivocados no encontrará nada que verificar y rechazará todas las entregas.
-
 ## La construcción {#construction}
 
 ```text
@@ -102,4 +100,3 @@ El corolario es la trampa: un verificador que compara el valor completo de la ca
 - [SDKs](/docs/product-webhooks/sdks) — helpers `verify` que implementan esta página.
 - [Inicio rápido](/docs/product-webhooks/quickstart) — el flujo completo en el que encaja esto.
 - [Resumen de Webhooks](/docs/product-webhooks) — la semántica de entrega y la cola dead-letter.
-- [Webhooks de la plataforma](/docs/webhooks) — las notificaciones de infraestructura, independientes y firmadas con `NN-`.

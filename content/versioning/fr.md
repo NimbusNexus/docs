@@ -2,7 +2,7 @@
 title: "Politique de versionnage"
 description: "Comment nous faisons évoluer l’API sans casser votre code."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-15
+updatedAt: 2026-11-06
 kind: concept
 ---
 
@@ -49,27 +49,27 @@ Trois règles :
 
 ```ts
 // Correct
-const { id, name, state } = await res.json()
+const { id, name, status } = await res.json()
 
 // Wrong (will reject responses with new fields)
-const allowedKeys = ['id', 'name', 'state']
+const allowedKeys = ['id', 'name', 'status']
 for (const k of Object.keys(json)) {
   if (!allowedKeys.includes(k)) throw new Error('unknown field')
 }
 ```
 
-**2. Traitez les valeurs d’enum inconnues comme opaques.** Si vous faites des branchements sur `state`, gérez les valeurs connues ; pour les inconnues, affichez la chaîne brute et ne plantez pas.
+**2. Traitez les valeurs d’enum inconnues comme opaques.** Si vous faites des branchements sur `status`, gérez les valeurs connues ; pour les inconnues, affichez la chaîne brute et ne plantez pas.
 
 ```ts
-switch (vm.state) {
-  case 'running': return 'green'
-  case 'stopped': return 'gray'
-  case 'provisioning': return 'amber'
-  default: return 'gray' // Don't throw, don't assume — we may add 'migrating'
+switch (vm.status) {
+  case 'ACTIVE': return 'green'
+  case 'SHUTOFF': return 'gray'
+  case 'BUILD': return 'amber'
+  default: return 'gray' // Don't throw, don't assume: there are others, such as 'VERIFY_RESIZE'
 }
 ```
 
-**3. Basez-vous sur `error.code`, pas sur `status`.** Les codes de statut regroupent les erreurs (`4xx` contre `5xx`) ; `error.code` les distingue. Nous pouvons ajouter de nouveaux codes à des codes de statut existants ; votre code doit passer par un cas par défaut plutôt que de traiter les codes non reconnus comme des bugs fatals.
+**3. Sur les API des apps, basez-vous sur `error.code`, pas sur le statut.** Les codes de statut regroupent les erreurs (`4xx` contre `5xx`) ; `error.code` les distingue. Nous pouvons ajouter de nouveaux codes à des codes de statut existants ; votre code doit passer par un cas par défaut plutôt que de traiter les codes non reconnus comme des bugs fatals. L’API d’infrastructure n’a pas de codes d’erreur : sur celle-ci, basez-vous sur le statut ([Conventions](/docs/conventions#errors)).
 
 ## Politique de dépréciation {#deprecation}
 
@@ -86,11 +86,11 @@ Douze mois, c’est long. En pratique, aucune dépréciation n’a eu lieu sur l
 
 Si nous sortons un jour une v2 (nous n’en avons pas l’intention à court terme), le déploiement se ferait ainsi :
 
-- La v2 lancée sur `/v2/...` à côté de `/v1/...` — les deux en service en parallèle
+- La v2 lancée sur de nouveaux chemins à côté de la v1 (`/api/v2/` à côté de `/api/v1/` sur l’API d’infrastructure, `/v2/` à côté de `/v1/` sur les API des apps) — les deux en service en parallèle
 - La v1 continue de recevoir des corrections de bugs et de nouvelles fonctionnalités (additives) pendant au moins 24 mois
-- La v2 a une URL de base distincte (`{{API_BASE_URL}}/v2/...`), pour que l’URL elle-même indique la version
+- Les URL de la v2 portent la version, comme `{{API_BASE_URL}}/api/v2/...`, pour que l’URL elle-même l’indique
 
-Vous migreriez quand vous seriez prêt, pas quand vous y seriez forcé. La démarche consiste à utiliser les endpoints `/v2` dans le nouveau code et à migrer l’ancien code à votre rythme — pas de bascule à date fixe.
+Vous migreriez quand vous seriez prêt, pas quand vous y seriez forcé. La démarche consiste à utiliser les endpoints v2 dans le nouveau code et à migrer l’ancien code à votre rythme — pas de bascule à date fixe.
 
 ## Pourquoi c’est important {#why}
 

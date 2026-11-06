@@ -2,19 +2,19 @@
 title: "REST-API einrichten"
 description: "API-Key erstellen, ihn in einem Header mitsenden und mit curl, TypeScript, Python oder Go den ersten Aufruf an ein NimbusNexus-Produkt senden."
 publishedAt: 2026-10-19
-updatedAt: 2026-10-22
+updatedAt: 2026-11-06
 kind: quickstart
 ---
 
 # REST-API einrichten
 
-Jedes NimbusNexus-Produkt ist eine REST-API: JSON über HTTPS, mit Ihrem API-Key im Header `Authorization`. Diese Seite führt Sie vom fehlenden Key bis zum ersten erfolgreichen Aufruf. Wählen Sie oben auf der Seite eine Sprache, und die Beispiele folgen ihr. REST bedeutet `curl`; TypeScript, Python und Go verwenden den üblichen HTTP-Client der jeweiligen Sprache, ohne dass ein SDK nötig ist.
+Jedes NimbusNexus-Produkt ist eine REST-API: JSON über HTTPS, mit Ihrem API-Key in einem Header. Diese Seite führt Sie vom fehlenden Key bis zum ersten erfolgreichen Aufruf. Wählen Sie oben auf der Seite eine Sprache, und die Beispiele folgen ihr. REST bedeutet `curl`; TypeScript, Python und Go verwenden den üblichen HTTP-Client der jeweiligen Sprache, ohne dass ein SDK nötig ist.
 
 ## 1 · API-Key erstellen {#key}
 
 **Apps: Webhooks, Inboxes, QR-Codes und Request Bins.** Öffnen Sie **API keys** in Ihrer [Kontokonsole]({{ACCOUNT_BASE_URL}}/api-keys) und erstellen Sie einen Key für das Produkt, das Sie aufrufen wollen. Jeder Key gehört zu genau einem Produkt. Wählen Sie dort seinen Scope: `admin`, `read` oder bei Webhooks auch `publish`. Kopieren Sie den Key, sobald er erscheint, denn er wird nur einmal angezeigt. Ein App-Key ist ein JWT und beginnt daher mit `eyJ`.
 
-**Infrastruktur: VMs, Speicher, Datenbanken und Netzwerk.** Erstellen Sie den Key im Dashboard unter **Settings → API keys**. Er gilt für genau ein Projekt. [Authentifizierung](/docs/authentication) behandelt Scopes und Rotation.
+**Infrastruktur: VMs, Speicher, Netzwerk und DNS.** Erstellen Sie den Key im Dashboard unter **Sicherheit → API-Token**, mit dem Scope **Admin**, und kopieren Sie den Wert mit der Bezeichnung **API-Schlüssel** ([Schnellstart](/docs/quickstart#api-key)). Er gilt für genau ein Projekt. [Authentifizierung](/docs/authentication) behandelt Rollen, Zugriffsregeln und das Ersetzen eines Keys.
 
 Halten Sie den Key aus Ihrem Quellcode heraus. Exportieren Sie ihn in Ihrer Shell oder bewahren Sie ihn in Ihrem Secret-Store auf:
 
@@ -24,10 +24,16 @@ export WEBHOOKS_API_KEY="<your-api-key>"
 
 ## 2 · Key bei jedem Request senden {#auth}
 
-Senden Sie den Key als Bearer-Token. Die APIs der Apps akzeptieren ihn auch als `X-API-Key: <key>`.
+Senden Sie den Key bei den Apps als Bearer-Token. Die Apps akzeptieren ihn auch als `X-API-Key: <key>`.
 
 ```http
 Authorization: Bearer <your-api-key>
+```
+
+Senden Sie den Key bei der Infrastruktur-API im Header `X-API-Key`. Ein Bearer-Token ist dort eine angemeldete Sitzung, kein API-Key.
+
+```http
+X-API-Key: <your-api-key>
 ```
 
 Jedes Produkt hat eine eigene Basis-URL:
@@ -38,7 +44,7 @@ Jedes Produkt hat eine eigene Basis-URL:
 | Inboxes | `{{INBOXES_BASE_URL}}/v1` |
 | QR-Codes | `{{QR_BASE_URL}}/v1` |
 | Request Bins | `https://bins.nimbusnexus.net/v1` |
-| Infrastruktur | `{{API_BASE_URL}}` |
+| Infrastruktur | `{{API_BASE_URL}}/api/v1` |
 
 ## 3 · Ersten Aufruf senden {#first-call}
 
@@ -91,9 +97,18 @@ Die Antwort nennt Ihren Workspace:
 
 Die übrigen Felder geben an, um welche Art von Credential es sich handelt. Bei einem API-Key haben `email` und `created_at` den Wert `null`.
 
+Bei der Infrastruktur-API erfüllt `GET /api/v1/account/get_session_auth_data` denselben Zweck: Jeder gültige Key kann ihn aufrufen, unabhängig von seinen Zugriffsregeln. [Schnellstart](/docs/quickstart) führt von dort aus weiter zu Ihrer ersten VM.
+
+```bash
+export NIMBUS_KEY="<your-api-key>"
+
+curl {{API_BASE_URL}}/api/v1/account/get_session_auth_data \
+  -H "X-API-Key: $NIMBUS_KEY"
+```
+
 ## 4 · Fehler lesen {#errors}
 
-Ein fehlgeschlagener Request antwortet mit einem Status 4xx oder 5xx und mit einem einheitlichen Fehlerformat für alle Produkte:
+Bei den Apps antwortet ein fehlgeschlagener Request mit einem Status 4xx oder 5xx und mit einem einheitlichen Fehlerformat:
 
 ```json
 {
@@ -107,6 +122,8 @@ Ein fehlgeschlagener Request antwortet mit einem Status 4xx oder 5xx und mit ein
 ```
 
 Verzweigen Sie anhand von `code`, nicht anhand des Status oder der Nachricht. `unauthorized` bedeutet, dass kein Key ankam oder der Key widerrufen wurde. `invalid_credential` bedeutet, dass der Key ungültig ist: Erstellen Sie einen neuen, denn eine Wiederholung hilft nicht. `forbidden` bedeutet, dass der Key gültig ist, dies aber nicht darf: Ihm fehlt der Scope oder die Rolle, oder das Produkt ist für Ihren Workspace nicht aktiviert. [Authentifizierung](/docs/authentication#errors) und [Fehler](/docs/errors) listen alle Codes auf. Geben Sie die `request_id` an, wenn Sie den Support kontaktieren.
+
+Die Infrastruktur-API antwortet anders, mit `success: false` und einer `message` und ohne Codes: Verzweigen Sie anhand des Status ([Konventionen](/docs/conventions#errors)).
 
 ## Nächste Schritte {#next-steps}
 

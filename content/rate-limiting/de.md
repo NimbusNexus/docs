@@ -1,49 +1,54 @@
 ---
 title: "Rate-Limiting"
-description: "Request-Budgets pro Key, die Header, die wir zurückgeben, und die richtige Backoff-Strategie."
+description: "Was jede API begrenzt, mit welchen Headern und Fehlern ein Limit antwortet, und die richtige Backoff-Strategie."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-06
 kind: concept
 ---
 
 # Rate-Limiting
 
-Jeder API-Key erhält ein Request-Budget pro Sekunde und pro Stunde. Die Limits schützen Sie und uns — sie verhindern, dass eine außer Kontrolle geratene Schleife Ihre Kreditkarte belastet, und dass ein einzelner Mandant eine Region auslastet.
+Die Infrastruktur-API begrenzt, wie viele Requests sie pro Minute annimmt. Die APIs der Apps begrenzen bestimmte Aktionen, etwa das Veröffentlichen eines Events. In beiden Fällen antwortet ein Request über einem Limit mit `429`, meist mit einem Header `Retry-After`, der angibt, wie viele Sekunden Sie warten sollen.
 
-## Die Standardwerte {#defaults}
+## Die Infrastruktur-API {#defaults}
 
-| Tarif | Pro Sekunde | Pro Stunde |
-| --- | --- | --- |
-| Free | 5 | 1.000 |
-| Starter | 25 | 10.000 |
-| Production | 100 | 100.000 |
-| Enterprise | Individuell | Individuell |
+Jeder Request an `{{API_HOST}}` zählt gegen ein Budget pro Minute:
 
-Diese gelten pro **API-Key**, nicht pro Projekt — wenn Sie drei Keys in einem Projekt haben, erhält jeder sein eigenes Budget. Die meisten Teams kommen nie in die Nähe des Limits im Tarif Production; wenn doch, zeigt das Panel „rate limit usage“ im Dashboard die Aufrufstellen, die das Kontingent am schnellsten verbrauchen.
+| Wer aufruft | Requests pro Minute | Gezählt pro |
+|---|---|---|
+| Eine angemeldete Sitzung (`Authorization: Bearer` oder das Sitzungs-Cookie) | 120 | Benutzer |
+| Ein API-Key oder kein Credential | 60 | IP-Adresse |
 
-## So funktioniert das Rate-Limiting {#mechanics}
+Ein API-Key hat kein eigenes Budget. Keys, die von einer Adresse aus verwendet werden, teilen sich deren 60 Requests pro Minute, zusammen mit allem anderen, was von dort aufruft. Für `GET /api/v1/notifications/list` gilt ein niedrigeres Limit von 30 pro Minute, gemessen an derselben Zählung.
 
-Ein Token-Bucket pro Key. Der Bucket füllt sich mit der Rate pro Sekunde wieder auf; seine Größe ist so bemessen, dass sich das Budget nach einem kurzen Burst, der es aufbraucht, in ~10 Sekunden erholt. Das Stundenlimit ist eine harte Obergrenze — sobald Sie es erreichen, ist kein Request mehr erfolgreich, bis das gleitende Stundenfenster weiterrückt.
-
-Limits werden am Gateway ausgewertet, bevor der Request den Handler der Ressource erreicht. Ein durch das Rate-Limit abgewiesener Request berührt die Ressourcen Ihres Projekts nie und kostet Sie daher nichts außer dem Logeintrag für den fehlgeschlagenen Request.
+Die Minute beginnt mit Ihrem ersten Request und ist kein gleitendes Fenster: Wenn sie endet, beginnt die Zählung wieder bei null.
 
 ## Response-Header {#headers}
 
-Jede API-Antwort trägt vier Header, die Ihr aktuelles Budget angeben:
+Antworten der Infrastruktur-API tragen das Limit, das gegolten hat, und was davon noch übrig ist:
 
 ```http
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 87
-X-RateLimit-Reset: 1763410812
-X-RateLimit-Window: 1
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 59
 ```
 
-- `X-RateLimit-Limit` — Gesamtbudget für das aktuelle Fenster
-- `X-RateLimit-Remaining` — verbleibende Requests
-- `X-RateLimit-Reset` — Unix-Epoch-Zeitpunkt, zu dem sich das Budget wieder auffüllt (oder das Stundenfenster weiterrückt)
-- `X-RateLimit-Window` — `1` für das Budget pro Sekunde, `3600` für das Budget pro Stunde. Wir zeigen jeweils das Budget, das Sie eher aufbrauchen
+Über dem Limit lautet die Antwort `429`, mit `X-RateLimit-Remaining: 0` und einem Header `Retry-After`, der in Sekunden angibt, was von der Minute noch übrig ist:
 
-Wenn `Remaining` auf null fällt, gibt der nächste Request `429 Too Many Requests` zurück, mit einem Header `Retry-After` (in Sekunden), der angibt, wann Sie es erneut versuchen können.
+```json
+{
+  "success": false,
+  "message": "Too many requests. Please try again later."
+}
+```
+
+## Die APIs der Apps {#apps}
+
+Die APIs der Apps senden keine Header `X-RateLimit` und begrenzen nicht jeden Request. Was über einem ihrer Limits liegt, lehnen sie mit `429` `rate_limited` ab, wie unter [Fehler](/docs/errors#codes-rate) beschrieben:
+
+- **Webhooks:** Das Veröffentlichen (`POST /v1/events`) läuft mit der Publish-Rate Ihres Tarifs, pro Workspace. Erneutes Zustellen und erneutes Abspielen (`POST /v1/deliveries/{delivery_id}/redeliver`, `POST /v1/deliveries/redeliver`, `POST /v1/deliveries/replay` und `POST /v1/events/{event_id}/replay`) laufen mit derselben Rate, aber mit einer eigenen Zählung. Eingehende Events an `POST /v1/ingest/{source_id}` sind auf 600 pro Minute und Quelle begrenzt, danach auf die Publish-Rate Ihres Tarifs ([Was der Anbieter sieht](/docs/product-webhooks/sources#responses)). Das Speichern und Testen von Skripten ist auf 60 pro Minute und Workspace begrenzt ([Transformationen](/docs/product-webhooks/transformations#errors)).
+- **Inboxes:** Jede Inbox nimmt Mail bis zu einem Limit pro Minute an, das Ihr Tarif festlegt ([Limits nach Tarif](/docs/product-inboxes#limits)).
+- **Request Bins:** Ein Bin kann 10 Tests pro Minute an seine Weiterleitungs-URL senden ([Weiterleitungs-URL testen](/docs/product-bins/reference#forward-test)). Eine Bin-URL nimmt 120 Requests pro Minute von einem Absender an und insgesamt 600 pro Minute ([Was eine Bin-URL antwortet](/docs/product-bins/reference#edge-answers)).
+- **QR-Codes:** Ein Workspace kann 10 Webhook-Tests pro Minute senden.
 
 ## Backoff-Strategie {#backoff}
 
@@ -67,31 +72,25 @@ async function callWithBackoff(fn: () => Promise<Response>) {
 
 Zwei Hinweise:
 
-- **Halten Sie sich immer an `Retry-After`.** Wiederholen Sie nicht früher — Sie stoßen sonst nur erneut an das Limit und verbrauchen Ihr Budget schneller.
-- **Fügen Sie Jitter hinzu**, wenn Sie aus mehreren Workern aufrufen. Ohne Jitter wiederholen alle Ihre Worker im selben Takt und stoßen gemeinsam erneut an das Limit.
+- **Halten Sie sich immer an `Retry-After`.** Wiederholen Sie nicht früher: Sie erhalten nur ein weiteres `429`.
+- **Fügen Sie Jitter hinzu**, wenn Sie aus mehreren Workern aufrufen. Ohne Jitter wiederholen alle Worker im selben Takt und stoßen gemeinsam erneut an das Limit.
 
 ## Was als Request zählt {#counted}
 
-Jeder HTTP-Aufruf an die API zählt als ein Request, einschließlich:
+Bei der Infrastruktur-API zählt jeder HTTP-Aufruf, einschließlich:
 
-- Requests mit `GET` (ja, auch `GET /v1/regions`)
-- Aufrufe zur Paginierung (jede Seite ist ein Request)
-- Idempotente Retries (der Cache-Treffer zählt trotzdem als ein Request — er ist aber günstig, und durch die Deduplizierung zahlen Sie die zugrunde liegende Operation nicht doppelt)
+- Requests mit `GET`, etwa `GET /api/v1/instance/`
+- Jede Seite einer [paginierten Liste](/docs/pagination) und jede Abfrage, während Sie darauf warten, dass eine VM `ACTIVE` erreicht
+- Aufrufe, die fehlschlagen, etwa mit einem `401`, und die `429` selbst
 
-Was **nicht** zählt:
-
-- Statische Assets der Marketing-Website (CDN, nicht die API)
-- Zustellungen von Webhooks an Sie (wir senden sie, nicht Sie)
-- Fehlgeschlagene Verbindungsversuche (kein Logeintrag am Gateway)
+Um von einer Adresse aus unter dem Limit zu bleiben, verteilen Sie die Arbeit: Fragen Sie seltener ab, und listen Sie nichts auf, was Sie einmal lesen und behalten könnten.
 
 ## Limits erhöhen {#raising}
 
-Die Tarife Starter und Production sind meist großzügig genug; weniger als 5 % der Konten erreichen je die Obergrenze pro Stunde. Wenn Sie sie erreichen, führt der Weg über das Support-Kontaktformular, nicht über die API — wie bei [Kontingenterhöhungen](/docs/api/quotas). Produktionsmigrationen werden noch am selben Tag bearbeitet.
-
-Wenn Sie die Limits pro Sekunde erreichen, aber nicht die pro Stunde, brauchen Sie meist keine Erhöhung — Sie müssen die Last verteilen (Requests bündeln, Retries mit `Idempotency-Key` deduplizieren, mit sinnvollen Seitengrößen paginieren). Das Panel „rate limit usage“ im Dashboard schlüsselt auf, bei welchen Endpoints die Last sprunghaft steigt.
+Kein API-Aufruf und keine Tarifeinstellung erhöht diese Limits. Wenn Ihr Limit einem echten Workload im Weg steht, [kontaktieren Sie den Support]({{BASE_URL}}/contact/support).
 
 ## Nächste Schritte {#next-steps}
 
 - [Konventionen](/docs/conventions) — Aufbau von Requests, Statuscodes, die übergreifenden Muster der API.
-- [Idempotenz](/docs/idempotency) — das Muster für sichere Retries, wenn Netzwerkfehler wie Rate-Limits aussehen.
+- [Idempotenz](/docs/idempotency) — wie Sie einen Schreibzugriff gefahrlos wiederholen.
 - [Kontingente](/docs/api/quotas) — die Limits für *Ressourcen* (VMs, vCPU, Speicher), im Unterschied zu Limits für die Request-Rate.

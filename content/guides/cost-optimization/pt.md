@@ -1,164 +1,163 @@
 ---
 title: "Otimizar a fatura mensal"
-description: "As cinco ações de maior impacto se sua fatura da NimbusNexus veio maior do que você esperava."
+description: "Para onde vai a fatura da sua infraestrutura e como encontrar os recursos pelos quais você pode parar de pagar."
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-06
 kind: guide
 ---
 
 # Otimizar a fatura mensal
 
-Se a sua fatura da NimbusNexus veio maior do que o esperado, pela nossa experiência, 90% do gasto excedente vem dos mesmos cinco lugares. Percorrê-los em ordem leva cerca de 30 minutos e normalmente economiza 30–60% da fatura.
+Na NimbusNexus, você paga principalmente pelo que alocou, esteja usando ou não: VMs, volumes, IPs flutuantes, portas públicas e a largura de banda delas, e imagens personalizadas. Por isso, quando uma fatura vem maior do que você esperava, procure primeiro o que continua alocado e não é mais necessário. Este guia percorre esses lugares, com as chamadas que encontram cada um deles.
 
-A ordem importa — as ações de maior impacto vêm primeiro.
+Os preços estão em [Dados de preços](/docs/api/pricing-data). O faturamento é por workspace, enquanto uma chave de API funciona em um único projeto, então repita estas chamadas para cada projeto do workspace.
+
+## Pré-requisitos {#prereqs}
+
+- `curl` e `jq`, com `$NIMBUS_KEY` definido como uma [chave de API](/docs/authentication) que possa fazer essas chamadas.
+
+```bash
+export NIMBUS_KEY="<your-api-key>"
+```
+
+As chamadas abaixo que excluem ou alteram algo usam os ids que as listas imprimem, como `$VM_ID`, `$FLOATING_IP_ID`, `$VOLUME_ID` e `$PORT_ID`.
 
 ## 1 · VMs paradas que você esqueceu {#stopped-vms}
 
-VMs paradas ainda custam ~10% do custo em execução (você paga pelo disco + IP reservado). Três meses de uma `gp-8-32` parada custam mais ou menos o mesmo que um mês dela em execução.
-
-Encontre-as:
+Parar uma VM não interrompe a cobrança: uma VM é cobrada da criação até a exclusão ([Máquinas virtuais](/docs/api/vms#lifecycle)). Encontre as que estão paradas:
 
 ```bash
-curl "{{API_BASE_URL}}/v1/vms?state=stopped" \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
-  | jq '.items[] | { id, name, stopped_at, size }'
+curl -s {{API_BASE_URL}}/api/v1/instance/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq '.data[] | select(.status == "SHUTOFF") | { id, name, vcores, memory }'
 ```
 
-Para cada uma, decida:
-
-- **Parada há < 1 semana e você lembra o motivo** → deixe como está; ela é candidata a rollback.
-- **Parada há > 2 semanas e você não lembra o motivo** → faça um snapshot dela (para ter a imagem do disco) e depois um `DELETE`.
-- **Parada há > 1 mês** → exclua. O que quer que estivesse nela não é mais candidato a rollback.
+Por algum tempo, uma VM parada é uma candidata razoável a rollback, como em um [deploy blue/green](/docs/guides/blue-green#stop-blue). Quando deixar de ser, exclua-a:
 
 ```bash
-# Snapshot first
-curl -X POST {{API_BASE_URL}}/v1/snapshots \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -X POST {{API_BASE_URL}}/api/v1/instance/action \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d "{ \"source_vm_id\": \"$VM_ID\", \"name\": \"archive-$(date +%Y-%m-%d)\" }"
-
-# Then delete the VM
-curl -X DELETE {{API_BASE_URL}}/v1/vms/$VM_ID \
-  -H "Authorization: Bearer $NIMBUS_KEY"
+  -d "{ \"servers\": [\"$VM_ID\"], \"cmd\": \"delete\" }"
 ```
 
-O snapshot é bem mais barato que a VM parada (o armazenamento de snapshots custa $0,04/GB; IPs reservados e disco reservado em uma VM parada custam mais).
+Excluir uma VM exclui o volume de boot criado a partir da imagem dela, e isso não pode ser desfeito, então copie antes tudo de que você ainda precisa. Os volumes que você anexou depois continuam lá, e a etapa 3 os encontra.
 
-## 2 · IPs flutuantes não anexados {#unattached-ips}
+## 2 · IPs flutuantes sem nada por trás {#unattached-ips}
 
-IPs flutuantes não anexados custam $2,50/mês cada — o mesmo que um IP anexado a uma VM parada. A linha da fatura é pequena por IP, mas contas que já existem há algum tempo acabam acumulando vários.
+Um IP flutuante é cobrado desde o momento em que é criado até ser excluído, esteja anexado ou não ([IPs flutuantes](/docs/api/floating-ips#billing)). Encontre os que não estão anexados:
 
 ```bash
-curl "{{API_BASE_URL}}/v1/floating-ips?state=detached" \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
-  | jq '.items[] | { id, ipv4, region, allocated_at }'
+curl -s {{API_BASE_URL}}/api/v1/floating_ip/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq '.data[] | select(.port_id == null) | { id, ip_address, description }'
 ```
 
-Libere todos os que você não usa ativamente:
+Exclua os de que você não precisa, listando os ids deles em `ids`:
 
 ```bash
-curl -X DELETE {{API_BASE_URL}}/v1/floating-ips/$IP_ID \
-  -H "Authorization: Bearer $NIMBUS_KEY"
-```
-
-Se talvez você queira o mesmo IPv4 de volta depois (porque algo o incluiu em uma allow-list em outro lugar), anote quais IPs eram seus antes de liberá-los. Não reservamos IPs liberados — eles voltam para o pool regional. Não há como "congelar" um IP sem mantê-lo alocado.
-
-## 3 · VMs superprovisionadas {#over-provisioned}
-
-Uma VM rodando o tempo todo com 5–10% de CPU está pagando 10× o que precisa. Rode o `node_exporter` (ou apenas confira o gráfico por VM no painel) e procure VMs cujo P99 de CPU em 90 dias esteja abaixo de ~30%.
-
-Para cada VM superprovisionada, a decisão certa depende do perfil do tráfego:
-
-- **Tráfego baixo e constante** → reduza o tamanho. `POST /v1/vms/$ID/resize` para um tier menor. Leva ~30 segundos. O redimensionamento ao vivo é suportado dentro da mesma família (`gp-4-16` → `gp-2-8` funciona; `gp-4-16` → `co-4-8` exige parar, redimensionar e iniciar, porque a arquitetura muda).
-- **Tráfego em rajadas** → considere os tamanhos otimizados para computação (família `co-`); eles têm uma relação CPU/RAM maior. Saem mais baratos por vCPU para cargas de trabalho limitadas por CPU.
-- **VMs com GPU sem nada rodando na GPU** → redimensione para fora da família `gx-` de vez. VMs com GPU são 5–10× mais caras; se você não está usando a GPU, está jogando dinheiro fora.
-
-## 4 · Classe de armazenamento de objetos inadequada {#storage-class}
-
-O armazenamento de objetos tem três classes:
-
-| Classe | Preço de armazenamento | Preço de recuperação | Usar para |
-|---|---|---|---|
-| Standard | $0,013/GB·mês | Grátis | Dados quentes (lidos com frequência) |
-| Infrequent Access (IA) | $0,007/GB·mês | $0,005/GB | Dados mornos (lidos mensalmente) |
-| Cold | $0,004/GB·mês | Mais alto, varia por classe (Expedited, Standard, Bulk) | Arquivo (lido raramente) |
-
-A maioria das contas usa Standard para tudo por padrão e nunca revisa isso. Onde está o ganho:
-
-```bash
-# What buckets do you have, and what class?
-curl {{API_BASE_URL}}/v1/buckets \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
-  | jq '.items[] | { name, region, storage_class, size_gb }'
-```
-
-Para cada bucket, veja o timestamp do último acesso nos maiores objetos (o "object explorer" do painel mostra isso). Tudo o que não foi lido no último mês deveria estar em IA; tudo o que não foi lido em 6 meses provavelmente deveria estar em Cold.
-
-Você não precisa mover objeto por objeto manualmente — defina uma regra de ciclo de vida:
-
-```bash
-curl -X PUT {{API_BASE_URL}}/v1/buckets/$BUCKET/lifecycle \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
+curl -X DELETE {{API_BASE_URL}}/api/v1/floating_ip/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "rules": [
-      {
-        "id": "tier-warm",
-        "filter": { "prefix": "archive/" },
-        "transitions": [
-          { "after_days": 30,  "storage_class": "infrequent-access" },
-          { "after_days": 180, "storage_class": "cold" }
-        ]
-      }
-    ]
-  }'
+  -d "{ \"ids\": [\"$FLOATING_IP_ID\"] }"
 ```
 
-Isso muda o tier automaticamente conforme os dados envelhecem. É o mais barato para cargas de trabalho do tipo "produzo estes dados uma vez e raramente os leio de novo" (logs, artefatos de build, relatórios antigos).
+Se algo incluir um endereço em uma allow-list em outro lugar, mude isso primeiro: depois de excluir um endereço, talvez você não o consiga de volta.
 
-## 5 · Snapshots de que você não precisa mais {#stale-snapshots}
+## 3 · Volumes que nenhuma VM está usando {#volumes}
 
-Snapshots custam $0,04/GB·mês — bem menos que o disco de uma VM, mas eles se acumulam rápido se você faz um toda noite e nunca exclui nenhum. Um snapshot de 200 GB mantido por um ano custa $96.
+Um volume é cobrado da mesma forma, esteja anexado ou não ([Armazenamento em blocos](/docs/api/block-storage#lifecycle)). É fácil esquecer os volumes que sobrevivem à VM deles. Encontre-os:
 
 ```bash
-curl "{{API_BASE_URL}}/v1/snapshots?older_than_days=180" \
-  -H "Authorization: Bearer $NIMBUS_KEY" \
-  | jq '.items[] | { id, name, size_gb, created_at, source_vm_id }'
+curl -s {{API_BASE_URL}}/api/v1/storage/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq '.data[] | select(.status == "available") | { id, name, size, type }'
 ```
 
-Três regras práticas para a retenção de snapshots:
-
-- **Snapshots diários** de uma VM de produção → mantenha 14 e exclua o resto.
-- **Snapshots semanais** → mantenha 8 (dois meses).
-- **Snapshots mensais** → mantenha 12 (um ano). Além disso, mantenha só os de fim de ano.
-
-Configure uma [política de backup agendado](/docs/api/backups) com essas regras de retenção embutidas para que isso nunca mais cresça sem limite.
-
-## Lembretes sobre o modelo de preços {#reminders}
-
-Algumas coisas que pegam de surpresa quem é cliente pela primeira vez:
-
-- **O tráfego dentro da região entre recursos da NimbusNexus é gratuito.** Duas VMs em `us-east-1` se comunicando não pagam egress. O tráfego entre regiões entre recursos da NimbusNexus também é gratuito (um diferencial deliberado em relação à AWS, onde essa é a linha da fatura que mais surpreende).
-- **O tráfego de saída para a internet custa $0,01/GB depois dos primeiros 100 GB/mês.** Em comparação com a AWS (onde custa $0,09/GB), isso faz diferença assim que você serve qualquer conteúdo público não trivial.
-- **Faturamento por segundo para VMs.** Uma VM que roda por 90 segundos custa 1,5 minuto. Sem arredondamento para a hora cheia. Isso significa que cargas de trabalho de curta duração (runners de CI, jobs em lote) são realmente baratas — não complique demais para "minimizar execuções" se as execuções forem curtas.
-- **O crédito inicial é concedido uma única vez.** Contas novas recebem um crédito; ele não é reposto. Se você está testando bastante, acompanhe o saldo de crédito no painel.
-
-## Analisar a fatura {#invoice}
-
-A página de faturamento do painel detalha as linhas da fatura por recurso e por dia. O filtro "top 10 costs" é o ponto de partida certo se você ainda não sabe o que está caro — quase sempre são uma ou duas linhas desproporcionais, não um padrão de muitos pequenos gastos que se somam.
-
-Se quiser a fatura em JSON:
+Um volume excluído não pode ser recuperado, então [faça um backup dele](/docs/api/backups#create) antes se houver chance de você querer os dados. Depois, exclua-o:
 
 ```bash
-curl {{API_BASE_URL}}/v1/billing/invoices/current \
-  -H "Authorization: Bearer $NIMBUS_KEY"
+curl -X DELETE {{API_BASE_URL}}/api/v1/storage/ \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{ \"ids\": [\"$VOLUME_ID\"] }"
 ```
 
-A resposta traz projeções de custo por recurso para o restante do mês, para que você possa agir sobre o que está caro *agora* em vez de descobrir isso no fim do mês.
+## 4 · VMs superprovisionadas {#over-provisioned}
+
+O preço de uma VM depende de `architecture`, `vm_class`, `cpu` e `ram`. Se a CPU e a memória de uma VM ficam baixas o tempo todo, ela pode rodar em uma configuração menor. Meça antes de decidir: [Monitorar uma frota de VMs](/docs/guides/monitoring-vms) configura as métricas.
+
+Redimensione com um novo `spec`; [Início rápido](/docs/quickstart#region) mostra de onde vêm `$ARCHITECTURE` e `$VM_CLASS`. A VM reinicia na nova configuração e fica aguardando em `VERIFY_RESIZE`:
+
+```bash
+curl -X POST {{API_BASE_URL}}/api/v1/instance/$VM_ID/resize \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"spec\": {
+      \"architecture\": \"$ARCHITECTURE\",
+      \"vm_class\": \"$VM_CLASS\",
+      \"cpu\": 2,
+      \"ram\": 4096
+    }
+  }"
+```
+
+Verifique a VM sob carga real e depois mantenha a nova configuração ou volte à anterior com `revert_resize`:
+
+```bash
+curl -X POST {{API_BASE_URL}}/api/v1/instance/$VM_ID/confirm_resize \
+  -H "X-API-Key: $NIMBUS_KEY"
+```
+
+[Tamanhos de VM](/docs/api/vm-sizes#resizing) traz os detalhes.
+
+## 5 · Portas públicas e largura de banda {#bandwidth}
+
+Uma porta na rede externa é cobrada até você excluí-la, e a largura de banda dela é cobrada junto, assim como a largura de banda no gateway externo de um roteador ([Portas de rede](/docs/api/network-ports), [Roteadores](/docs/api/routers)). Uma VM que não precisa ser alcançada pela internet pode ficar, em vez disso, em uma rede privada ([Configuração de rede do projeto](/docs/guides/networking-setup)).
+
+Liste as portas da rede externa; `GET /api/v1/floating_ip/artifacts` lista as redes externas:
+
+```bash
+curl -s "{{API_BASE_URL}}/api/v1/portal/port/?network_id=$EXTERNAL_NETWORK_ID" \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq '.data[] | { id, name, device_id, status }'
+```
+
+Uma porta com `device_id` vazio não está anexada a nada. Exclua-a com `DELETE /api/v1/portal/port/{port_id}`.
+
+Se você precisa da porta, mas não de toda a largura de banda dela, reduza-a com `POST /api/v1/bandwidth/resize`, que altera o limite em uma porta, um IP flutuante ou um gateway de roteador, e a cobrança junto com ele. `bandwidth_mbps` precisa ser um múltiplo de 10:
+
+```bash
+curl -X POST {{API_BASE_URL}}/api/v1/bandwidth/resize \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"resource_type\": \"port\",
+    \"resource_id\": \"$PORT_ID\",
+    \"bandwidth_mbps\": 100,
+    \"bandwidth_subscription\": \"Monthly\"
+  }"
+```
+
+## 6 · Imagens personalizadas {#images}
+
+Uma imagem personalizada é cobrada por GB, arredondado para cima até um GB inteiro, como um produto próprio ([Imagens de VM](/docs/api/vm-images)). Liste suas imagens privadas e depois exclua, com `DELETE /api/v1/image/`, aquelas a partir das quais nada mais faz boot:
+
+```bash
+curl -s "{{API_BASE_URL}}/api/v1/image/?visibility=private" \
+  -H "X-API-Key: $NIMBUS_KEY" \
+  | jq '.data[] | { id, name, size, created_at }'
+```
+
+## Analisar a fatura em si {#invoice}
+
+`GET /api/v1/billing/public/balances` mostra as cobranças em aberto, o crédito promocional e o saldo pré-pago do seu workspace, e `GET /api/v1/billing/public/accrued_charges`, o total cobrado até agora que ainda não foi quitado. Essas chamadas exigem uma sessão conectada, não uma chave de API, e as faturas em si não estão disponíveis pela API ([Faturamento](/docs/api/invoices)).
 
 ## Próximos passos {#next-steps}
 
-- [Máquinas virtuais](/docs/api/vms) — `resize` para o caso de VMs superprovisionadas.
-- [Armazenamento de objetos](/docs/api/object-storage) — as regras de ciclo de vida completas.
-- [Snapshots](/docs/api/snapshots) e [Backups](/docs/api/backups) — a sintaxe das políticas de retenção.
-- [Cotas](/docs/api/quotas) — a tabela de limites por projeto (separada do faturamento, mas relacionada).
+- [Dados de preços](/docs/api/pricing-data) — quanto custa cada um desses recursos.
+- [Faturamento](/docs/api/invoices) — os seus saldos e as cobranças ainda não quitadas.
+- [Tamanhos de VM](/docs/api/vm-sizes) — as configurações e o redimensionamento em detalhes.
+- [Backups](/docs/api/backups) — como copiar um volume antes de excluí-lo e por quanto tempo os agendamentos mantêm as cópias.
+- [Cotas](/docs/api/quotas) — os limites de recursos por projeto, que são separados do faturamento.
