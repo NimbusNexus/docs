@@ -151,7 +151,7 @@ L’appel de promotion est aussi une étape de confirmation — tant que vous ne
 Après la bascule, lancez une requête rapide pour confirmer :
 
 ```bash
-psql "postgresql://app:••••@{{DB_HOST_DEMO}}:5432/app?sslmode=verify-full" \
+psql "postgresql://app:••••@db.example.com:5432/app?sslmode=verify-full" \
   -c "SELECT count(*) FROM users;"
 ```
 

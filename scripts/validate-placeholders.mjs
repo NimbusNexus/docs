@@ -50,9 +50,6 @@ const KNOWN = new Set([
   'DNS_NS2',
   'DNS_NS3',
   'DNS_NS4',
-  'S3_ENDPOINT_US_EAST_1',
-  'S3_HOST_US_EAST_1',
-  'DB_HOST_DEMO',
 ])
 
 const PLACEHOLDER = /\{\{([A-Z][A-Z0-9_]*)\}\}/g

@@ -54,8 +54,8 @@ The response includes the bucket's URL:
 ```json
 {
   "id": "bkt_01HG7Y3...",
-  "url": "https://my-site.{{S3_HOST_US_EAST_1}}",
-  "website_endpoint": "https://my-site.{{S3_HOST_US_EAST_1}}"
+  "url": "https://my-site.s3.example.com",
+  "website_endpoint": "https://my-site.s3.example.com"
 }
 ```
 
@@ -65,7 +65,7 @@ The response includes the bucket's URL:
 aws configure set aws_access_key_id $NIMBUS_KEY
 aws configure set aws_secret_access_key $NIMBUS_SECRET
 aws configure set region $REGION
-aws configure set s3.endpoint_url {{S3_ENDPOINT_US_EAST_1}}
+aws configure set s3.endpoint_url https://s3.example.com
 ```
 
 `$NIMBUS_SECRET` is the secret half of an S3-compatible access key, generated in the dashboard at **Settings → Object Storage Keys → New key**. Don't confuse it with the regular API key — they're different.
@@ -76,7 +76,7 @@ aws configure set s3.endpoint_url {{S3_ENDPOINT_US_EAST_1}}
 aws s3 sync ./dist s3://$BUCKET \
   --delete \
   --cache-control "public, max-age=3600" \
-  --endpoint-url {{S3_ENDPOINT_US_EAST_1}}
+  --endpoint-url https://s3.example.com
 ```
 
 `--delete` removes files in the bucket that aren't in `./dist` anymore. `--cache-control` sets a 1-hour cache header on every object — long enough that browsers don't re-fetch on every page load, short enough that you don't have to bust caches manually on a typo fix.
@@ -86,14 +86,14 @@ For files that should NEVER cache (your `index.html`):
 ```bash
 aws s3 cp ./dist/index.html s3://$BUCKET/index.html \
   --cache-control "no-cache, max-age=0" \
-  --endpoint-url {{S3_ENDPOINT_US_EAST_1}}
+  --endpoint-url https://s3.example.com
 ```
 
 Pattern: long cache on hashed assets (`/_app/[hash].js`), no-cache on the entry HTML that references them. Same pattern Vercel + Netlify + Cloudflare Pages use under the hood.
 
 ## 4 · Verify it works {#verify}
 
-Visit `https://my-site.{{S3_HOST_US_EAST_1}}` in a browser. You should see your site.
+Visit `https://my-site.s3.example.com` in a browser. You should see your site.
 
 If you see XML instead, the website endpoint isn't routing correctly — most often because `public_read` wasn't set or `website.enabled` wasn't set. Re-check the bucket config:
 
@@ -107,7 +107,7 @@ curl {{API_BASE_URL}}/v1/buckets/$BUCKET \
 Add a DNS record at your registrar pointing your domain at the bucket:
 
 ```text
-www.example.com   CNAME   my-site.{{S3_HOST_US_EAST_1}}
+www.example.com   CNAME   my-site.s3.example.com
 ```
 
 For an apex domain (`example.com` without `www.`), CNAMEs don't work — apex CNAME records are illegal per RFC. Two options:
@@ -141,7 +141,7 @@ The above is the one-shot deploy. For CI/CD, the pattern is the same `aws s3 syn
     AWS_ACCESS_KEY_ID:     ${{ secrets.NIMBUS_S3_KEY }}
     AWS_SECRET_ACCESS_KEY: ${{ secrets.NIMBUS_S3_SECRET }}
     BUCKET:                my-site
-    ENDPOINT:              {{S3_ENDPOINT_US_EAST_1}}
+    ENDPOINT:              https://s3.example.com
 ```
 
 Most CI systems already have S3-compatible deploy actions; you point them at our endpoint and they work unchanged.

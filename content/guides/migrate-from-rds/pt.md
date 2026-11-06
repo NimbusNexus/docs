@@ -151,7 +151,7 @@ A chamada de promoção também é uma etapa de confirmação — até você faz
 Depois do cutover, faça uma consulta rápida para confirmar:
 
 ```bash
-psql "postgresql://app:••••@{{DB_HOST_DEMO}}:5432/app?sslmode=verify-full" \
+psql "postgresql://app:••••@db.example.com:5432/app?sslmode=verify-full" \
   -c "SELECT count(*) FROM users;"
 ```
 

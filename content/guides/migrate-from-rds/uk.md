@@ -151,7 +151,7 @@ done
 Після cutover виконайте швидкий запит для перевірки:
 
 ```bash
-psql "postgresql://app:••••@{{DB_HOST_DEMO}}:5432/app?sslmode=verify-full" \
+psql "postgresql://app:••••@db.example.com:5432/app?sslmode=verify-full" \
   -c "SELECT count(*) FROM users;"
 ```
 

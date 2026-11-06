@@ -106,7 +106,7 @@ Antwort:
 
 ```json
 {
-  "host": "{{DB_HOST_DEMO}}",
+  "host": "db.example.com",
   "port": 5432,
   "pooler_port": 6432,
   "database": "app",
@@ -125,7 +125,7 @@ curl -o ~/.postgresql/nn-root.crt {{BASE_URL}}/ca-certs/nimbusnexus-root.pem
 Verbinden Sie sich:
 
 ```bash
-psql "postgresql://app:••••@{{DB_HOST_DEMO}}:6432/app?sslmode=verify-full&sslrootcert=~/.postgresql/nn-root.crt"
+psql "postgresql://app:••••@db.example.com:6432/app?sslmode=verify-full&sslrootcert=~/.postgresql/nn-root.crt"
 ```
 
 Verwenden Sie von App-Servern aus Port `6432` (Pooler); Port `5432` nur für Admin- und Migrationstools, die direkten Zugriff auf das Primary brauchen (z. B. `pg_dump`, `pg_restore`, Tools für Schemamigrationen, die Advisory Locks setzen).

@@ -51,7 +51,7 @@ NimbusNexus запускає шість рушіїв баз даних як ке
 ```json
 {
   "connection": {
-    "host": "{{DB_HOST_DEMO}}",
+    "host": "db.example.com",
     "port": 5432,
     "database": "main",
     "username": "nimbus",

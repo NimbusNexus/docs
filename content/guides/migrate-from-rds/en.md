@@ -151,7 +151,7 @@ The promote call is also a confirmation step — until you make it, the target c
 After the cutover, query something quick to confirm:
 
 ```bash
-psql "postgresql://app:••••@{{DB_HOST_DEMO}}:5432/app?sslmode=verify-full" \
+psql "postgresql://app:••••@db.example.com:5432/app?sslmode=verify-full" \
   -c "SELECT count(*) FROM users;"
 ```
 

@@ -54,8 +54,8 @@ La respuesta incluye la URL del bucket:
 ```json
 {
   "id": "bkt_01HG7Y3...",
-  "url": "https://my-site.{{S3_HOST_US_EAST_1}}",
-  "website_endpoint": "https://my-site.{{S3_HOST_US_EAST_1}}"
+  "url": "https://my-site.s3.example.com",
+  "website_endpoint": "https://my-site.s3.example.com"
 }
 ```
 
@@ -65,7 +65,7 @@ La respuesta incluye la URL del bucket:
 aws configure set aws_access_key_id $NIMBUS_KEY
 aws configure set aws_secret_access_key $NIMBUS_SECRET
 aws configure set region $REGION
-aws configure set s3.endpoint_url {{S3_ENDPOINT_US_EAST_1}}
+aws configure set s3.endpoint_url https://s3.example.com
 ```
 
 `$NIMBUS_SECRET` es la mitad secreta de una clave de acceso compatible con S3, que se genera en el panel en **Settings → Object Storage Keys → New key**. No la confundas con la clave de API normal — son distintas.
@@ -76,7 +76,7 @@ aws configure set s3.endpoint_url {{S3_ENDPOINT_US_EAST_1}}
 aws s3 sync ./dist s3://$BUCKET \
   --delete \
   --cache-control "public, max-age=3600" \
-  --endpoint-url {{S3_ENDPOINT_US_EAST_1}}
+  --endpoint-url https://s3.example.com
 ```
 
 `--delete` elimina los archivos del bucket que ya no están en `./dist`. `--cache-control` pone una cabecera de caché de 1 hora en cada objeto — lo bastante larga para que los navegadores no los vuelvan a descargar en cada carga de página y lo bastante corta para no tener que invalidar cachés a mano al corregir una errata.
@@ -86,14 +86,14 @@ Para los archivos que NUNCA deben ir a caché (tu `index.html`):
 ```bash
 aws s3 cp ./dist/index.html s3://$BUCKET/index.html \
   --cache-control "no-cache, max-age=0" \
-  --endpoint-url {{S3_ENDPOINT_US_EAST_1}}
+  --endpoint-url https://s3.example.com
 ```
 
 El patrón: caché larga en los assets con hash (`/_app/[hash].js`) y no-cache en el HTML de entrada que los referencia. Es el mismo patrón que usan internamente Vercel, Netlify y Cloudflare Pages.
 
 ## 4 · Comprueba que funciona {#verify}
 
-Abre `https://my-site.{{S3_HOST_US_EAST_1}}` en un navegador. Deberías ver tu sitio.
+Abre `https://my-site.s3.example.com` en un navegador. Deberías ver tu sitio.
 
 Si en su lugar ves XML, el endpoint del sitio web no está enrutando bien — casi siempre porque no se activó `public_read` o `website.enabled`. Revisa la configuración del bucket:
 
@@ -107,7 +107,7 @@ curl {{API_BASE_URL}}/v1/buckets/$BUCKET \
 Añade en tu registrador un registro DNS que apunte tu dominio al bucket:
 
 ```text
-www.example.com   CNAME   my-site.{{S3_HOST_US_EAST_1}}
+www.example.com   CNAME   my-site.s3.example.com
 ```
 
 Para un dominio raíz (`example.com` sin `www.`), los CNAME no funcionan — según el RFC, los registros CNAME en la raíz del dominio no están permitidos. Dos opciones:
@@ -141,7 +141,7 @@ Lo anterior es el despliegue puntual. Para CI/CD, el patrón es el mismo `aws s3
     AWS_ACCESS_KEY_ID:     ${{ secrets.NIMBUS_S3_KEY }}
     AWS_SECRET_ACCESS_KEY: ${{ secrets.NIMBUS_S3_SECRET }}
     BUCKET:                my-site
-    ENDPOINT:              {{S3_ENDPOINT_US_EAST_1}}
+    ENDPOINT:              https://s3.example.com
 ```
 
 La mayoría de los sistemas de CI ya tienen acciones de despliegue compatibles con S3; las apuntas a nuestro endpoint y funcionan sin cambios.
