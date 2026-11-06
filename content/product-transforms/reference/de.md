@@ -108,7 +108,7 @@ Ein Slot ist das, was ein `auth`-Schritt nennt: eine ID und eine Bezeichnung, oh
 
 ## Wer eine Pipeline ausführt {#destinations}
 
-Ein Produkt verweist über die ID auf eine Pipeline und führt sie in seinem eigenen Prozess aus, mit seinen eigenen Secrets. Webhooks ist das erste: [Transformationen](/docs/product-webhooks/transformations). Jeder Abruf hält den Dienst und die Version fest, sodass eine gelesene Pipeline `destinations` und `consumers` zeigt.
+Ein Produkt verweist über die ID auf eine Pipeline und führt sie in seinem eigenen Prozess aus, mit seinen eigenen Secrets. Webhooks ist das erste: [Transformationen](/docs/product-webhooks/transformations#reference). Jeder Abruf hält den Dienst und die Version fest, sodass eine gelesene Pipeline `destinations` und `consumers` zeigt.
 
 Eine neue Version mit einem `auth`-Schritt erreicht beim Speichern jedes Produkt, das die Pipeline ausführt, und das Löschen der Pipeline ebenso. Jeder dieser Aufrufe muss in `confirm_destinations` jeden Dienst nennen, der eine Referenz hält oder den wir in den letzten 30 Tagen gesehen haben, im Body eines `PATCH` und in der Query eines `DELETE`. Andernfalls lautet die Antwort `409` `conflict` mit `details.reason` `destinations_unconfirmed` und `details.destinations`, und nichts ändert sich. Die eigenen URLs eines Dienstes stehen hier nie: Dieses Produkt verlangt für sie selbst dieselbe Bestätigung.
 

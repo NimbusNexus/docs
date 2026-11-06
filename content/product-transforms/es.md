@@ -35,7 +35,7 @@ NimbusNexus Transforms convierte las **pipelines** en objetos propios. Una pipel
 3. **Guárdala**. Guardar contenido nuevo añade una versión, y una versión nunca cambia. Guardar el mismo contenido no añade ninguna, y restaurar una versión anterior es volver a guardar su contenido.
 4. **Ejecútala**, de una de estas dos formas:
    - **Por la API.** Envía una petición a `POST /v1/pipelines/{id}/run`. Ejecuta la pipeline con lo que envías, responde con el resultado y no guarda nada. Enviar el resultado a algún sitio es cosa tuya.
-   - **Por referencia.** Haz referencia a la pipeline por su id desde Webhooks, que la ejecuta antes de cada entrega en su propio proceso. Cada versión nueva le llega sin cambiar ningún endpoint.
+   - **Por referencia.** [Haz referencia a la pipeline por su id desde Webhooks](/docs/product-webhooks/transformations#reference), que la ejecuta antes de cada entrega en su propio proceso. Cada versión nueva le llega sin cambiar ningún endpoint.
 
 El [inicio rápido](/docs/product-transforms/quickstart) hace los pasos 1 a 4 por la API.
 
@@ -53,7 +53,7 @@ Una pipeline no tiene bucles, ni reloj, ni red, así que la misma pipeline hace 
 
 Transforms no guarda credenciales. El paso `auth` de una pipeline indica que un bearer token, autenticación básica o una clave de API va en la petición, y nombra un **slot** para ello. Un slot es un id y una etiqueta, sin ningún valor: añade uno en la consola, en **Credential slots**, o con `POST /v1/slots`. El documento contiene el id del slot y nada más, así que leer una pipeline de nuevo nunca muestra una credencial, y ninguna ruta acepta ni devuelve el valor de una credencial.
 
-Para enviar una, ejecuta la pipeline por referencia desde el producto que envía. Ese producto asigna el slot a un secreto de su propio almacén, con su propia clave, y lo envía a sus propias URLs. Fuera de ese producto, el slot no significa nada.
+Para enviar una, ejecuta la pipeline [por referencia](/docs/product-webhooks/transformations#reference) desde el producto que envía. Ese producto asigna el slot a un secreto de su propio almacén, con su propia clave, y lo envía a sus propias URLs. Fuera de ese producto, el slot no significa nada.
 
 Test y la API de ejecución muestran lo que añadiría el paso, con el valor enmascarado: `Authorization: Bearer ••••`. No pueden enviar una credencial, porque Transforms no tiene ninguna que enviar.
 
@@ -92,4 +92,5 @@ Elige su permiso al crearla: **Read** lee y ejecuta pipelines, y **Read & write*
 - [Inicio rápido](/docs/product-transforms/quickstart) — prueba una pipeline, guárdala, ejecútala y guarda una versión nueva.
 - [Pipelines](/docs/product-transforms/pipelines) — todos los pasos, rutas, filtros y plantillas, y los límites de una ejecución.
 - [Referencia de Transforms](/docs/product-transforms/reference) — todas las rutas y campos, roles, límites y errores.
+- [Ejecútala desde Webhooks](/docs/product-webhooks/transformations#reference) — asigna sus slots a secretos y vincúlala a un endpoint.
 - [Playground](/transforms/playground) — ejecuta una pipeline de ejemplo sin cuenta.

@@ -35,7 +35,7 @@ NimbusNexus Transforms makes **pipelines** objects of their own. A pipeline is a
 3. **Save** it. Saving new content adds a version, and a version never changes. The same content again adds none, and restoring an old version is saving its content again.
 4. **Run** it, in one of two ways:
    - **Through the API.** Send a request to `POST /v1/pipelines/{id}/run`. It runs the pipeline on what you send, answers with the result and keeps nothing. Sending the result anywhere is up to you.
-   - **By reference.** Refer to the pipeline by id from Webhooks, which runs it before each delivery in its own process. Each new version reaches it without a change to any endpoint.
+   - **By reference.** [Refer to the pipeline by id from Webhooks](/docs/product-webhooks/transformations#reference), which runs it before each delivery in its own process. Each new version reaches it without a change to any endpoint.
 
 The [quickstart](/docs/product-transforms/quickstart) does steps 1 to 4 over the API.
 
@@ -53,7 +53,7 @@ A pipeline has no loops, no clock and no network, so the same pipeline on the sa
 
 Transforms holds no credentials. A pipeline's `auth` step says that a bearer token, basic auth or an API key goes on the request, and names a **slot** for it. A slot is an id and a label, with no value: add one in the console under **Credential slots**, or with `POST /v1/slots`. The document holds the slot's id and nothing else, so reading a pipeline back never shows a credential, and no route takes or returns a credential's value.
 
-To send one, run the pipeline by reference from the product that sends. That product maps the slot to a secret in its own store, under its own key, and sends it to its own URLs. Outside that product the slot means nothing.
+To send one, run the pipeline [by reference](/docs/product-webhooks/transformations#reference) from the product that sends. That product maps the slot to a secret in its own store, under its own key, and sends it to its own URLs. Outside that product the slot means nothing.
 
 Test and the run API show what the step would add, with the value masked: `Authorization: Bearer ••••`. They can't send a credential, because Transforms has none to send.
 
@@ -92,4 +92,5 @@ Choose its permission when you create it: **Read** reads and runs pipelines, and
 - [Quickstart](/docs/product-transforms/quickstart) — test a pipeline, save it, run it and save a new version.
 - [Pipelines](/docs/product-transforms/pipelines) — every step, path, filter and template, and the caps on a run.
 - [Transforms reference](/docs/product-transforms/reference) — every route and field, roles, limits and errors.
+- [Run it from Webhooks](/docs/product-webhooks/transformations#reference) — map its slots to secrets and attach it to an endpoint.
 - [Playground](/transforms/playground) — run a sample pipeline with no account.

@@ -108,7 +108,7 @@ Um slot é o que uma etapa `auth` indica: um id e um rótulo, sem valor. O Trans
 
 ## Quem executa um pipeline {#destinations}
 
-Um produto referencia um pipeline pelo id e o executa no próprio processo, com os próprios segredos. O Webhooks é o primeiro: [Transformações](/docs/product-webhooks/transformations). Toda vez que um produto obtém o pipeline, o serviço e a versão são registrados, então a leitura de um pipeline mostra `destinations` e `consumers`.
+Um produto referencia um pipeline pelo id e o executa no próprio processo, com os próprios segredos. O Webhooks é o primeiro: [Transformações](/docs/product-webhooks/transformations#reference). Toda vez que um produto obtém o pipeline, o serviço e a versão são registrados, então a leitura de um pipeline mostra `destinations` e `consumers`.
 
 Salvar uma nova versão com uma etapa `auth` alcança todos os produtos que executam o pipeline, e excluí-lo também. Cada uma dessas chamadas precisa indicar em `confirm_destinations` todos os serviços que têm uma referência ou foram vistos nos últimos 30 dias, no corpo de um `PATCH` e na query de um `DELETE`. Caso contrário, a resposta é um `409` `conflict` com `details.reason` `destinations_unconfirmed` e `details.destinations`, e nada muda. As próprias URLs de um serviço nunca aparecem aqui: esse produto faz a mesma pergunta em relação a elas.
 

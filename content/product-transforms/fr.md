@@ -35,7 +35,7 @@ NimbusNexus Transforms fait des **pipelines** des objets à part entière. Un pi
 3. **Enregistrez**-le. Enregistrer un nouveau contenu ajoute une version, et une version ne change jamais. Enregistrer de nouveau le même contenu n’en ajoute aucune, et restaurer une ancienne version revient à enregistrer de nouveau son contenu.
 4. **Exécutez**-le, de l’une de ces deux façons :
    - **Via l’API.** Envoyez une requête à `POST /v1/pipelines/{id}/run`. Cette route exécute le pipeline sur ce que vous envoyez, répond avec le résultat et ne conserve rien. C’est à vous d’envoyer le résultat, où que ce soit.
-   - **Par référence.** Désignez le pipeline par son identifiant depuis Webhooks, qui l’exécute avant chaque livraison, dans son propre processus. Chaque nouvelle version lui parvient sans qu’aucun endpoint ait à changer.
+   - **Par référence.** [Désignez le pipeline par son identifiant depuis Webhooks](/docs/product-webhooks/transformations#reference), qui l’exécute avant chaque livraison, dans son propre processus. Chaque nouvelle version lui parvient sans qu’aucun endpoint ait à changer.
 
 Le [démarrage rapide](/docs/product-transforms/quickstart) parcourt les étapes 1 à 4 via l’API.
 
@@ -53,7 +53,7 @@ Un pipeline n’a ni boucles, ni horloge, ni réseau : le même pipeline fait do
 
 Transforms ne détient aucun justificatif d’identité. L’étape `auth` d’un pipeline indique que la requête doit porter un bearer token, une authentification basique ou une clé d’API, et nomme un **emplacement** pour ce justificatif. Un emplacement est un identifiant et un libellé, sans valeur : ajoutez-en un dans la console sous **Credential slots**, ou avec `POST /v1/slots`. Le document contient l’identifiant de l’emplacement et rien d’autre : relire un pipeline ne montre donc jamais de justificatif, et aucune route ne prend ni ne renvoie la valeur d’un justificatif.
 
-Pour en envoyer un, exécutez le pipeline par référence depuis le produit qui envoie. Ce produit associe l’emplacement à un secret de son propre stockage, sous sa propre clé, et l’envoie vers ses propres URL. Hors de ce produit, l’emplacement ne signifie rien.
+Pour en envoyer un, exécutez le pipeline [par référence](/docs/product-webhooks/transformations#reference) depuis le produit qui envoie. Ce produit associe l’emplacement à un secret de son propre stockage, sous sa propre clé, et l’envoie vers ses propres URL. Hors de ce produit, l’emplacement ne signifie rien.
 
 Test et l’API d’exécution montrent ce qu’ajouterait l’étape, avec la valeur masquée : `Authorization: Bearer ••••`. Ils ne peuvent pas envoyer de justificatif, car Transforms n’en a aucun à envoyer.
 
@@ -92,4 +92,5 @@ Choisissez sa permission à la création : **Read** lit et exécute les pipeline
 - [Démarrage rapide](/docs/product-transforms/quickstart) — tester un pipeline, l’enregistrer, l’exécuter et enregistrer une nouvelle version.
 - [Pipelines](/docs/product-transforms/pipelines) — toutes les étapes, tous les chemins, filtres et modèles, et les plafonds d’une exécution.
 - [Référence Transforms](/docs/product-transforms/reference) — chaque route et chaque champ, rôles, limites et erreurs.
+- [L’exécuter depuis Webhooks](/docs/product-webhooks/transformations#reference) — associer ses emplacements à des secrets et l’attacher à un endpoint.
 - [Playground](/transforms/playground) — exécuter un pipeline d’exemple sans compte.

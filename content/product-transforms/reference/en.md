@@ -108,7 +108,7 @@ A slot is what an `auth` step names: an id and a label, with no value. Transform
 
 ## Who runs a pipeline {#destinations}
 
-A product refers to a pipeline by id and runs it in its own process, on its own secrets. Webhooks is the first: [Transformations](/docs/product-webhooks/transformations). Each fetch notes the service and the version, so a read of a pipeline shows `destinations` and `consumers`.
+A product refers to a pipeline by id and runs it in its own process, on its own secrets. Webhooks is the first: [Transformations](/docs/product-webhooks/transformations#reference). Each fetch notes the service and the version, so a read of a pipeline shows `destinations` and `consumers`.
 
 Saving a new version with an `auth` step reaches every product that runs the pipeline, and so does deleting it. Each of those calls has to name every service that holds a reference or was seen in the last 30 days in `confirm_destinations`, in the body of a `PATCH` and in the query of a `DELETE`. Otherwise it is a `409` `conflict` with `details.reason` `destinations_unconfirmed` and `details.destinations`, and nothing changes. A service's own URLs are never here: that product holds the same question to them.
 

@@ -108,7 +108,7 @@ Un emplacement est ce que nomme une étape `auth` : un identifiant et un libell�
 
 ## Qui exécute un pipeline {#destinations}
 
-Un produit désigne un pipeline par son identifiant et l’exécute dans son propre processus, avec ses propres secrets. Webhooks est le premier : [Transformations](/docs/product-webhooks/transformations). Chaque récupération du pipeline note le service et la version : sa lecture montre donc `destinations` et `consumers`.
+Un produit désigne un pipeline par son identifiant et l’exécute dans son propre processus, avec ses propres secrets. Webhooks est le premier : [Transformations](/docs/product-webhooks/transformations#reference). Chaque récupération du pipeline note le service et la version : sa lecture montre donc `destinations` et `consumers`.
 
 L’enregistrement d’une nouvelle version avec une étape `auth` se répercute sur chaque produit qui exécute le pipeline, tout comme sa suppression. Chacun de ces appels doit nommer dans `confirm_destinations` chaque service qui détient une référence ou a été vu au cours des 30 derniers jours : dans le corps d’un `PATCH` et dans la query string d’un `DELETE`. Sinon, c’est un `409` `conflict` avec `details.reason` `destinations_unconfirmed` et `details.destinations`, et rien ne change. Les URL propres à un service ne figurent jamais ici : c’est ce produit qui pose la même question à leur sujet.
 

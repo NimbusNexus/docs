@@ -35,7 +35,7 @@ NimbusNexus Transforms macht **Pipelines** zu eigenständigen Objekten. Eine Pip
 3. **Speichern Sie sie.** Neuer Inhalt ergibt beim Speichern eine neue Version, und eine Version ändert sich nie. Derselbe Inhalt ergibt keine neue, und eine alte Version wiederherzustellen heißt, ihren Inhalt erneut zu speichern.
 4. **Führen Sie sie aus**, auf eine von zwei Arten:
    - **Über die API.** Senden Sie einen Request an `POST /v1/pipelines/{id}/run`. Die Route wendet die Pipeline auf das an, was Sie senden, antwortet mit dem Ergebnis und behält nichts. Ob und wohin Sie das Ergebnis senden, liegt bei Ihnen.
-   - **Per Verweis.** Verweisen Sie in Webhooks über die ID auf die Pipeline. Webhooks führt sie vor jeder Zustellung in seinem eigenen Prozess aus. Jede neue Version kommt dort an, ohne dass Sie einen Endpoint ändern müssen.
+   - **Per Referenz.** [Verweisen Sie in Webhooks über die ID auf die Pipeline](/docs/product-webhooks/transformations#reference). Webhooks führt sie vor jeder Zustellung in seinem eigenen Prozess aus. Jede neue Version kommt dort an, ohne dass Sie einen Endpoint ändern müssen.
 
 Der [Schnellstart](/docs/product-transforms/quickstart) führt die Schritte 1 bis 4 über die API aus.
 
@@ -53,7 +53,7 @@ Eine Pipeline hat keine Schleifen, keine Uhr und kein Netzwerk; dieselbe Pipelin
 
 Transforms speichert keine Credentials. Der `auth`-Schritt einer Pipeline gibt an, dass dem Request ein Bearer-Token, Basic Auth oder ein API-Key hinzugefügt wird, und nennt dafür einen **Slot**. Ein Slot ist eine ID und eine Bezeichnung, ohne Wert: Fügen Sie in der Konsole unter **Credential slots** einen hinzu, oder verwenden Sie `POST /v1/slots`. Das Dokument enthält die ID des Slots und sonst nichts. Eine zurückgelesene Pipeline zeigt daher nie ein Credential, und keine Route nimmt den Wert eines Credentials entgegen oder gibt ihn zurück.
 
-Um eines zu senden, führen Sie die Pipeline per Referenz in dem Produkt aus, das sendet. Dieses Produkt ordnet dem Slot ein Secret aus seinem eigenen Speicher zu, verschlüsselt mit seinem eigenen Schlüssel, und sendet es an seine eigenen URLs. Außerhalb dieses Produkts bedeutet der Slot nichts.
+Um eines zu senden, führen Sie die Pipeline [per Referenz](/docs/product-webhooks/transformations#reference) in dem Produkt aus, das sendet. Dieses Produkt ordnet dem Slot ein Secret aus seinem eigenen Speicher zu, verschlüsselt mit seinem eigenen Schlüssel, und sendet es an seine eigenen URLs. Außerhalb dieses Produkts bedeutet der Slot nichts.
 
 Der Test und die Ausführungs-API zeigen, was der Schritt hinzufügen würde, mit maskiertem Wert: `Authorization: Bearer ••••`. Sie können kein Credential senden, denn Transforms hat keines, das es senden könnte.
 
@@ -92,4 +92,5 @@ Wählen Sie beim Erstellen seine Berechtigung: **Read** liest Pipelines und füh
 - [Schnellstart](/docs/product-transforms/quickstart) — eine Pipeline testen, speichern, ausführen und eine neue Version speichern.
 - [Pipelines](/docs/product-transforms/pipelines) — jeder Schritt, Pfad und Filter, jede Vorlage und die Obergrenzen einer Ausführung.
 - [Referenz für Transforms](/docs/product-transforms/reference) — jede Route und jedes Feld, Rollen, Limits und Fehler.
+- [Aus Webhooks ausführen](/docs/product-webhooks/transformations#reference) — die Slots Secrets zuordnen und die Pipeline mit einem Endpoint verknüpfen.
 - [Playground](/transforms/playground) — eine Beispiel-Pipeline ohne Konto ausführen.
