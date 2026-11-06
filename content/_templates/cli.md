@@ -1,25 +1,25 @@
 ---
 title: CLI
-description: nimbus — the command-line interface for the NimbusNexus REST API.
+description: nn-example — the command-line interface for the Example API.
 publishedAt: 2026-05-20
-updatedAt: 2026-05-20
+updatedAt: 2026-11-06
 kind: cli
 ---
 
 <!-- TEMPLATE — copy this file before editing. Delete this comment when you do.
 
-  The CLI page documents the command-line interface. There's typically
-  one CLI (the official `nimbus` binary); this template captures that
-  shape. If a separate CLI ever ships for a niche purpose, copy this
-  template and adapt.
+  The CLI page documents a command-line tool. Each CLI is its own
+  binary, named for its product; `nn-webhooks` is the one that ships
+  today (see /docs/product-webhooks/cli). This template captures that
+  shape, with `nn-example` standing in for the real name.
 
   Length target: 800–1,400 words.
 
   Body structure:
     - Status banner (pre-release / GA / deprecated) as a > blockquote.
     - Short intro paragraph.
-    - Install section. Multiple paths (Homebrew, curl install, raw
-      download) — let the reader pick.
+    - Install section. Multiple paths (Homebrew, verified download,
+      go install) — let the reader pick.
     - Authenticate section. Both the browser flow and the env-var
       flow for non-interactive systems.
     - Common commands. The dozen most-used commands with one-liner
@@ -42,31 +42,28 @@ kind: cli
 
 > **Status: pre-release / GA / deprecated.** One sentence on current state. If pre-release, mention what to use in the meantime.
 
-A short paragraph describing the CLI — what it does, what platforms it targets, where it comes from (e.g. "built on top of the Go SDK"). Two or three sentences.
+A short paragraph describing the CLI — what it does, what platforms it targets, where it comes from. Two or three sentences.
 
 ## Install {#install}
 
 ```bash
-# Homebrew (macOS / Linux)
-brew install nimbusnexus/tap/nimbus
-
-# curl install script (Linux, manual platforms)
-curl -fsSL {{BASE_URL}}/cli/install.sh | sh
+# Homebrew (macOS)
+brew install nimbusnexus/tap/nn-example
 
 # Verify
-nimbus --version
+nn-example version
 ```
 
-Brief note on what the install script does + signature verification approach.
+Brief note on what else there is, such as a download checked against the release's checksums, and how to verify it.
 
 ## Authenticate {#auth}
 
 ```bash
-# Interactive — opens a browser, stores key in OS keychain
-nimbus auth login
+# Interactive — opens a browser and saves a key to a profile
+nn-example login
 
-# Non-interactive — set env var directly
-export NIMBUS_KEY=nn_live_...
+# Non-interactive — set an env var directly
+export EXAMPLE_API_KEY="<your-api-key>"
 ```
 
 One paragraph on when to use which.
@@ -75,10 +72,10 @@ One paragraph on when to use which.
 
 ```bash
 # Resources mirror the REST API
-nimbus vms list --region us-east-1
-nimbus vms create --name web-01 --size gp-1-2 --region us-east-1 --image ubuntu-24.04
-nimbus vms get vm_01HG7Y3...
-nimbus vms delete vm_01HG7Y3...
+nn-example items list
+nn-example items create --name first-item
+nn-example items get <item-id>
+nn-example items delete <item-id>
 
 # (a dozen lines of the most common commands across resource groups)
 ```
@@ -89,16 +86,16 @@ Brief comment: "Every resource has `list`, `get`, `create`, `delete` at minimum,
 
 ```bash
 # Default — table for terminals
-nimbus vms list
+nn-example items list
 
 # JSON for scripting
-nimbus vms list --output json
+nn-example items list --output json
 
 # JSONL for piping
-nimbus vms list --output jsonl | jq -r '.id'
+nn-example items list --output jsonl | jq -r '.id'
 
 # Just the IDs
-nimbus vms list --output ids
+nn-example items list --output ids
 ```
 
 ## Config + profiles {#config}
@@ -109,13 +106,13 @@ Brief explanation of where config lives + a TOML example showing two profiles + 
 
 ```bash
 # Pattern 1: wait for state
-nimbus vms wait $VM_ID --state running --timeout 5m
+nn-example items wait <item-id> --state ready --timeout 5m
 
 # Pattern 2: bulk from file
-nimbus vms create --from-file vms.yaml
+nn-example items create --from-file items.yaml
 
 # Pattern 3: stdin pipeline
-nimbus vms list --output ids --filter "state=stopped" | nimbus vms delete --stdin --yes
+nn-example items list --output ids | nn-example items delete --stdin --yes
 ```
 
 One paragraph framing each pattern.
@@ -132,6 +129,6 @@ Honest about ship state: what's published, what's in design, where to follow for
 
 ## What's next {#next-steps}
 
-- [Authentication](/docs/authentication) — what `auth login` is doing under the hood.
-- [Relevant SDK page](/docs/sdks/go) — the SDK the CLI is built on.
-- [Webhooks](/docs/webhooks) — `nimbus webhooks endpoints` manages these from the command line.
+- [Authentication](/docs/authentication) — what `login` is doing under the hood.
+- [Relevant SDK page](/docs/setup/sdk) — the SDK the CLI is built on.
+- [Set up the REST API](/docs/setup/rest) — the same calls without the CLI.

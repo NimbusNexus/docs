@@ -2,7 +2,7 @@
 title: Webhooks
 description: The managed webhook platform — publish an event once, and we sign, retry, and replay every delivery to your subscribers.
 publishedAt: 2026-08-05
-updatedAt: 2026-11-03
+updatedAt: 2026-11-06
 kind: concept
 ---
 
@@ -10,9 +10,7 @@ kind: concept
 
 NimbusNexus Webhooks is a standalone product for sending webhooks to *your* subscribers. You publish an event once; we fan it out to every endpoint subscribed to that type, sign each delivery, retry the failures, and hold whatever never lands in a dead-letter queue you can replay.
 
-> **Not the page you wanted?** If you are here to receive notifications about *your own NimbusNexus infrastructure* — `vm.created`, `snapshot.completed`, `invoice.generated` — that is a different feature, documented at [Platform webhooks](/docs/webhooks). The two are unrelated systems and **their signing headers differ**, so verification code written for one will reject every delivery from the other.
-
-The distinction in one line: platform webhooks are events *we* send you about your account; this product delivers events *you* send your own customers.
+> **Not the page you wanted?** This product delivers events *you* send your own customers. NimbusNexus doesn't send webhooks about *your own infrastructure*: to follow a VM or a volume, read it and watch its `status` ([Long-running operations](/docs/conventions#operations)), and for messages to you, see [Notifications](/docs/api/notifications).
 
 ## What it is for {#what-for}
 
@@ -88,4 +86,3 @@ Choose the scope when you mint it. `admin` is full control; `publish` can produc
 - [Signature verification](/docs/product-webhooks/signatures) — the signing contract, and the three rules for checking it.
 - [SDKs](/docs/product-webhooks/sdks) — typed clients for Python, TypeScript, and Go.
 - [CLI](/docs/product-webhooks/cli) — `nn-webhooks`, a single static binary.
-- [Platform webhooks](/docs/webhooks) — the other thing called webhooks: notifications about your own infrastructure.

@@ -23,9 +23,9 @@ kind: concept
       Always tag the language fence (```bash, ```ts, ```json, etc.).
     - Closing "What's next" with 3–5 cross-links.
 
-  Tone: plain language. Show the *why*, not just the *what*. "Latency
-  between regions is free" beats "Inter-region traffic incurs no
-  charges." Skip marketing adjectives ("lightning-fast",
+  Tone: plain language. Show the *why*, not just the *what*. "A stopped
+  VM is still billed" beats "Billing persists across power-state
+  transitions." Skip marketing adjectives ("lightning-fast",
   "enterprise-grade") — they don't belong in conceptual docs.
 
   Reference pattern: link to API reference pages where the concept
