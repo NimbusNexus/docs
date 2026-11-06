@@ -1,14 +1,14 @@
 ---
 title: "Erros"
-description: "O formato do erro, os códigos de erro que as APIs de Webhooks, Inboxes e Request Bins enviam e como tratar cada um."
+description: "O formato do erro, os códigos de erro que as APIs de Webhooks, Inboxes, Request Bins e Transforms enviam e como tratar cada um."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-30
+updatedAt: 2026-11-06
 kind: concept
 ---
 
 # Erros
 
-Toda resposta de erro das APIs de Webhooks, Inboxes e Request Bins usa o mesmo formato JSON. Para tratar cada caso, decida com base em `error.code`, ou em `error.next_code` quando o erro trouxer esse campo. Não faça parsing de `message` e não decida só pelo status: um mesmo status pode trazer vários códigos e, em todas as APIs, o `402` traz quatro.
+Toda resposta de erro das APIs de Webhooks, Inboxes, Request Bins e Transforms usa o mesmo formato JSON. Para tratar cada caso, decida com base em `error.code`, ou em `error.next_code` quando o erro trouxer esse campo. Não faça parsing de `message` e não decida só pelo status: um mesmo status pode trazer vários códigos e, em todas as APIs, o `402` traz quatro.
 
 > **Atualizado em 16 de outubro de 2026.** No Webhooks, um nome de header personalizado que é um token HTTP válido com um line feed no final agora é recusado como qualquer outro nome que não seja um token HTTP válido: `webhooks.custom_header_name_invalid`, com o `msg` dessa regra e sem `params` ([Validação da requisição](#codes-validation)). Antes, o line feed passava pela verificação de token e o nome era recusado como caractere de controle, com `params.header`: como `webhooks.custom_header_control_character` a partir de 15 de outubro de 2026, e como `value_error` antes disso. A requisição continua sendo um `422` `validation_error`, e nada mais mudou.
 >
@@ -220,6 +220,16 @@ Estes pertencem aos objetos próprios da API de Webhooks (tipos de evento, schem
 | `schema_ref_unsupported` | Seu schema usa um `$ref` que a API não resolve. |
 | `provider_secret_required` | Rotacionar uma fonte do Stripe ou do GitHub exige o novo segredo desse provedor, e rotacionar uma fonte RabbitMQ exige a nova senha do broker. `details.provider` diz qual: `stripe`, `github` ou `rabbitmq`. |
 | `broker_not_allowed` | Uma fonte RabbitMQ indica um broker ao qual a API não se conecta. |
+
+### Códigos da API de Transforms {#codes-transforms}
+
+O Transforms envia os códigos que o Request Bins envia para as mesmas situações, e a [referência de Transforms](/docs/product-transforms/reference#errors) lista todos eles. Estes são os códigos próprios dele:
+
+| `code` | Status | Descrição |
+|---|---|---|
+| `invalid_pipeline` | 422 | Um pipeline que nunca conseguiria rodar, ao ser salvo ou testado. `details.reason`, `details.path` e `details.step` indicam o primeiro problema ([Pipelines inválidos](/docs/product-transforms/reference#invalid-pipeline)). |
+| `conflict` | 409 | `details.reason` é `pipeline_disabled`, para a execução de um pipeline que você desligou, com `details.id`; ou `destinations_unconfirmed`, para uma nova versão com uma etapa `auth` ou uma exclusão que não indica todos os produtos que executam o pipeline, com `details.id` e `details.destinations` ([Quem executa um pipeline](/docs/product-transforms/reference#destinations)). |
+| `rate_limited` | 429 | Acima das execuções por minuto do plano. `details.retry_after` diz quantos segundos esperar. |
 
 ### Plano e faturamento {#codes-plan}
 

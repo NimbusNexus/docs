@@ -2,7 +2,7 @@
 title: Conventions
 description: Patterns the APIs follow — resource ids, pagination, errors, idempotency, long-running operations.
 publishedAt: 2026-05-19
-updatedAt: 2026-11-04
+updatedAt: 2026-11-06
 kind: concept
 ---
 
@@ -18,7 +18,7 @@ Ids are stable for the life of the resource — never reused, never rewritten on
 
 ## Pagination {#pagination}
 
-On Webhooks, Inboxes and Request Bins, list endpoints accept two query parameters:
+On Webhooks, Inboxes, Request Bins and Transforms, list endpoints accept two query parameters:
 
 - `limit` — page size. Default 50, max 200. Past 200 the request fails validation: `422` `validation_error` ([Errors](/docs/errors#codes-validation)).
 - `offset` — how many items to skip. The response body returns the next value as `next_offset`; pass it back as `offset` to advance.
@@ -76,7 +76,7 @@ A validation failure (`422`) carries `errors` instead, with the failing fields:
 
 There are no error codes here: branch on the status, and don't parse `message`. Every response carries an `X-Request-ID` header; include it when contacting support.
 
-Every error response from Webhooks, Inboxes and Request Bins uses this JSON shape:
+Every error response from Webhooks, Inboxes, Request Bins and Transforms uses this JSON shape:
 
 ```json
 {

@@ -12,7 +12,7 @@ kind: quickstart
 
 ## 1 · Отримайте API-ключ {#key}
 
-**Застосунки: Webhooks, Inboxes, QR-коди та Request Bins.** Відкрийте **API keys** у [консолі акаунта]({{ACCOUNT_BASE_URL}}/api-keys) і створіть ключ для продукту, який хочете викликати. Кожен ключ належить одному продукту. Там само виберіть його область дії: `admin`, `read`, а для Webhooks ще й `publish`. Скопіюйте ключ, щойно він зʼявиться, бо він показується лише один раз. Ключ застосунку — це JWT, тому він починається з `eyJ`.
+**Застосунки: Webhooks, Inboxes, QR-коди, Request Bins і Transforms.** Відкрийте **API keys** у [консолі акаунта]({{ACCOUNT_BASE_URL}}/api-keys) і створіть ключ для продукту, який хочете викликати. Кожен ключ належить одному продукту. Там само виберіть його область дії: `admin`, `read`, а для Webhooks ще й `publish`. Скопіюйте ключ, щойно він зʼявиться, бо він показується лише один раз. Ключ застосунку — це JWT, тому він починається з `eyJ`.
 
 **Інфраструктура: VM, сховище, мережа й DNS.** Створіть ключ у дашборді в розділі **Безпека → API-токени** з областю дії **Адміністрування** і скопіюйте значення з підписом **API-ключ** ([Швидкий старт](/docs/quickstart#api-key)). Він привʼязаний до одного проєкту. Ролі, правила доступу й заміну ключа описано на сторінці [Автентифікація](/docs/authentication).
 
@@ -44,6 +44,7 @@ X-API-Key: <your-api-key>
 | Inboxes | `{{INBOXES_BASE_URL}}/v1` |
 | QR-коди | `{{QR_BASE_URL}}/v1` |
 | Request Bins | `https://bins.nimbusnexus.net/v1` |
+| Transforms | `https://transforms.nimbusnexus.net/v1` |
 | Інфраструктура | `{{API_BASE_URL}}/api/v1` |
 
 ## 3 · Перший виклик {#first-call}
@@ -129,4 +130,4 @@ API інфраструктури відповідає інакше: із `succes
 
 - [Довідник API](/docs/reference): усі операції всіх продуктів із викликом вашою мовою.
 - [SDK](/docs/setup/sdk) і [CLI](/docs/setup/cli): ті самі виклики, але повтори, перевірку підписів і пагінацію вони беруть на себе.
-- Швидкий старт для продуктів: [Webhooks](/docs/product-webhooks/quickstart), [Inboxes](/docs/product-inboxes/quickstart), [Request Bins](/docs/product-bins/quickstart), [ваша перша VM](/docs/quickstart).
+- Швидкий старт для продуктів: [Webhooks](/docs/product-webhooks/quickstart), [Inboxes](/docs/product-inboxes/quickstart), [Request Bins](/docs/product-bins/quickstart), [Transforms](/docs/product-transforms/quickstart), [ваша перша VM](/docs/quickstart).

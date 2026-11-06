@@ -2,7 +2,7 @@
 title: "Convenciones"
 description: "Los patrones que siguen las APIs — ids de recursos, paginación, errores, idempotencia y operaciones de larga duración."
 publishedAt: 2026-05-19
-updatedAt: 2026-11-04
+updatedAt: 2026-11-06
 kind: concept
 ---
 
@@ -18,7 +18,7 @@ Los ids son estables durante toda la vida del recurso — nunca se reutilizan ni
 
 ## Paginación {#pagination}
 
-En Webhooks, Inboxes y Request Bins, los endpoints de listado aceptan dos parámetros de query:
+En Webhooks, Inboxes, Request Bins y Transforms, los endpoints de listado aceptan dos parámetros de query:
 
 - `limit` — tamaño de página. Por defecto 50, máximo 200. Por encima de 200, la petición no supera la validación: `422` `validation_error` ([Errores](/docs/errors#codes-validation)).
 - `offset` — cuántos elementos saltar. El cuerpo de la respuesta devuelve el valor siguiente como `next_offset`; pásalo de vuelta como `offset` para avanzar.
@@ -76,7 +76,7 @@ Un fallo de validación (`422`) lleva `errors` en su lugar, con los campos que f
 
 Aquí no hay códigos de error: decide según el estado y no parsees `message`. Todas las respuestas llevan una cabecera `X-Request-ID`; inclúyela cuando contactes con el soporte.
 
-Todas las respuestas de error de Webhooks, Inboxes y Request Bins usan este formato JSON:
+Todas las respuestas de error de Webhooks, Inboxes, Request Bins y Transforms usan este formato JSON:
 
 ```json
 {

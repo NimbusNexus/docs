@@ -48,6 +48,7 @@ As APIs dos apps não enviam headers `X-RateLimit` e não limitam todas as requi
 - **Webhooks:** a publicação (`POST /v1/events`) segue a taxa de publicação do seu plano, por workspace. Os reenvios de entregas e eventos (`POST /v1/deliveries/{delivery_id}/redeliver`, `POST /v1/deliveries/redeliver`, `POST /v1/deliveries/replay` e `POST /v1/events/{event_id}/replay`) seguem a mesma taxa, com uma contagem própria. Os eventos recebidos em `POST /v1/ingest/{source_id}` são limitados a 600 por minuto por fonte e, depois, à taxa de publicação do seu plano ([O que o provedor vê](/docs/product-webhooks/sources#responses)). Os salvamentos e testes de scripts são limitados a 60 por minuto por workspace ([Transformações](/docs/product-webhooks/transformations#errors)).
 - **Inboxes:** cada caixa de entrada aceita e-mails até um limite por minuto definido pelo seu plano ([Limites por plano](/docs/product-inboxes#limits)).
 - **Request Bins:** um bin pode enviar 10 testes de encaminhamento por minuto ([Testar uma URL de encaminhamento](/docs/product-bins/reference#forward-test)). A URL de um bin aceita 120 requisições por minuto de um mesmo remetente e 600 por minuto no total ([O que a URL de um bin responde](/docs/product-bins/reference#edge-answers)).
+- **Transforms:** as execuções e os testes compartilham o limite de execuções por minuto do seu plano, por workspace ([Planos e limites](/docs/product-transforms/reference#limits)).
 - **Códigos QR:** um workspace pode enviar 10 testes de webhook por minuto.
 
 ## Estratégia de backoff {#backoff}

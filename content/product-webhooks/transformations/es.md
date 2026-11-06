@@ -2,7 +2,7 @@
 title: "Transformaciones"
 description: "Filtra, recorta, adapta o añade credenciales a cada entrega antes de que se firme y se envíe: con una pipeline de pasos declarativos en todos los planes o con un script de JavaScript en los planes de pago."
 publishedAt: 2026-10-30
-updatedAt: 2026-11-03
+updatedAt: 2026-11-06
 kind: concept
 ---
 
@@ -26,7 +26,7 @@ Una transformación cambia lo que recibe un endpoint: se ejecuta con cada evento
 | Dónde se ejecuta | Junto a la entrega, con límites fijos; no se ejecuta código tuyo | En un sandbox propio, con un presupuesto de CPU, memoria y tiempo |
 | Sirve para | Credenciales, filtros, quitar y añadir campos, adaptar el formato, mensajes de chat | Lógica que los pasos no pueden expresar |
 
-Una transformación es una cosa u otra, y su tipo queda fijado al crearla. Un endpoint ejecuta como máximo una transformación; una misma transformación puede servir a varios endpoints de su proyecto.
+Una transformación es una cosa u otra, y su tipo queda fijado al crearla. Un endpoint ejecuta como máximo una transformación; una misma transformación puede servir a varios endpoints de su proyecto. Una pipeline también puede [guardarse en Transforms](#reference) y ejecutarse aquí por referencia.
 
 En Free, crear o probar un script se rechaza con `402 not_entitled`. Un workspace que deja su plan de pago conserva sus scripts y todavía puede renombrarlos, pausarlos, desvincularlos y borrarlos, pero no guardar código nuevo, ni probar ni reanudar ninguno; las entregas a un endpoint que ejecuta uno esperan hasta que el plan vuelva a incluir scripts o hasta que lo desvincules. Las pipelines siguen ejecutándose en cualquier plan.
 
@@ -304,6 +304,42 @@ curl -sX PATCH {{WEBHOOKS_BASE_URL}}/v1/endpoints/ep_3f9a… \
 
 Un script lleva `code` en lugar de `pipeline`; enviar las dos cosas, o ninguna, se rechaza. Para cambiar el documento más adelante, usa `PATCH /v1/transformations/{id}` con una `pipeline` nueva. Si la versión nueva tiene un paso `auth` y hay endpoints que ejecutan la transformación, el `PATCH` también debe llevar `confirm_destinations`: la URL de cada uno de esos endpoints, tal como los lista `destinations` de la transformación, porque las credenciales van a todos. `POST /v1/endpoints` también acepta `transformation_id`, `{"transformation_id": null}` la desvincula, y una transformación de otro proyecto se rechaza como no encontrada. Crear, cambiar y probar transformaciones y secretos requiere una clave `admin`; una clave `read` puede listarlos y leerlos. Una persona, a diferencia de una clave, también necesita el rol de propietario o de administrador para guardar o cambiar un secreto, para guardar una pipeline cuyo paso `auth` hace referencia a uno o para vincular una pipeline así a un endpoint.
 
+## Una pipeline guardada en Transforms {#reference}
+
+Una transformación puede ejecutar una pipeline guardada en [Transforms](/docs/product-transforms) en lugar de tener la suya. Su tipo es `reference`, en todos los planes, y guardamos qué pipeline nombra, no una copia. La pipeline se sigue ejecutando aquí, junto a la entrega, y Transforms no participa en el envío. Las ejecuciones también cuentan aquí, en `transformation_runs`. Las [pruebas](#test), la [pausa](#versions), [lo que muestra una entrega](#deliveries) y el [recuento de fallos](#failures) funcionan como en cualquier pipeline.
+
+La consola no ofrece este tipo. Crea una por la API, en el proyecto del endpoint, y después [apunta el endpoint a ella](#set-up) con `transformation_id`:
+
+```bash
+curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/transformations \
+  -H "Authorization: Bearer $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Paid invoices to the CRM", "project_id": "prj_…",
+       "pipeline_ref": {"id": "pipe_…", "secrets": {"sec_1f0a…": "sec_9c4e…"}}}'
+```
+
+| Campo de `pipeline_ref` | Qué es |
+|---|---|
+| `id` | El `id` de la pipeline en Transforms, que debe ser de este workspace. |
+| `version` | Una versión que fijar. Sin ella sigue la versión actual, y una nueva llega a las entregas en menos de un minuto. |
+| `secrets` | Hasta 20 pares: el id de un [slot](/docs/product-transforms#credentials) que nombra la pipeline y, después, el id de un [secreto](#credentials) de este proyecto. Cada slot que nombra la versión necesita uno, y una pipeline sin paso `auth` no necesita ninguno. |
+
+Transforms no guarda credenciales, así que vienen de esta asignación: cada paso `auth` se ejecuta con el secreto de este proyecto en lugar de su slot. Una referencia que asigna un secreto sigue las reglas de un paso `auth`: una persona necesita el rol de propietario o de administrador para guardarla, una versión nueva debe nombrar todos los endpoints en `confirm_destinations`, y el secreto no se puede borrar mientras la referencia lo asigne. Una pipeline en Transforms es de todo el workspace, así que elegirla requiere una clave o un inicio de sesión que alcance todo el workspace. Una clave o un inicio de sesión limitados a ciertos proyectos se rechazan con `403` `project_confined`, aunque pueden seguir leyendo, renombrando y vinculando lo que ya está guardado.
+
+Para cambiar la pipeline, la versión o los secretos, envía `PATCH /v1/transformations/{id}` con un `pipeline_ref` nuevo, que guarda la siguiente versión de la transformación. Una versión nueva en Transforms no necesita ningún `PATCH`, salvo que la referencia fije una. Para probarla, envía `pipeline_ref` en lugar de `pipeline` a `POST /v1/transformations/test`: ejecuta lo que la referencia ejecuta ahora, con cada credencial enmascarada, incluso mientras la pipeline está desactivada en Transforms. Para una entrega, `GET /v1/deliveries/{id}/transform` añade `pipeline_version`, la versión de la pipeline que se ejecutó, junto a `version`, la de la transformación.
+
+Un evento nunca se envía sin transformar. Cuando la pipeline no puede ejecutarse:
+
+| Qué ha pasado | Qué hace la entrega |
+|---|---|
+| No se puede contactar con Transforms | Una versión ya obtenida se sigue ejecutando. Sin nada en qué basarse, la entrega espera sin gastar ningún intento y vuelve a mirar cada 5 minutos. Aparece como `failed`, con un `last_error` que empieza por `paused:`. |
+| La pipeline está desactivada en Transforms | En menos de un minuto, fije o no la referencia una versión, las entregas esperan de la misma forma, y salen cuando se vuelve a activar. |
+| Se ha borrado la pipeline | La entrega falla con `pipeline_failed: reference_missing: …` y va a la cola dead-letter. |
+| Una versión más reciente nombra un slot que la referencia no asigna | La entrega falla igual con `secret_missing`, que nombra el slot. Asígnalo con un `PATCH`. |
+| Una versión más reciente contiene algo que rechazamos, como una cabecera que enviamos nosotros | La entrega falla igual, con el motivo, como `managed_header`. Guardar en Transforms no comprueba nuestras reglas de cabeceras. |
+
+Cada fallo cuenta en contra de la transformación, como en cualquier pipeline ([Cuando una ejecución falla](#failures)). Transforms lista `webhookd` entre los servicios que ejecutan una pipeline, y para guardar una versión nueva con un paso `auth`, o para borrar la pipeline, hay que nombrarlo antes ([Quién ejecuta una pipeline](/docs/product-transforms/reference#destinations)).
+
 ## Qué muestra una entrega {#deliveries}
 
 Una transformación se ejecuta una vez por entrega, en su primer intento. Lo que produjo se guarda con la entrega, y cada reintento vuelve a enviar ese mismo cuerpo, firmado de nuevo, con las cabeceras del endpoint tal como estén en ese intento. Las credenciales de una pipeline nunca se guardan: cada intento las vuelve a añadir con el valor que tenga el secreto en ese momento. [Volver a entregarla](/docs/product-webhooks/deliveries#replay) ejecuta de nuevo la versión actual de la transformación.
@@ -386,27 +422,33 @@ Una pipeline que nunca podría ejecutarse se rechaza al guardarla o al probarla,
 | `not_json` | Contiene un valor que no es JSON. |
 | `managed_header` | Un paso pone una cabecera que enviamos nosotros: `X-Webhook-*` o `User-Agent`. |
 | `forbidden_header` | Un paso pone una cabecera hop-by-hop o de control, como `Expect`. |
-| `unknown_secret` | Un paso `auth` nombra un secreto que su proyecto no tiene. |
+| `unknown_secret` | Un paso `auth`, o los `secrets` de una referencia, nombran un secreto que su proyecto no tiene. |
+| `unknown_pipeline` | Una [referencia](#reference) nombra una pipeline que este workspace no tiene en Transforms. |
+| `unknown_pipeline_version` | Una referencia fija una versión que Transforms no tiene. |
+| `unbound_secret` | La versión que ejecuta una referencia nombra un slot que sus `secrets` no asignan. |
 
 Los demás rechazos:
 
 | Estado | Código | Cuándo |
 |---|---|---|
-| `422` | `validation_error` | Una transformación enviada con `code` y `pipeline` a la vez o sin ninguno, o un `PATCH` con el campo del otro tipo. |
+| `422` | `validation_error` | Una transformación enviada con más de uno de `code`, `pipeline` y `pipeline_ref` o sin ninguno, o un `PATCH` con el campo de otro tipo. |
 | `402` | `not_entitled` (`feature: transformations`) | Crear un script, guardar código nuevo, reanudar un script o probarlo en un plan sin scripts. |
 | `422` | `invalid_transformation` | Un script que no se carga: `syntax_error`, `no_transform`, `code_too_large` o `load_failed`. |
 | `409` | `conflict` (`transformation_in_use`) | Borrar una transformación que un endpoint todavía ejecuta. Desvincúlala primero. |
 | `409` | `conflict` (`secret_in_use`) | Borrar un secreto que usa la versión actual de una pipeline. Cambia primero la pipeline. |
 | `409` | `conflict` (`destinations_unconfirmed`) | Un `PATCH` que guarda un paso `auth` sin nombrar en `confirm_destinations` todos los endpoints que ejecutan la transformación. `details.destinations` lista sus URL, y no se guarda nada. |
 | `403` | `forbidden` (`role`) | Un miembro que guarda o cambia un secreto, guarda una pipeline cuyo paso `auth` hace referencia a uno o vincula una pipeline así a un endpoint. |
+| `403` | `forbidden` (`project_confined`) | Una clave o un inicio de sesión limitados a ciertos proyectos que eligen o prueban una pipeline de Transforms. |
 | `404` | `not_found` (`transformation`, `transformation_version`, `secret`) | No existe, esa versión ya no se guarda, o un endpoint nombra una transformación de otro proyecto. |
 | `429` | `rate_limited` | Se han superado los 60 guardados y pruebas de scripts por minuto por workspace. |
 | `503` | `unavailable` (`transform`) | El sandbox no pudo ejecutar el script en ese momento. No se guardó nada; vuelve a intentarlo. |
+| `503` | `unavailable` (`transforms`) | No se pudo consultar a Transforms sobre la pipeline de una referencia. No se guardó nada; vuelve a intentarlo. |
 
 ## Próximos pasos {#next-steps}
 
 - [Slack, Teams y Discord](/docs/product-webhooks/chat-apps) — consigue la URL de webhook de un canal y envíale eventos.
 - [Entregas y reintentos](/docs/product-webhooks/deliveries) — estados, reintentos y cómo volver a enviar.
 - [Verificación de endpoints](/docs/product-webhooks/endpoint-verification) — el desafío, y los receptores que no pueden responderlo.
+- [Transforms](/docs/product-transforms) — crea, versiona y prueba pipelines en un solo sitio, y ejecútalas aquí por referencia.
 - [API de Webhooks](/docs/reference/webhooks) — todas las rutas, entre ellas `/v1/transformations` y `/v1/secrets`.
 - [Resumen de Webhooks](/docs/product-webhooks) — eventos, endpoints y suscripciones.

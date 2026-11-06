@@ -12,7 +12,7 @@ A NimbusNexus tem dois tipos de API, e eles paginam as listas de formas diferent
 
 ## As APIs dos apps {#shape}
 
-No Webhooks, no Inboxes e no Request Bins, a maioria dos endpoints de listagem aceita dois parâmetros de query:
+No Webhooks, no Inboxes, no Request Bins e no Transforms, a maioria dos endpoints de listagem aceita dois parâmetros de query:
 
 - `limit` — tamanho de página. Padrão 50, máximo 200. Acima de 200, a requisição falha na validação: `422` `validation_error` ([Erros](/docs/errors#codes-validation)).
 - `offset` — quantos itens pular. Padrão 0, máximo 10.000.

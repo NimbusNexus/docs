@@ -12,7 +12,7 @@ NimbusNexus a deux types d’API, et elles ne paginent pas leurs listes de la m�
 
 ## Les API des apps {#shape}
 
-Sur Webhooks, Inboxes et Request Bins, la plupart des listes acceptent deux paramètres de requête :
+Sur Webhooks, Inboxes, Request Bins et Transforms, la plupart des listes acceptent deux paramètres de requête :
 
 - `limit` — taille de page. 50 par défaut, 200 au maximum. Au-delà de 200, la requête échoue à la validation : `422` `validation_error` ([Erreurs](/docs/errors#codes-validation)).
 - `offset` — le nombre d’éléments à ignorer. 0 par défaut, 10,000 au maximum.

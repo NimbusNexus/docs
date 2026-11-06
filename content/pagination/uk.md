@@ -12,7 +12,7 @@ NimbusNexus має два види API, і вони по-різному розб
 
 ## API застосунків {#shape}
 
-Більшість ендпоінтів списків у Webhooks, Inboxes і Request Bins приймають два параметри query:
+Більшість ендпоінтів списків у Webhooks, Inboxes, Request Bins і Transforms приймають два параметри query:
 
 - `limit` — розмір сторінки. За замовчуванням 50, максимум 200. Понад 200 запит не проходить валідацію: `422` `validation_error` ([Помилки](/docs/errors#codes-validation)).
 - `offset` — скільки елементів пропустити. За замовчуванням 0, максимум 10 000.
