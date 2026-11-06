@@ -63,6 +63,7 @@ Wo eine Pipeline läuft, sehen Sie im Voraus. Beim Lesen einer Pipeline werden d
 
 | | Free | Starter | Pro | Custom |
 | --- | --- | --- | --- | --- |
+| Preis | $0 | $9 pro Monat oder $86,40 pro Jahr | $29 pro Monat oder $278,40 pro Jahr | nach Vertrag |
 | Pipelines | 5 | 25 | 100 | 1,000 |
 | Credential-Slots | 5 | 25 | 100 | 1,000 |
 | Aufbewahrte Versionen pro Pipeline | 10 | 25 | 50 | 100 |

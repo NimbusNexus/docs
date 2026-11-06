@@ -63,6 +63,7 @@ Vous voyez d’abord où s’exécute un pipeline. La lecture d’un pipeline li
 
 | | Free | Starter | Pro | Custom |
 | --- | --- | --- | --- | --- |
+| Prix | $0 | $9 par mois, ou $86.40 par an | $29 par mois, ou $278.40 par an | sur contrat |
 | Pipelines | 5 | 25 | 100 | 1,000 |
 | Emplacements de justificatifs | 5 | 25 | 100 | 1,000 |
 | Versions conservées par pipeline | 10 | 25 | 50 | 100 |

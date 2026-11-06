@@ -63,6 +63,7 @@ Onde um pipeline roda aparece primeiro. A leitura de um pipeline lista os produt
 
 | | Free | Starter | Pro | Custom |
 | --- | --- | --- | --- | --- |
+| Preço | $0 | $9 por mês, ou $86,40 por ano | $29 por mês, ou $278,40 por ano | por contrato |
 | Pipelines | 5 | 25 | 100 | 1,000 |
 | Slots de credencial | 5 | 25 | 100 | 1,000 |
 | Versões mantidas por pipeline | 10 | 25 | 50 | 100 |

@@ -63,6 +63,7 @@ Where a pipeline runs shows first. A read of a pipeline lists the products that 
 
 | | Free | Starter | Pro | Custom |
 | --- | --- | --- | --- | --- |
+| Price | $0 | $9 a month, or $86.40 a year | $29 a month, or $278.40 a year | by contract |
 | Pipelines | 5 | 25 | 100 | 1,000 |
 | Credential slots | 5 | 25 | 100 | 1,000 |
 | Versions kept per pipeline | 10 | 25 | 50 | 100 |

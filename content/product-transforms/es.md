@@ -63,6 +63,7 @@ Primero se ve dónde se ejecuta una pipeline. Al leerla se listan los productos 
 
 | | Free | Starter | Pro | Custom |
 | --- | --- | --- | --- | --- |
+| Precio | $0 | $9 al mes, o $86.40 al año | $29 al mes, o $278.40 al año | por contrato |
 | Pipelines | 5 | 25 | 100 | 1,000 |
 | Slots de credenciales | 5 | 25 | 100 | 1,000 |
 | Versiones guardadas por pipeline | 10 | 25 | 50 | 100 |
