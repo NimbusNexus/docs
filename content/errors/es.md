@@ -2,13 +2,13 @@
 title: "Errores"
 description: "El formato de los errores, los códigos de error que envían las APIs de Webhooks, Inboxes, Request Bins y Transforms, y cómo tratar cada uno."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
 # Errores
 
-Todas las respuestas de error de las APIs de Webhooks, Inboxes, Request Bins y Transforms usan el mismo formato JSON. Para tratar cada caso, decide según `error.code`, o según `error.next_code` cuando el error lo lleve. No parsees `message` ni decidas solo por el estado: un mismo estado puede llevar varios códigos, y en todas las APIs el `402` lleva cuatro.
+Todas las respuestas de error de las APIs de Webhooks, Inboxes, Request Bins y Transforms usan el mismo formato JSON. Para tratar cada caso, decide según `error.code`, o según `error.next_code` cuando el error lo lleve. No parsees `message` ni decidas solo por el estado: un mismo estado puede llevar varios códigos, y el `402` lleva cuatro en Webhooks, Inboxes y Request Bins, y tres en Transforms.
 
 > **Actualizado el 2026-10-16.** En Webhooks, un nombre de cabecera personalizada que es un token HTTP válido con un salto de línea al final ahora se rechaza como cualquier otro nombre que no sea un token HTTP válido: `webhooks.custom_header_name_invalid`, con el `msg` de esa regla y sin `params` ([Validación de peticiones](#codes-validation)). Antes, el salto de línea pasaba la comprobación de token y el nombre se rechazaba como carácter de control, con `params.header`: como `webhooks.custom_header_control_character` desde el 2026-10-15, y como `value_error` antes de esa fecha. La petición sigue siendo un `422` `validation_error`, y no ha cambiado nada más.
 >
@@ -228,8 +228,8 @@ Transforms envía los mismos códigos que Request Bins en las mismas situaciones
 | `code` | Estado | Qué es |
 |---|---|---|
 | `invalid_pipeline` | 422 | Una pipeline que nunca podría ejecutarse, al guardarla o al probarla. `details.reason`, `details.path` y `details.step` indican el primer problema ([Pipelines no válidas](/docs/product-transforms/reference#invalid-pipeline)). |
-| `conflict` | 409 | `details.reason` es `pipeline_disabled`, para la ejecución de una pipeline que has desactivado, con `details.id`; o `destinations_unconfirmed`, para una versión nueva con un paso `auth` o un borrado que no nombra a todos los productos que ejecutan la pipeline, con `details.id` y `details.destinations` ([Quién ejecuta una pipeline](/docs/product-transforms/reference#destinations)). |
-| `rate_limited` | 429 | Se han superado las ejecuciones por minuto del plan. `details.retry_after` indica cuántos segundos hay que esperar. |
+| `conflict` | 409 | `details.reason` es `pipeline_disabled`, para la ejecución de una pipeline que has desactivado, con `details.id`; `destinations_unconfirmed`, para una versión nueva con un paso `auth` o un borrado que no nombra a todos los productos que ejecutan la pipeline, con `details.id` y `details.destinations` ([Quién ejecuta una pipeline](/docs/product-transforms/reference#destinations)); o `slot_in_use`, para el borrado de un slot que nombra la versión actual de una pipeline, con `details.id` y `details.pipelines`, el número de pipelines ([Slots de credenciales](/docs/product-transforms/reference#slots)). |
+| `rate_limited` | 429 | Se han superado las ejecuciones por minuto del plan, o el workspace tiene demasiadas ejecuciones o pruebas en curso a la vez ([Planes y límites](/docs/product-transforms/reference#limits)). `details.retry_after` indica cuántos segundos hay que esperar. |
 
 ### Plan y facturación {#codes-plan}
 
@@ -239,7 +239,8 @@ Todos estos códigos son `402`. Reintentar la misma petición nunca sirve: algui
 |---|---|---|
 | `quota_exceeded` | Ambas | Se ha superado un límite del plan: una asignación (Inboxes: direcciones; Webhooks: endpoints) o un tope mensual (Inboxes: mensajes; Webhooks: entregas), en cuyo caso esperas al siguiente periodo o subes de plan. En las dos APIs, `details.reason` dice cuál, y `details` indica `metric`, su `limit` y, para una asignación, el recuento `current`. |
 | `quota_exceeded` | Request Bins | Se ha superado el límite de bins del plan, al crear uno. `details.reason` es `allocation`, y `details` indica `metric` (`bins`), su `limit` y el recuento `current`. El límite mensual de peticiones nunca rechaza una llamada a la API: una vez superado, los bins responden a sus emisores y no registran nada hasta que el [crédito](/docs/product-bins/reference#credit) compra más o empieza el mes siguiente. |
-| `not_entitled` | Todas | La función no está en tu plan, como la API de lectura en el plan gratuito de Inboxes, leer peticiones capturadas con una clave de API en el plan Free de Request Bins o una fuente de RabbitMQ en un plan inferior a Pro en Webhooks. `details.feature` la nombra. |
+| `quota_exceeded` | Transforms | Se ha superado el límite de pipelines del plan, al crear una (`POST /v1/pipelines`), o el de slots de credenciales, al añadir uno (`POST /v1/slots`). `details.reason` es `allocation`, y `details` indica `metric` (`pipelines` o `slots`), su `limit` y el recuento `current`. |
+| `not_entitled` | Webhooks, Inboxes, Request Bins | La función no está en tu plan, como la API de lectura en el plan gratuito de Inboxes, leer peticiones capturadas con una clave de API en el plan Free de Request Bins o una fuente de RabbitMQ en un plan inferior a Pro en Webhooks. `details.feature` la nombra. |
 | `workspace_frozen` | Todas | Hay un cargo sin saldar, así que se rechazan los cambios. Sáldalo en la consola de tu cuenta; subir de plan también se rechaza hasta que lo hagas. |
 | `workspace_suspended` | Todas | El periodo de gracia tras un cargo sin saldar ha terminado y el servicio se ha detenido para este workspace. |
 

@@ -2,7 +2,7 @@
 title: "Pipelines"
 description: "As etapas de um pipeline, os caminhos, valores e filtros dele, os templates para começar e os limites de uma execução."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -187,10 +187,10 @@ Um pipeline não tem loops, relógio nem rede, e limites fixos restringem cada e
 | O corpo com que uma execução responde | 256 KiB | `output_too_large` |
 | Um valor gerado por uma etapa | 64 KiB | `value_too_large` |
 | Trabalho em uma execução | 100,000 valores lidos ou copiados; texto conta um a cada 128 caracteres | `too_many_nodes` |
-| Headers no fim de uma execução | 50 | `too_many_headers` |
-| Um valor de header | 8 KiB | `header_too_large` |
+| Headers após cada etapa | 50, ou tantos quantos a requisição trouxer, se forem mais | `too_many_headers` |
+| Um valor de header | 8 KiB | `header_too_large` em uma execução, para um valor com uma expressão; `invalid_header` ao salvar, para um sem expressão |
 
-O playground tem limites menores: um documento de 16 KiB, um corpo de 32 KiB e 10,000 valores lidos ou copiados em uma execução.
+O playground tem limites menores: um documento de 16 KiB, um corpo de 32 KiB, 16 KiB para um valor gerado por uma etapa, 20 headers, 1 KiB para um valor de header e 10,000 valores lidos ou copiados em uma execução.
 
 ## Próximos passos {#next-steps}
 

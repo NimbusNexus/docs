@@ -2,7 +2,7 @@
 title: "Transforms"
 description: "Des pipelines déclaratifs qui filtrent, allègent et remodèlent une requête. Construisez-les, versionnez-les et testez-les en un seul endroit, puis exécutez-les via l’API ou par référence depuis le produit qui envoie."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -71,7 +71,7 @@ Vous voyez d’abord où s’exécute un pipeline. La lecture d’un pipeline li
 
 Les six étapes, les modèles, Test, l’API d’exécution et l’exécution par référence sont disponibles sur tous les plans, Free compris.
 
-Les exécutions sont comptées, pas facturées. `GET /v1/usage` montre celles du mois. Au-delà du débit du plan, que Test partage, une exécution répond `429` `rate_limited`, avec le temps à attendre. Une exécution dans un produit qui fait référence au pipeline compte dans la consommation de ce produit. Une version qu’un produit fige, ou qu’un produit a été vu exécuter au cours des 30 derniers jours, est conservée au-delà du nombre prévu par le plan.
+Les exécutions sont comptées, pas facturées. `GET /v1/usage` montre celles du mois. Au-delà du débit du plan, que Test partage, ou avec [trop d’exécutions ou de tests de l’espace de travail en cours en même temps](/docs/product-transforms/reference#limits), une exécution répond `429` `rate_limited`, avec le temps à attendre. Une exécution dans un produit qui fait référence au pipeline compte dans la consommation de ce produit. Une version qu’un produit fige est conservée au-delà du nombre prévu par le plan, tout comme les cinq versions antérieures qu’un produit a été vu exécuter le plus récemment au cours des 30 derniers jours.
 
 ## Obtenir l’accès {#access}
 
@@ -93,5 +93,6 @@ Choisissez sa permission à la création : **Read** lit et exécute les pipeline
 - [Démarrage rapide](/docs/product-transforms/quickstart) — tester un pipeline, l’enregistrer, l’exécuter et enregistrer une nouvelle version.
 - [Pipelines](/docs/product-transforms/pipelines) — toutes les étapes, tous les chemins, filtres et modèles, et les plafonds d’une exécution.
 - [Référence Transforms](/docs/product-transforms/reference) — chaque route et chaque champ, rôles, limites et erreurs.
+- [API Transforms](/docs/reference/transforms) — chaque opération, avec la requête en curl, TypeScript, Python ou Go.
 - [L’exécuter depuis Webhooks](/docs/product-webhooks/transformations#reference) — associer ses emplacements à des secrets et l’attacher à un endpoint.
 - [Playground](/transforms/playground) — exécuter un pipeline d’exemple sans compte.

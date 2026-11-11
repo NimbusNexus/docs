@@ -2,7 +2,7 @@
 title: "Transformations"
 description: "Filtrez, allégez, remodelez chaque livraison ou ajoutez-y des justificatifs d’identité avant sa signature et son envoi : avec un pipeline d’étapes déclaratives sur tous les plans, ou un script JavaScript sur les plans payants."
 publishedAt: 2026-10-30
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -332,8 +332,8 @@ Un événement n’est jamais envoyé sans transformation. Quand le pipeline ne 
 
 | Ce qui s’est passé | Ce que fait la livraison |
 |---|---|
-| Transforms est injoignable | Une version déjà récupérée continue de s’exécuter. Sans rien sur quoi s’appuyer, la livraison attend sans consommer de tentative et regarde à nouveau toutes les 5 minutes. Elle apparaît comme `failed`, avec un `last_error` qui commence par `paused:`. |
-| Le pipeline est désactivé dans Transforms | En moins d’une minute, que la référence fige une version ou non, les livraisons attendent de la même façon, et partent dès qu’il est réactivé. |
+| Transforms est injoignable | Une version déjà récupérée continue de s’exécuter. Sans rien sur quoi s’appuyer, la livraison attend sans consommer de tentative et regarde à nouveau après un quart du temps qu’elle a déjà attendu, au moins 5 minutes et au plus une heure. Elle apparaît comme `failed`, avec un `last_error` qui commence par `paused:`. Au bout de 7 jours d’attente, ou un jour avant que son événement ne soit supprimé à la fin de la [rétention](/docs/product-webhooks/deliveries#retention) si cela arrive plus tôt, elle part dans la dead-letter queue avec `pipeline_failed:` et la raison de son attente, sans être imputée à la transformation. |
+| Le pipeline est désactivé dans Transforms | En moins d’une minute, que la référence fige une version ou non, les livraisons attendent de la même façon. Une fois qu’il est réactivé depuis une minute, celles qui attendent encore partent dès qu’elles regardent à nouveau. |
 | Le pipeline a été supprimé | La livraison échoue avec `pipeline_failed: reference_missing: …` et part dans la dead-letter queue. |
 | Une version plus récente nomme un emplacement que la référence n’associe pas | La livraison échoue de la même façon avec `secret_missing`, qui nomme l’emplacement. Associez-le avec un `PATCH`. |
 | Une version plus récente contient ce que nous refusons, comme un header que nous envoyons nous-mêmes | La livraison échoue de la même façon, avec la raison, comme `managed_header`. Un enregistrement dans Transforms ne vérifie pas nos règles de headers. |

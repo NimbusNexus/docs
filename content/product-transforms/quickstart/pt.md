@@ -2,7 +2,7 @@
 title: "Início rápido de Transforms"
 description: "Teste um pipeline em uma requisição, salve-o, execute-o, veja uma requisição ser descartada e salve uma nova versão, tudo pela API."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: quickstart
 ---
 
@@ -211,4 +211,5 @@ A exclusão é **permanente**, para o pipeline e para todas as versões dele. Pa
 
 - [Pipelines](/docs/product-transforms/pipelines) — todas as etapas, caminhos, filtros e templates.
 - [Referência de Transforms](/docs/product-transforms/reference) — todas as rotas e campos, funções, limites e erros.
+- [API de Transforms](/docs/reference/transforms) — todas as operações, com a requisição em curl, TypeScript, Python ou Go.
 - [Visão geral do produto](/docs/product-transforms) — credenciais, planos e o que o Transforms não faz.

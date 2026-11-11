@@ -2,7 +2,7 @@
 title: "Inicio rápido de Transforms"
 description: "Prueba una pipeline con una petición, guárdala, ejecútala, mira cómo se descarta una petición y guarda una versión nueva, por la API."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: quickstart
 ---
 
@@ -211,4 +211,5 @@ Borrar es **permanente**, para la pipeline y para todas sus versiones. Para que 
 
 - [Pipelines](/docs/product-transforms/pipelines) — todos los pasos, rutas, filtros y plantillas.
 - [Referencia de Transforms](/docs/product-transforms/reference) — todas las rutas y campos, roles, límites y errores.
+- [API de Transforms](/docs/reference/transforms) — todas las operaciones, con la petición en curl, TypeScript, Python o Go.
 - [Resumen del producto](/docs/product-transforms) — credenciales, planes y lo que no hace Transforms.

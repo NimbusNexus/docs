@@ -2,7 +2,7 @@
 title: "Référence Transforms"
 description: "Chaque route de l’API Transforms, les objets pipeline et exécution, qui peut faire quoi, les limites de chaque plan et les erreurs."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: reference
 ---
 
@@ -33,7 +33,7 @@ L’API à `https://transforms.nimbusnexus.net/v1` crée, versionne, teste et ex
 
 **read**, **write** et **admin** sont expliqués dans [Qui peut faire quoi](#authority).
 
-Les listes sont paginées avec `limit` (de 1 à 200, 50 par défaut) et `offset` (de 0 à 10,000). La réponse est `{"items": [...], "next_offset": <offset>}` : renvoyez `next_offset` comme `offset` pour obtenir la page suivante. Il vaut `null` sur la dernière page.
+Les listes sont paginées avec `limit` (de 1 à 200, 50 par défaut) et `offset` (de 0 à 10,000). La réponse est `{"items": [...], "next_offset": <offset>}` : renvoyez `next_offset` comme `offset` pour obtenir la page suivante. Il vaut `null` sur la dernière page. `GET /v1/pipelines/templates` fait exception : cette route ne prend ni `limit` ni `offset` et répond avec tous les modèles dans un seul tableau simple.
 
 ## L’objet pipeline {#pipeline}
 
@@ -57,7 +57,7 @@ Les listes sont paginées avec `limit` (de 1 à 200, 50 par défaut) et `offset`
 - Une version ne change jamais : un produit peut donc conserver sa copie par identifiant et par version.
 - Enregistrer le même contenu n’ajoute aucune version.
 - Restaurer une ancienne version revient à enregistrer de nouveau son contenu, ce qui en fait la plus récente.
-- Les versions conservées sont celles que prévoit le plan, les plus récentes d’abord, et un enregistrement retire les plus anciennes au-delà. Une version qu’un produit fige, ou qu’un produit a été vu exécuter au cours des 30 derniers jours, est également conservée.
+- Les versions conservées sont celles que prévoit le plan, les plus récentes d’abord, et un enregistrement retire les plus anciennes au-delà. Une version qu’un produit fige est également conservée, tout comme les cinq versions antérieures qu’un produit a été vu exécuter le plus récemment au cours des 30 derniers jours.
 
 Chaque version dans `GET /v1/pipelines/{id}/versions` a `version`, `created_by` et `created_at` ; `GET /v1/pipelines/{id}/versions/{version}` y ajoute son `pipeline`. Une version qui n’est plus conservée répond `404` `not_found`, `pipeline_version`.
 
@@ -87,7 +87,7 @@ Rien de la requête n’est conservé, et l’exécution est comptée. La répon
 | `error` | La même chose en toutes lettres, comme `step 2: set_conflict: …`. |
 | `duration_ms` | La durée de l’exécution. |
 
-Le même pipeline échoue de la même façon sur la même requête : ne réessayez donc pas un `failed`. Un pipeline désactivé répond `409` `conflict`, `pipeline_disabled`, et au-delà du débit du plan, une exécution répond `429` `rate_limited`, avec `details.retry_after`.
+Le même pipeline échoue de la même façon sur la même requête : ne réessayez donc pas un `failed`. Un pipeline désactivé répond `409` `conflict`, `pipeline_disabled`, et au-delà du débit du plan, ou avec trop d’exécutions ou de tests de l’espace de travail en cours à la fois, une exécution répond `429` `rate_limited`, avec `details.retry_after`.
 
 ## Tester un document {#test}
 
@@ -137,7 +137,7 @@ Transforms sert des espaces de travail entiers. Un siège invité, ou une clé l
 | `max_versions` | Versions conservées par pipeline | 10 | 25 | 50 | 100 |
 | `run_rate_per_min` | Exécutions et tests par minute, par espace de travail | 60 | 600 | 3,000 | 12,000 |
 
-Jusqu’à l’équivalent de dix secondes d’exécutions, et au moins 10 exécutions, peuvent arriver d’un coup. `GET /v1/usage` indique ce qui est utilisé : `period`, le mois, sous la forme de son premier jour ; `runs`, `failures` et `dropped` de ce mois, via l’API d’exécution ; `pipelines`, à comparer à `max_pipelines` ; et `slots`, les emplacements détenus, à comparer à `max_secret_slots`. Les exécutions sont comptées, pas facturées, et une exécution dans un produit qui fait référence au pipeline compte dans la consommation de ce produit.
+Jusqu’à l’équivalent de dix secondes d’exécutions, et au moins 10 exécutions, peuvent arriver coup sur coup. Un espace de travail a en outre au plus deux exécutions ou tests en cours à la fois dans chaque processus serveur, et un de plus n’est pas mis en file d’attente mais refusé, avec `429` `rate_limited` et `details.retry_after` 1. `GET /v1/usage` indique ce qui est utilisé : `period`, le mois, sous la forme de son premier jour ; `runs`, `failures` et `dropped` de ce mois, via l’API d’exécution ; `pipelines`, à comparer à `max_pipelines` ; et `slots`, les emplacements détenus, à comparer à `max_secret_slots`. Les exécutions sont comptées, pas facturées, et une exécution dans un produit qui fait référence au pipeline compte dans la consommation de ce produit.
 
 Tant qu’un impayé n’est pas réglé, les modifications sont refusées avec `402` `workspace_frozen`, et les exécutions et les tests continuent. Une fois le délai de grâce écoulé, les exécutions et les tests sont refusés à leur tour, avec `402` `workspace_suspended`. Les lectures et les suppressions restent possibles.
 
@@ -159,7 +159,7 @@ Les erreurs de l’API suivent le format décrit dans [Erreurs](/docs/errors).
 | `413` | `payload_too_large` | Un corps de requête de plus de 1 MiB. |
 | `422` | `invalid_pipeline` | Un pipeline qui ne pourrait jamais s’exécuter, à l’enregistrement ou au test. |
 | `422` | `validation_error` | Un paramètre ou un champ n’a pas passé la validation. Un caractère NUL dans le chemin, la query string ou un corps JSON donne le type d’entrée `transforms.nul_character`. |
-| `429` | `rate_limited` | Au-delà des exécutions par minute du plan ; `details.retry_after` indique quand réessayer. |
+| `429` | `rate_limited` | Au-delà des exécutions par minute du plan, ou avec trop d’exécutions ou de tests de l’espace de travail en cours à la fois ([Plans et limites](#limits)) ; `details.retry_after` indique quand réessayer. |
 | `500` | `internal_error` | Une panne de notre côté. |
 
 ### Pipelines non valides {#invalid-pipeline}
@@ -198,4 +198,5 @@ Traitez `reason` comme une chaîne ouverte, et prévoyez un cas par défaut pour
 
 - [Démarrage rapide](/docs/product-transforms/quickstart) — tester un pipeline, l’enregistrer et l’exécuter.
 - [Pipelines](/docs/product-transforms/pipelines) — toutes les étapes, tous les chemins, filtres et modèles.
+- [API Transforms](/docs/reference/transforms) — chaque opération, avec la requête en curl, TypeScript, Python ou Go.
 - [Erreurs](/docs/errors) — le format d’erreur, chaque clé de `details` et une façon de les traiter.

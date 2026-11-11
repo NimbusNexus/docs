@@ -2,7 +2,7 @@
 title: Transforms quickstart
 description: Test a pipeline on a request, save it, run it, see a request dropped, and save a new version, over the API.
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: quickstart
 ---
 
@@ -211,4 +211,5 @@ Deleting is **permanent**, for the pipeline and every version. To stop it runnin
 
 - [Pipelines](/docs/product-transforms/pipelines) — every step, path, filter and template.
 - [Transforms reference](/docs/product-transforms/reference) — every route and field, roles, limits and errors.
+- [Transforms API](/docs/reference/transforms) — every operation, with the request in curl, TypeScript, Python or Go.
 - [Product overview](/docs/product-transforms) — credentials, plans, and what Transforms does not do.

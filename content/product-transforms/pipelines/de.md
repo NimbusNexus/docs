@@ -2,7 +2,7 @@
 title: "Pipelines"
 description: "Die Schritte einer Pipeline, ihre Pfade, Werte und Filter, die Vorlagen als Ausgangspunkt und die Obergrenzen einer Ausführung."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -187,10 +187,10 @@ Eine Pipeline hat keine Schleifen, keine Uhr und kein Netzwerk, und feste Obergr
 | Der Body, mit dem eine Ausführung antwortet | 256 KiB | `output_too_large` |
 | Ein Wert, den ein Schritt erzeugt | 64 KiB | `value_too_large` |
 | Arbeit in einer Ausführung | 100,000 gelesene oder kopierte Werte, Text zählt einen pro 128 Zeichen | `too_many_nodes` |
-| Header am Ende einer Ausführung | 50 | `too_many_headers` |
-| Ein Header-Wert | 8 KiB | `header_too_large` |
+| Header nach jedem Schritt | 50, oder so viele, wie der Request mitbringt, falls es mehr sind | `too_many_headers` |
+| Ein Header-Wert | 8 KiB | `header_too_large` in einer Ausführung, für einen Wert mit einem Ausdruck; `invalid_header` beim Speichern, für einen ohne |
 
-Der Playground hat niedrigere Obergrenzen: ein Dokument von 16 KiB, ein Body von 32 KiB und 10,000 gelesene oder kopierte Werte in einer Ausführung.
+Der Playground hat niedrigere Obergrenzen: ein Dokument von 16 KiB, ein Body von 32 KiB, 16 KiB für einen Wert, den ein Schritt erzeugt, 20 Header, 1 KiB für einen Header-Wert und 10,000 gelesene oder kopierte Werte in einer Ausführung.
 
 ## Nächste Schritte {#next-steps}
 

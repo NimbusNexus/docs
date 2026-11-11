@@ -2,7 +2,7 @@
 title: "Schnellstart für Transforms"
 description: "Eine Pipeline mit einem Request testen, speichern und ausführen, einen verworfenen Request sehen und eine neue Version speichern, alles über die API."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: quickstart
 ---
 
@@ -211,4 +211,5 @@ Löschen ist **endgültig**, für die Pipeline und jede Version. Um sie stattdes
 
 - [Pipelines](/docs/product-transforms/pipelines) — jeder Schritt, Pfad und Filter und jede Vorlage.
 - [Referenz für Transforms](/docs/product-transforms/reference) — jede Route und jedes Feld, Rollen, Limits und Fehler.
+- [Transforms-API](/docs/reference/transforms) — jede Operation, mit dem Request in curl, TypeScript, Python oder Go.
 - [Produktüberblick](/docs/product-transforms) — Credentials, Tarife und was Transforms nicht tut.

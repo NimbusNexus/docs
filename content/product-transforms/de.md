@@ -2,7 +2,7 @@
 title: "Transforms"
 description: "Deklarative Pipelines, die einen Request filtern, kürzen und umformen. Bauen, versionieren und testen Sie sie an einem Ort, und führen Sie sie dann über die API aus oder per Referenz in dem Produkt, das sendet."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -71,7 +71,7 @@ Wo eine Pipeline läuft, sehen Sie im Voraus. Beim Lesen einer Pipeline werden d
 
 Alle sechs Schritte, die Vorlagen, der Test, die Ausführungs-API und das Ausführen per Referenz sind in jedem Tarif enthalten, Free eingeschlossen.
 
-Ausführungen werden gezählt, nicht abgerechnet. `GET /v1/usage` zeigt die des Monats. Über der Rate des Tarifs, die sich Ausführungen und Tests teilen, antwortet eine Ausführung mit `429` `rate_limited` und nennt die Wartezeit. Eine Ausführung in einem Produkt, das auf die Pipeline verweist, zählt zum Verbrauch dieses Produkts. Eine Version, die ein Produkt festschreibt oder die wir in den letzten 30 Tagen bei einem Produkt im Einsatz gesehen haben, wird über die Zahl des Tarifs hinaus aufbewahrt.
+Ausführungen werden gezählt, nicht abgerechnet. `GET /v1/usage` zeigt die des Monats. Über der Rate des Tarifs, die sich Ausführungen und Tests teilen, oder wenn [zu viele Ausführungen oder Tests des Workspaces gleichzeitig laufen](/docs/product-transforms/reference#limits), antwortet eine Ausführung mit `429` `rate_limited` und nennt die Wartezeit. Eine Ausführung in einem Produkt, das auf die Pipeline verweist, zählt zum Verbrauch dieses Produkts. Eine Version, die ein Produkt festschreibt, wird über die Zahl des Tarifs hinaus aufbewahrt, und ebenso die fünf älteren Versionen, die wir in den letzten 30 Tagen zuletzt bei einem Produkt im Einsatz gesehen haben.
 
 ## Zugang erhalten {#access}
 
@@ -93,5 +93,6 @@ Wählen Sie beim Erstellen seine Berechtigung: **Read** liest Pipelines und füh
 - [Schnellstart](/docs/product-transforms/quickstart) — eine Pipeline testen, speichern, ausführen und eine neue Version speichern.
 - [Pipelines](/docs/product-transforms/pipelines) — jeder Schritt, Pfad und Filter, jede Vorlage und die Obergrenzen einer Ausführung.
 - [Referenz für Transforms](/docs/product-transforms/reference) — jede Route und jedes Feld, Rollen, Limits und Fehler.
+- [Transforms-API](/docs/reference/transforms) — jede Operation, mit dem Request in curl, TypeScript, Python oder Go.
 - [Aus Webhooks ausführen](/docs/product-webhooks/transformations#reference) — die Slots Secrets zuordnen und die Pipeline mit einem Endpoint verknüpfen.
 - [Playground](/transforms/playground) — eine Beispiel-Pipeline ohne Konto ausführen.

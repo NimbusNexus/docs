@@ -2,7 +2,7 @@
 title: "Referência de Transforms"
 description: "Todas as rotas da API de Transforms, os objetos de pipeline e de execução, quem pode fazer o quê, os limites de cada plano e os erros."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: reference
 ---
 
@@ -33,7 +33,7 @@ A API em `https://transforms.nimbusnexus.net/v1` cria, versiona, testa e executa
 
 **read**, **write** e **admin** são explicados em [Quem pode fazer o quê](#authority).
 
-As listas são paginadas com `limit` (de 1 a 200, padrão 50) e `offset` (de 0 a 10,000). A resposta é `{"items": [...], "next_offset": <offset>}`: passe `next_offset` de volta como `offset` para obter a próxima página. Ele é `null` na última página.
+As listas são paginadas com `limit` (de 1 a 200, padrão 50) e `offset` (de 0 a 10,000). A resposta é `{"items": [...], "next_offset": <offset>}`: passe `next_offset` de volta como `offset` para obter a próxima página. Ele é `null` na última página. `GET /v1/pipelines/templates` é a exceção: essa rota não recebe `limit` nem `offset` e responde com todos os templates em um único array simples.
 
 ## O objeto pipeline {#pipeline}
 
@@ -57,7 +57,7 @@ As listas são paginadas com `limit` (de 1 a 200, padrão 50) e `offset` (de 0 a
 - Uma versão nunca muda, então um produto pode guardar a própria cópia pelo id e pela versão.
 - Salvar o mesmo conteúdo não adiciona nenhuma versão.
 - Restaurar uma versão antiga é salvar o conteúdo dela de novo, o que faz dele a versão mais recente.
-- As versões do plano são mantidas, começando pelas mais recentes, e um salvamento remove as mais antigas além desse número. Uma versão que um produto fixa, ou que foi visto executando nos últimos 30 dias, também é mantida.
+- As versões do plano são mantidas, começando pelas mais recentes, e um salvamento remove as mais antigas além desse número. Uma versão que um produto fixa também é mantida, assim como as cinco versões anteriores que um produto foi visto executando mais recentemente nos últimos 30 dias.
 
 Cada versão em `GET /v1/pipelines/{id}/versions` tem `version`, `created_by` e `created_at`; `GET /v1/pipelines/{id}/versions/{version}` acrescenta o `pipeline` dela. Uma versão que já não é mantida responde `404` `not_found`, `pipeline_version`.
 
@@ -87,7 +87,7 @@ Nada da requisição é guardado, e a execução é contada. A resposta é um `2
 | `error` | O mesmo em palavras, como `step 2: set_conflict: …`. |
 | `duration_ms` | Quanto tempo a execução levou. |
 
-O mesmo pipeline com a mesma requisição falha do mesmo jeito, então não tente de novo um `failed`. Um pipeline desativado responde `409` `conflict`, `pipeline_disabled`, e acima da taxa do plano uma execução responde `429` `rate_limited`, com `details.retry_after`.
+O mesmo pipeline com a mesma requisição falha do mesmo jeito, então não tente de novo um `failed`. Um pipeline desativado responde `409` `conflict`, `pipeline_disabled`, e acima da taxa do plano, ou com execuções ou testes demais do workspace em andamento ao mesmo tempo, uma execução responde `429` `rate_limited`, com `details.retry_after`.
 
 ## Testar um documento {#test}
 
@@ -137,7 +137,7 @@ O Transforms atende workspaces inteiros. Um assento de convidado, ou uma chave r
 | `max_versions` | Versões mantidas por pipeline | 10 | 25 | 50 | 100 |
 | `run_rate_per_min` | Execuções e testes por minuto, por workspace | 60 | 600 | 3,000 | 12,000 |
 
-Até o equivalente a dez segundos de execuções, e no mínimo 10, podem chegar de uma vez. `GET /v1/usage` informa quanto já foi usado: `period`, o mês, representado pelo primeiro dia; `runs`, `failures` e `dropped` deste mês, pela API de execução; `pipelines` em relação a `max_pipelines`; e `slots`, os slots existentes, em relação a `max_secret_slots`. As execuções são contadas, não cobradas, e uma execução em um produto que referencia o pipeline conta no uso desse produto.
+Até o equivalente a dez segundos de execuções, e no mínimo 10, podem chegar em rápida sucessão. Um workspace também tem no máximo duas execuções ou testes em andamento ao mesmo tempo em cada processo do servidor, e mais um é recusado, sem ir para a fila, com `429` `rate_limited` e `details.retry_after` 1. `GET /v1/usage` informa quanto já foi usado: `period`, o mês, representado pelo primeiro dia; `runs`, `failures` e `dropped` deste mês, pela API de execução; `pipelines` em relação a `max_pipelines`; e `slots`, os slots existentes, em relação a `max_secret_slots`. As execuções são contadas, não cobradas, e uma execução em um produto que referencia o pipeline conta no uso desse produto.
 
 Enquanto houver uma cobrança em aberto, as alterações são recusadas com `402` `workspace_frozen`, e as execuções e os testes continuam. Depois que o período de carência termina, as execuções e os testes também são recusados, com `402` `workspace_suspended`. As leituras e as exclusões continuam liberadas.
 
@@ -159,7 +159,7 @@ Os erros da API usam o formato descrito em [Erros](/docs/errors).
 | `413` | `payload_too_large` | Um corpo de requisição acima de 1 MiB. |
 | `422` | `invalid_pipeline` | Um pipeline que nunca conseguiria rodar, ao ser salvo ou testado. |
 | `422` | `validation_error` | Um parâmetro ou campo falhou na validação. Um caractere NUL no caminho, na query ou em um corpo JSON aparece como uma entrada do tipo `transforms.nul_character`. |
-| `429` | `rate_limited` | Acima das execuções por minuto do plano; `details.retry_after` diz quando tentar de novo. |
+| `429` | `rate_limited` | Acima das execuções por minuto do plano, ou com execuções ou testes demais do workspace em andamento ao mesmo tempo ([Planos e limites](#limits)); `details.retry_after` diz quando tentar de novo. |
 | `500` | `internal_error` | Algo quebrou do nosso lado. |
 
 ### Pipelines inválidos {#invalid-pipeline}
@@ -198,4 +198,5 @@ Trate `reason` como uma string aberta e mantenha um caso padrão para um valor q
 
 - [Início rápido](/docs/product-transforms/quickstart) — teste um pipeline, salve-o e execute-o.
 - [Pipelines](/docs/product-transforms/pipelines) — todas as etapas, caminhos, filtros e templates.
+- [API de Transforms](/docs/reference/transforms) — todas as operações, com a requisição em curl, TypeScript, Python ou Go.
 - [Erros](/docs/errors) — o formato do erro, todas as chaves de `details` e um padrão para tratá-los.

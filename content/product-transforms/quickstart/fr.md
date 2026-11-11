@@ -2,7 +2,7 @@
 title: "Démarrage rapide Transforms"
 description: "Testez un pipeline sur une requête, enregistrez-le, exécutez-le, voyez une requête abandonnée et enregistrez une nouvelle version, via l’API."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: quickstart
 ---
 
@@ -211,4 +211,5 @@ La suppression est **définitive**, pour le pipeline comme pour chacune de ses v
 
 - [Pipelines](/docs/product-transforms/pipelines) — toutes les étapes, tous les chemins, filtres et modèles.
 - [Référence Transforms](/docs/product-transforms/reference) — chaque route et chaque champ, rôles, limites et erreurs.
+- [API Transforms](/docs/reference/transforms) — chaque opération, avec la requête en curl, TypeScript, Python ou Go.
 - [Vue d’ensemble du produit](/docs/product-transforms) — justificatifs d’identité, plans, et ce que Transforms ne fait pas.

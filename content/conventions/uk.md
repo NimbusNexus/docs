@@ -2,7 +2,7 @@
 title: "Угоди"
 description: "Правила, яких дотримуються API: ідентифікатори ресурсів, пагінація, помилки, ідемпотентність, тривалі операції."
 publishedAt: 2026-05-19
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -18,7 +18,7 @@ NimbusNexus має два види API, і не всі угоди в них сп
 
 ## Пагінація {#pagination}
 
-У Webhooks, Inboxes, Request Bins і Transforms ендпоінти списків приймають два параметри query:
+У Webhooks, Inboxes, Request Bins і Transforms більшість ендпоінтів списків приймають два параметри query (сторінка [Пагінація](/docs/pagination#shape) перелічує винятки):
 
 - `limit` — розмір сторінки. За замовчуванням 50, максимум 200. Понад 200 запит не проходить валідацію: `422` `validation_error` ([Помилки](/docs/errors#codes-validation)).
 - `offset` — скільки елементів пропустити. Тіло відповіді повертає наступне значення як `next_offset`; щоб перейти далі, передайте його назад як `offset`.

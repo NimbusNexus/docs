@@ -2406,7 +2406,7 @@
             "pt": "Todas as operações da API REST de Transforms, com a requisição em curl, TypeScript, Python ou Go.",
             "uk": "Усі операції REST API Transforms із запитом для curl, TypeScript, Python або Go."
           },
-          "published": false
+          "published": true
         }
       ]
     }

@@ -2,7 +2,7 @@
 title: "Pipelines"
 description: "Los pasos de una pipeline, sus rutas, valores y filtros, las plantillas de las que partir y los límites de una ejecución."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -187,10 +187,10 @@ Una pipeline no tiene bucles, ni reloj, ni red, y unos límites fijos acotan cad
 | El cuerpo con el que responde una ejecución | 256 KiB | `output_too_large` |
 | Un valor que genera un paso | 64 KiB | `value_too_large` |
 | Trabajo en una ejecución | 100,000 valores leídos o copiados; el texto cuenta uno por cada 128 caracteres | `too_many_nodes` |
-| Cabeceras al final de una ejecución | 50 | `too_many_headers` |
-| Un valor de cabecera | 8 KiB | `header_too_large` |
+| Cabeceras tras cada paso | 50, o tantas como traiga la petición si son más | `too_many_headers` |
+| Un valor de cabecera | 8 KiB | `header_too_large` en una ejecución, para un valor con una expresión; `invalid_header` al guardar, para uno sin ella |
 
-El playground tiene límites más bajos: un documento de 16 KiB, un cuerpo de 32 KiB y 10,000 valores leídos o copiados en una ejecución.
+El playground tiene límites más bajos: un documento de 16 KiB, un cuerpo de 32 KiB, 16 KiB para un valor que genera un paso, 20 cabeceras, 1 KiB para un valor de cabecera y 10,000 valores leídos o copiados en una ejecución.
 
 ## Próximos pasos {#next-steps}
 

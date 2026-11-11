@@ -2,7 +2,7 @@
 title: "Transformações"
 description: "Filtre, enxugue, remodele ou adicione credenciais a cada entrega antes que ela seja assinada e enviada: com um pipeline de etapas declarativas em todos os planos ou com um script JavaScript nos planos pagos."
 publishedAt: 2026-10-30
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -332,8 +332,8 @@ Um evento nunca é enviado sem transformação. Quando o pipeline não pode ser 
 
 | O que aconteceu | O que a entrega faz |
 |---|---|
-| O Transforms não pode ser alcançado | Uma versão já obtida continua sendo executada. Sem nada em que se basear, a entrega espera sem gastar uma tentativa e verifica de novo a cada 5 minutos. Ela aparece como `failed`, com um `last_error` começando com `paused:`. |
-| O pipeline está desativado no Transforms | Em até um minuto, com ou sem versão fixada na referência, as entregas esperam da mesma forma e saem quando ele é ativado de novo. |
+| O Transforms não pode ser alcançado | Uma versão já obtida continua sendo executada. Sem nada em que se basear, a entrega espera sem gastar uma tentativa e verifica de novo depois de um quarto do tempo que já esperou, no mínimo 5 minutos e no máximo uma hora. Ela aparece como `failed`, com um `last_error` começando com `paused:`. Depois de esperar 7 dias, ou um dia antes de a [retenção](/docs/product-webhooks/deliveries#retention) excluir o evento dela se isso vier antes, ela vai para a dead-letter queue com `pipeline_failed:` e o motivo da espera, sem contar para a transformação. |
+| O pipeline está desativado no Transforms | Em até um minuto, com ou sem versão fixada na referência, as entregas esperam da mesma forma. Quando ele já está ativado de novo há um minuto, as que ainda estão esperando saem na próxima verificação. |
 | O pipeline foi excluído | A entrega falha com `pipeline_failed: reference_missing: …` e vai para a dead-letter queue. |
 | Uma versão mais recente indica um slot que a referência não associa | A entrega falha da mesma forma com `secret_missing`, que indica o slot. Associe-o com um `PATCH`. |
 | Uma versão mais recente contém algo que recusamos, como um header que nós mesmos enviamos | A entrega falha da mesma forma, com o motivo, como `managed_header`. Salvar no Transforms não verifica nossas regras de headers. |

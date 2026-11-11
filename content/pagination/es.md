@@ -2,7 +2,7 @@
 title: "Paginación"
 description: "Cómo pagina sus listas cada API, con limit y offset o marker, y cómo saber que has llegado al final."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -30,10 +30,11 @@ Pasa `next_offset` de vuelta como `offset` para pedir la página siguiente. Cuan
 
 Un offset cuenta posiciones, así que un elemento creado o borrado mientras recorres una lista puede hacer que veas otro elemento dos veces, o que te saltes uno. Si eso importa, compara los ids. Mantén los mismos filtros durante todo el recorrido y vuelve a empezar desde el offset 0 cuando los cambies.
 
-Dos casos funcionan de otra forma:
+Tres casos funcionan de otra forma:
 
 - **Las búsquedas** de Inboxes y Request Bins paginan con `next_until` en su lugar: consulta [Búsqueda de mensajes](/docs/product-inboxes#search) y [Peticiones capturadas](/docs/product-bins/reference#requests).
 - **En códigos QR**, la mayoría de las listas se devuelven en una sola respuesta. Los escaneos de un código (`GET /v1/qr-tracked/codes/{code_id}/scans`) solo aceptan `limit`, y las entregas de un webhook (`GET /v1/qr-tracked/webhooks/{webhook_id}/deliveries`) paginan con `limit` y `cursor`, con el cursor siguiente en `nextCursor`.
+- **La lista de plantillas** de Transforms (`GET /v1/pipelines/templates`) devuelve todas las plantillas en un solo array simple, sin `limit` ni `offset`.
 
 ## La API de infraestructura {#infrastructure}
 

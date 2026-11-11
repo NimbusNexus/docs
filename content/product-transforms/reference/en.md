@@ -2,7 +2,7 @@
 title: Transforms reference
 description: Every route of the Transforms API, the pipeline and run objects, who may do what, each plan's limits, and the errors.
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: reference
 ---
 
@@ -33,7 +33,7 @@ The API at `https://transforms.nimbusnexus.net/v1` creates, versions, tests and 
 
 **read**, **write** and **admin** are explained under [Who can do what](#authority).
 
-Lists are paged with `limit` (1 to 200, default 50) and `offset` (0 to 10,000). The answer is `{"items": [...], "next_offset": <offset>}`: pass `next_offset` back as `offset` for the next page. It is `null` on the last page.
+Lists are paged with `limit` (1 to 200, default 50) and `offset` (0 to 10,000). The answer is `{"items": [...], "next_offset": <offset>}`: pass `next_offset` back as `offset` for the next page. It is `null` on the last page. `GET /v1/pipelines/templates` is the exception: it takes no `limit` or `offset`, and answers every template as one plain array.
 
 ## The pipeline object {#pipeline}
 
@@ -57,7 +57,7 @@ Lists are paged with `limit` (1 to 200, default 50) and `offset` (0 to 10,000). 
 - A version never changes, so a product can keep its copy by id and version.
 - Saving the same content adds no version.
 - Restoring an old version is saving its content again, which makes it the newest.
-- The plan's versions are kept, the newest first, and a save removes the oldest beyond them. A version a product pins, or was seen running in the last 30 days, is kept as well.
+- The plan's versions are kept, the newest first, and a save removes the oldest beyond them. A version a product pins is kept as well, and so are the five older versions a product was seen running most recently in the last 30 days.
 
 Each version in `GET /v1/pipelines/{id}/versions` has `version`, `created_by` and `created_at`; `GET /v1/pipelines/{id}/versions/{version}` adds its `pipeline`. A version no longer kept answers `404` `not_found`, `pipeline_version`.
 
@@ -87,7 +87,7 @@ Nothing about the request is kept, and the run is counted. The answer is a `200`
 | `error` | The same in words, such as `step 2: set_conflict: …`. |
 | `duration_ms` | How long the run took. |
 
-The same pipeline on the same request fails the same way, so don't retry a `failed`. A disabled pipeline answers `409` `conflict`, `pipeline_disabled`, and past the plan's rate a run answers `429` `rate_limited`, with `details.retry_after`.
+The same pipeline on the same request fails the same way, so don't retry a `failed`. A disabled pipeline answers `409` `conflict`, `pipeline_disabled`, and past the plan's rate, or with too many of the workspace's runs or tests under way at once, a run answers `429` `rate_limited`, with `details.retry_after`.
 
 ## Test a document {#test}
 
@@ -137,7 +137,7 @@ Transforms serves whole workspaces. A guest seat, or a key limited to one projec
 | `max_versions` | Versions kept per pipeline | 10 | 25 | 50 | 100 |
 | `run_rate_per_min` | Runs and tests a minute, per workspace | 60 | 600 | 3,000 | 12,000 |
 
-Up to ten seconds' worth of runs, and at least 10, may land at once. `GET /v1/usage` says how much is used: `period`, the month as its first day; `runs`, `failures` and `dropped` this month, through the run API; `pipelines` against `max_pipelines`; and `slots`, the slots held, against `max_secret_slots`. Runs are counted, not billed, and a run at a product that refers to the pipeline counts in that product's usage.
+Up to ten seconds' worth of runs, and at least 10, may arrive in quick succession. A workspace also has at most two runs or tests under way at once on each server process, and one more is refused, not queued, with `429` `rate_limited` and `details.retry_after` 1. `GET /v1/usage` says how much is used: `period`, the month as its first day; `runs`, `failures` and `dropped` this month, through the run API; `pipelines` against `max_pipelines`; and `slots`, the slots held, against `max_secret_slots`. Runs are counted, not billed, and a run at a product that refers to the pipeline counts in that product's usage.
 
 While a charge is unsettled, changes are refused with `402` `workspace_frozen`, and runs and tests go on. Once the grace period has ended, runs and tests are refused too, with `402` `workspace_suspended`. Reads and deletes stay open.
 
@@ -159,7 +159,7 @@ The API's errors use the shape described in [Errors](/docs/errors).
 | `413` | `payload_too_large` | A request body over 1 MiB. |
 | `422` | `invalid_pipeline` | A pipeline that could never run, when it is saved or tested. |
 | `422` | `validation_error` | A parameter or field failed validation. A NUL character in the path, the query or a JSON body is the entry type `transforms.nul_character`. |
-| `429` | `rate_limited` | Past the plan's runs a minute; `details.retry_after` says when to try again. |
+| `429` | `rate_limited` | Past the plan's runs a minute, or with too many of the workspace's runs or tests under way at once ([Plans and limits](#limits)); `details.retry_after` says when to try again. |
 | `500` | `internal_error` | Something broke on our side. |
 
 ### Invalid pipelines {#invalid-pipeline}
@@ -198,4 +198,5 @@ Treat `reason` as an open string, and keep a default for a value you don't know.
 
 - [Quickstart](/docs/product-transforms/quickstart) — test a pipeline, save it and run it.
 - [Pipelines](/docs/product-transforms/pipelines) — every step, path, filter and template.
+- [Transforms API](/docs/reference/transforms) — every operation, with the request in curl, TypeScript, Python or Go.
 - [Errors](/docs/errors) — the error shape, every `details` key, and a pattern for handling them.

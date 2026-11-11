@@ -2,7 +2,7 @@
 title: Transformations
 description: Filter, trim, reshape or add credentials to each delivery before it is signed and sent, with a pipeline of declarative steps on every plan or a JavaScript script on paid plans.
 publishedAt: 2026-10-30
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -332,8 +332,8 @@ An event is never sent untransformed. When the pipeline can't run:
 
 | What happened | What the delivery does |
 |---|---|
-| Transforms can't be reached | A version already fetched keeps running. With nothing to go on, the delivery waits without spending an attempt and looks again every 5 minutes. It shows as `failed`, with a `last_error` that starts `paused:`. |
-| The pipeline is disabled in Transforms | Within a minute, whether or not the reference pins a version, deliveries wait the same way, and go out once it is enabled again. |
+| Transforms can't be reached | A version already fetched keeps running. With nothing to go on, the delivery waits without spending an attempt and looks again after a quarter of the time it has waited so far, at least 5 minutes and at most an hour. It shows as `failed`, with a `last_error` that starts `paused:`. After 7 days of waiting, or a day before [retention](/docs/product-webhooks/deliveries#retention) would delete its event if that comes first, it goes to the dead-letter queue with `pipeline_failed:` and the reason it waited, without counting against the transformation. |
+| The pipeline is disabled in Transforms | Within a minute, whether or not the reference pins a version, deliveries wait the same way. Once it has been enabled again for a minute, those still waiting go out at their next look. |
 | The pipeline was deleted | It fails with `pipeline_failed: reference_missing: …` and goes to the dead-letter queue. |
 | A newer version names a slot the reference doesn't map | It fails the same way with `secret_missing`, naming the slot. Map it with a `PATCH`. |
 | A newer version holds what we refuse, such as a header we send ourselves | It fails the same way with the reason, such as `managed_header`. A save in Transforms doesn't check our header rules. |

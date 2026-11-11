@@ -2,7 +2,7 @@
 title: "Convenciones"
 description: "Los patrones que siguen las APIs — ids de recursos, paginación, errores, idempotencia y operaciones de larga duración."
 publishedAt: 2026-05-19
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -18,7 +18,7 @@ Los ids son estables durante toda la vida del recurso — nunca se reutilizan ni
 
 ## Paginación {#pagination}
 
-En Webhooks, Inboxes, Request Bins y Transforms, los endpoints de listado aceptan dos parámetros de query:
+En Webhooks, Inboxes, Request Bins y Transforms, la mayoría de los endpoints de listado aceptan dos parámetros de query ([Paginación](/docs/pagination#shape) enumera los que funcionan de otra forma):
 
 - `limit` — tamaño de página. Por defecto 50, máximo 200. Por encima de 200, la petición no supera la validación: `422` `validation_error` ([Errores](/docs/errors#codes-validation)).
 - `offset` — cuántos elementos saltar. El cuerpo de la respuesta devuelve el valor siguiente como `next_offset`; pásalo de vuelta como `offset` para avanzar.

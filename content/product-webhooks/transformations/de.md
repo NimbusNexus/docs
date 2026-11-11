@@ -2,7 +2,7 @@
 title: "Transformationen"
 description: "Jede Zustellung filtern, kürzen, umformen oder mit Credentials versehen, bevor sie signiert und gesendet wird: mit einer Pipeline aus deklarativen Schritten in jedem Tarif oder mit einem JavaScript-Skript in bezahlten Tarifen."
 publishedAt: 2026-10-30
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -332,8 +332,8 @@ Ein Event wird nie untransformiert gesendet. Wenn die Pipeline nicht laufen kann
 
 | Was passiert ist | Was die Zustellung tut |
 |---|---|
-| Transforms ist nicht erreichbar | Eine bereits abgerufene Version läuft weiter. Gibt es nichts, worauf sie sich stützen kann, wartet die Zustellung, ohne einen Versuch zu verbrauchen, und prüft alle 5 Minuten erneut. Sie erscheint als `failed`, mit einem `last_error`, das mit `paused:` beginnt. |
-| Die Pipeline ist in Transforms deaktiviert | Innerhalb einer Minute warten die Zustellungen auf dieselbe Weise, ob die Referenz eine Version festschreibt oder nicht, und gehen raus, sobald die Pipeline wieder aktiviert ist. |
+| Transforms ist nicht erreichbar | Eine bereits abgerufene Version läuft weiter. Gibt es nichts, worauf sie sich stützen kann, wartet die Zustellung, ohne einen Versuch zu verbrauchen, und prüft nach einem Viertel ihrer bisherigen Wartezeit erneut, frühestens nach 5 Minuten und spätestens nach einer Stunde. Sie erscheint als `failed`, mit einem `last_error`, das mit `paused:` beginnt. Nach 7 Tagen Wartezeit oder einen Tag, bevor ihr Event mit Ablauf der [Aufbewahrung](/docs/product-webhooks/deliveries#retention) gelöscht würde, falls das früher ist, geht sie in die Dead-Letter-Queue, mit `pipeline_failed:` und dem Grund, warum sie gewartet hat, ohne der Transformation angerechnet zu werden. |
+| Die Pipeline ist in Transforms deaktiviert | Innerhalb einer Minute warten die Zustellungen auf dieselbe Weise, ob die Referenz eine Version festschreibt oder nicht. Sobald die Pipeline seit einer Minute wieder aktiviert ist, gehen die, die noch warten, bei ihrer nächsten Prüfung raus. |
 | Die Pipeline wurde gelöscht | Die Zustellung schlägt mit `pipeline_failed: reference_missing: …` fehl und geht in die Dead-Letter-Queue. |
 | Eine neuere Version nennt einen Slot, den die Referenz nicht zuordnet | Die Zustellung schlägt genauso mit `secret_missing` fehl und nennt den Slot. Ordnen Sie ihn mit einem `PATCH` zu. |
 | Eine neuere Version enthält etwas, das wir ablehnen, etwa einen Header, den wir selbst senden | Die Zustellung schlägt genauso fehl, mit dem Grund, etwa `managed_header`. Beim Speichern in Transforms werden unsere Header-Regeln nicht geprüft. |

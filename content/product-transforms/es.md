@@ -2,7 +2,7 @@
 title: "Transforms"
 description: "Pipelines declarativas que filtran, recortan y adaptan una petición. Constrúyelas, versiónalas y pruébalas en un solo lugar, y después ejecútalas por la API o por referencia desde el producto que envía."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -71,7 +71,7 @@ Primero se ve dónde se ejecuta una pipeline. Al leerla se listan los productos 
 
 Los seis pasos, las plantillas, Test, la API de ejecución y la ejecución por referencia están en todos los planes, Free incluido.
 
-Las ejecuciones se cuentan, no se facturan. `GET /v1/usage` muestra las del mes. Por encima de la tasa del plan, que Test comparte, una ejecución responde `429` `rate_limited` e indica cuánto hay que esperar. Una ejecución en un producto que hace referencia a la pipeline cuenta en el consumo de ese producto. Una versión que un producto fija, o que se ha visto ejecutándose en un producto en los últimos 30 días, se conserva aunque supere el número del plan.
+Las ejecuciones se cuentan, no se facturan. `GET /v1/usage` muestra las del mes. Por encima de la tasa del plan, que Test comparte, o con [demasiadas ejecuciones o pruebas del workspace en curso a la vez](/docs/product-transforms/reference#limits), una ejecución responde `429` `rate_limited` e indica cuánto hay que esperar. Una ejecución en un producto que hace referencia a la pipeline cuenta en el consumo de ese producto. Una versión que un producto fija se conserva aunque supere el número del plan, y también las cinco versiones anteriores que más recientemente se han visto ejecutándose en un producto en los últimos 30 días.
 
 ## Cómo obtener acceso {#access}
 
@@ -93,5 +93,6 @@ Elige su permiso al crearla: **Read** lee y ejecuta pipelines, y **Read & write*
 - [Inicio rápido](/docs/product-transforms/quickstart) — prueba una pipeline, guárdala, ejecútala y guarda una versión nueva.
 - [Pipelines](/docs/product-transforms/pipelines) — todos los pasos, rutas, filtros y plantillas, y los límites de una ejecución.
 - [Referencia de Transforms](/docs/product-transforms/reference) — todas las rutas y campos, roles, límites y errores.
+- [API de Transforms](/docs/reference/transforms) — todas las operaciones, con la petición en curl, TypeScript, Python o Go.
 - [Ejecútala desde Webhooks](/docs/product-webhooks/transformations#reference) — asigna sus slots a secretos y vincúlala a un endpoint.
 - [Playground](/transforms/playground) — ejecuta una pipeline de ejemplo sin cuenta.

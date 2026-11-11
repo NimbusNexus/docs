@@ -2,7 +2,7 @@
 title: Transforms
 description: Declarative pipelines that filter, trim and reshape a request. Build, version and test them in one place, then run them over the API or by reference from the product that sends.
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -71,7 +71,7 @@ Where a pipeline runs shows first. A read of a pipeline lists the products that 
 
 All six steps, the templates, Test, the run API and running by reference are on every plan, Free included.
 
-Runs are counted, not billed. `GET /v1/usage` shows the month's. Past the plan's rate, which Test shares, a run answers `429` `rate_limited` with how long to wait. A run at a product that refers to the pipeline counts in that product's usage. A version a product pins, or was seen running in the last 30 days, is kept beyond the plan's number.
+Runs are counted, not billed. `GET /v1/usage` shows the month's. Past the plan's rate, which Test shares, or with [too many of the workspace's runs or tests under way at once](/docs/product-transforms/reference#limits), a run answers `429` `rate_limited` with how long to wait. A run at a product that refers to the pipeline counts in that product's usage. A version a product pins is kept beyond the plan's number, and so are the five older versions a product was seen running most recently in the last 30 days.
 
 ## Getting access {#access}
 
@@ -93,5 +93,6 @@ Choose its permission when you create it: **Read** reads and runs pipelines, and
 - [Quickstart](/docs/product-transforms/quickstart) — test a pipeline, save it, run it and save a new version.
 - [Pipelines](/docs/product-transforms/pipelines) — every step, path, filter and template, and the caps on a run.
 - [Transforms reference](/docs/product-transforms/reference) — every route and field, roles, limits and errors.
+- [Transforms API](/docs/reference/transforms) — every operation, with the request in curl, TypeScript, Python or Go.
 - [Run it from Webhooks](/docs/product-webhooks/transformations#reference) — map its slots to secrets and attach it to an endpoint.
 - [Playground](/transforms/playground) — run a sample pipeline with no account.

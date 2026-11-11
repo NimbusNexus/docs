@@ -2,7 +2,7 @@
 title: "Referenz für Transforms"
 description: "Jede Route der Transforms-API, die Objekte für Pipelines und Ausführungen, wer was darf, die Limits jedes Tarifs und die Fehler."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: reference
 ---
 
@@ -33,7 +33,7 @@ Die API unter `https://transforms.nimbusnexus.net/v1` legt Pipelines an, version
 
 **read**, **write** und **admin** sind unter [Wer was darf](#authority) erklärt.
 
-Listen werden mit `limit` (1 bis 200, Standard 50) und `offset` (0 bis 10,000) paginiert. Die Antwort ist `{"items": [...], "next_offset": <offset>}`: Übergeben Sie `next_offset` als `offset`, um die nächste Seite zu erhalten. Auf der letzten Seite ist der Wert `null`.
+Listen werden mit `limit` (1 bis 200, Standard 50) und `offset` (0 bis 10,000) paginiert. Die Antwort ist `{"items": [...], "next_offset": <offset>}`: Übergeben Sie `next_offset` als `offset`, um die nächste Seite zu erhalten. Auf der letzten Seite ist der Wert `null`. `GET /v1/pipelines/templates` ist die Ausnahme: Die Route nimmt weder `limit` noch `offset` entgegen und liefert alle Vorlagen auf einmal als einfaches Array.
 
 ## Das Pipeline-Objekt {#pipeline}
 
@@ -57,7 +57,7 @@ Listen werden mit `limit` (1 bis 200, Standard 50) und `offset` (0 bis 10,000) p
 - Eine Version ändert sich nie, sodass ein Produkt seine Kopie anhand von ID und Version behalten kann.
 - Wird derselbe Inhalt gespeichert, entsteht keine neue Version.
 - Eine alte Version wiederherzustellen heißt, ihren Inhalt erneut zu speichern; sie wird damit zur neuesten.
-- Aufbewahrt werden so viele Versionen, wie der Tarif vorsieht, die neuesten zuerst, und ein Speichern entfernt die ältesten darüber hinaus. Auch eine Version, die ein Produkt festschreibt oder die wir in den letzten 30 Tagen bei einem Produkt im Einsatz gesehen haben, wird aufbewahrt.
+- Aufbewahrt werden so viele Versionen, wie der Tarif vorsieht, die neuesten zuerst, und ein Speichern entfernt die ältesten darüber hinaus. Auch eine Version, die ein Produkt festschreibt, wird aufbewahrt, ebenso die fünf älteren Versionen, die wir in den letzten 30 Tagen zuletzt bei einem Produkt im Einsatz gesehen haben.
 
 Jede Version in `GET /v1/pipelines/{id}/versions` hat `version`, `created_by` und `created_at`; `GET /v1/pipelines/{id}/versions/{version}` liefert zusätzlich ihre `pipeline`. Eine Version, die nicht mehr aufbewahrt wird, antwortet mit `404` `not_found`, `pipeline_version`.
 
@@ -87,7 +87,7 @@ Vom Request wird nichts behalten, und die Ausführung wird gezählt. Die Antwort
 | `error` | Dasselbe in Worten, etwa `step 2: set_conflict: …`. |
 | `duration_ms` | Wie lange die Ausführung gedauert hat. |
 
-Dieselbe Pipeline schlägt beim selben Request auf dieselbe Weise fehl; wiederholen Sie ein `failed` daher nicht. Eine deaktivierte Pipeline antwortet mit `409` `conflict`, `pipeline_disabled`, und über der Rate des Tarifs antwortet eine Ausführung mit `429` `rate_limited`, mit `details.retry_after`.
+Dieselbe Pipeline schlägt beim selben Request auf dieselbe Weise fehl; wiederholen Sie ein `failed` daher nicht. Eine deaktivierte Pipeline antwortet mit `409` `conflict`, `pipeline_disabled`, und über der Rate des Tarifs oder bei zu vielen gleichzeitig laufenden Ausführungen oder Tests des Workspaces antwortet eine Ausführung mit `429` `rate_limited`, mit `details.retry_after`.
 
 ## Dokument testen {#test}
 
@@ -137,7 +137,7 @@ Transforms bedient ganze Workspaces. Ein Gastzugang oder ein Key, der auf ein Pr
 | `max_versions` | Aufbewahrte Versionen pro Pipeline | 10 | 25 | 50 | 100 |
 | `run_rate_per_min` | Ausführungen und Tests pro Minute, pro Workspace | 60 | 600 | 3,000 | 12,000 |
 
-Gleichzeitig dürfen so viele Ausführungen eintreffen, wie in zehn Sekunden erlaubt sind, mindestens aber 10. `GET /v1/usage` gibt an, wie viel verbraucht ist: `period`, der Monat, angegeben als sein erster Tag; `runs`, `failures` und `dropped` dieses Monats, über die Ausführungs-API; `pipelines`, gemessen an `max_pipelines`; und `slots`, die vorhandenen Slots, gemessen an `max_secret_slots`. Ausführungen werden gezählt, nicht abgerechnet, und eine Ausführung in einem Produkt, das auf die Pipeline verweist, zählt zum Verbrauch dieses Produkts.
+Kurz nacheinander dürfen so viele Ausführungen eintreffen, wie in zehn Sekunden erlaubt sind, mindestens aber 10. Außerdem laufen für einen Workspace in jedem Serverprozess höchstens zwei Ausführungen oder Tests gleichzeitig, und was darüber hinaus eintrifft, wird nicht in eine Warteschlange gestellt, sondern mit `429` `rate_limited` und `details.retry_after` 1 abgewiesen. `GET /v1/usage` gibt an, wie viel verbraucht ist: `period`, der Monat, angegeben als sein erster Tag; `runs`, `failures` und `dropped` dieses Monats, über die Ausführungs-API; `pipelines`, gemessen an `max_pipelines`; und `slots`, die vorhandenen Slots, gemessen an `max_secret_slots`. Ausführungen werden gezählt, nicht abgerechnet, und eine Ausführung in einem Produkt, das auf die Pipeline verweist, zählt zum Verbrauch dieses Produkts.
 
 Solange eine Zahlung offen ist, werden Änderungen mit `402` `workspace_frozen` abgewiesen, und Ausführungen und Tests laufen weiter. Endet die Nachfrist, werden auch Ausführungen und Tests abgewiesen, mit `402` `workspace_suspended`. Lesen und Löschen bleiben möglich.
 
@@ -159,7 +159,7 @@ Die Fehler der API verwenden das unter [Fehler](/docs/errors) beschriebene Forma
 | `413` | `payload_too_large` | Ein Request-Body über 1 MiB. |
 | `422` | `invalid_pipeline` | Eine Pipeline, die nie laufen könnte, beim Speichern oder Testen. |
 | `422` | `validation_error` | Ein Parameter oder Feld hat die Validierung nicht bestanden. Ein NUL-Zeichen im Pfad, in der Query oder in einem JSON-Body ergibt den Eintragstyp `transforms.nul_character`. |
-| `429` | `rate_limited` | Mehr Ausführungen pro Minute, als der Tarif erlaubt; `details.retry_after` gibt an, wann Sie es erneut versuchen können. |
+| `429` | `rate_limited` | Mehr Ausführungen pro Minute, als der Tarif erlaubt, oder zu viele gleichzeitig laufende Ausführungen oder Tests des Workspaces ([Tarife und Limits](#limits)); `details.retry_after` gibt an, wann Sie es erneut versuchen können. |
 | `500` | `internal_error` | Auf unserer Seite ist etwas kaputtgegangen. |
 
 ### Ungültige Pipelines {#invalid-pipeline}
@@ -198,4 +198,5 @@ Behandeln Sie `reason` als offenen String und sehen Sie einen Standardfall für 
 
 - [Schnellstart](/docs/product-transforms/quickstart) — eine Pipeline testen, speichern und ausführen.
 - [Pipelines](/docs/product-transforms/pipelines) — jeder Schritt, Pfad und Filter und jede Vorlage.
+- [Transforms-API](/docs/reference/transforms) — jede Operation, mit dem Request in curl, TypeScript, Python oder Go.
 - [Fehler](/docs/errors) — das Fehlerformat, jedes Feld in `details` und ein Muster für den Umgang damit.

@@ -2,7 +2,7 @@
 title: Conventions
 description: Patterns the APIs follow — resource ids, pagination, errors, idempotency, long-running operations.
 publishedAt: 2026-05-19
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -18,7 +18,7 @@ Ids are stable for the life of the resource — never reused, never rewritten on
 
 ## Pagination {#pagination}
 
-On Webhooks, Inboxes, Request Bins and Transforms, list endpoints accept two query parameters:
+On Webhooks, Inboxes, Request Bins and Transforms, most list endpoints accept two query parameters ([Pagination](/docs/pagination#shape) lists the ones that differ):
 
 - `limit` — page size. Default 50, max 200. Past 200 the request fails validation: `422` `validation_error` ([Errors](/docs/errors#codes-validation)).
 - `offset` — how many items to skip. The response body returns the next value as `next_offset`; pass it back as `offset` to advance.

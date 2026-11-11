@@ -2,7 +2,7 @@
 title: "Швидкий старт Transforms"
 description: "Протестуйте конвеєр на запиті, збережіть його, запустіть, подивіться, як запит відкидається, і збережіть нову версію — через API."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: quickstart
 ---
 
@@ -211,4 +211,5 @@ curl -X DELETE "https://transforms.nimbusnexus.net/v1/pipelines/$PIPELINE_ID" \
 
 - [Конвеєри](/docs/product-transforms/pipelines) — усі кроки, шляхи, фільтри й шаблони.
 - [Довідник Transforms](/docs/product-transforms/reference) — усі маршрути й поля, ролі, ліміти й помилки.
+- [API Transforms](/docs/reference/transforms) — усі операції із запитом у curl, TypeScript, Python або Go.
 - [Огляд продукту](/docs/product-transforms) — облікові дані, плани і чого Transforms не робить.

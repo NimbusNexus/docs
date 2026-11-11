@@ -2,7 +2,7 @@
 title: "Pipelines"
 description: "Les étapes d’un pipeline, ses chemins, ses valeurs et ses filtres, les modèles pour démarrer et les plafonds d’une exécution."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -187,10 +187,10 @@ Un pipeline n’a ni boucles, ni horloge, ni réseau, et des plafonds fixes born
 | Le corps que renvoie une exécution | 256 KiB | `output_too_large` |
 | Une valeur produite par une étape | 64 KiB | `value_too_large` |
 | Travail d’une exécution | 100,000 valeurs lues ou copiées, le texte comptant pour une tous les 128 caractères | `too_many_nodes` |
-| Headers à la fin d’une exécution | 50 | `too_many_headers` |
-| Une valeur de header | 8 KiB | `header_too_large` |
+| Headers après chaque étape | 50, ou autant qu’en portait la requête s’il y en avait plus | `too_many_headers` |
+| Une valeur de header | 8 KiB | `header_too_large` lors d’une exécution, pour une valeur avec une expression ; `invalid_header` à l’enregistrement, pour une valeur qui n’en a pas |
 
-Le playground a des plafonds plus bas : un document de 16 KiB, un corps de 32 KiB et 10,000 valeurs lues ou copiées par exécution.
+Le playground a des plafonds plus bas : un document de 16 KiB, un corps de 32 KiB, 16 KiB pour une valeur produite par une étape, 20 headers, 1 KiB pour une valeur de header et 10,000 valeurs lues ou copiées par exécution.
 
 ## Étapes suivantes {#next-steps}
 

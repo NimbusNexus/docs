@@ -2,7 +2,7 @@
 title: Pipelines
 description: The steps of a pipeline, its paths, values and filters, the templates to start from, and the caps on a run.
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -187,10 +187,10 @@ A pipeline has no loops, no clock and no network, and fixed caps bound each run.
 | The body a run answers with | 256 KiB | `output_too_large` |
 | One value a step renders | 64 KiB | `value_too_large` |
 | Work in one run | 100,000 values read or copied, text counting one per 128 characters | `too_many_nodes` |
-| Headers at the end of a run | 50 | `too_many_headers` |
-| One header value | 8 KiB | `header_too_large` |
+| Headers after each step | 50, or as many as the request carried if more | `too_many_headers` |
+| One header value | 8 KiB | `header_too_large` in a run, for a value with an expression; `invalid_header` when saved, for one without |
 
-The playground has smaller caps: a 16 KiB document, a 32 KiB body and 10,000 values read or copied in a run.
+The playground has smaller caps: a 16 KiB document, a 32 KiB body, 16 KiB for one value a step renders, 20 headers, 1 KiB for one header value and 10,000 values read or copied in a run.
 
 ## What's next {#next-steps}
 

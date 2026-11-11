@@ -2,7 +2,7 @@
 title: "Conventions"
 description: "Les règles que suivent les API — identifiants de ressource, pagination, erreurs, idempotence, opérations longues."
 publishedAt: 2026-05-19
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -18,7 +18,7 @@ Les identifiants restent stables pendant toute la vie de la ressource — jamais
 
 ## Pagination {#pagination}
 
-Sur Webhooks, Inboxes, Request Bins et Transforms, les endpoints de liste acceptent deux paramètres de requête :
+Sur Webhooks, Inboxes, Request Bins et Transforms, la plupart des endpoints de liste acceptent deux paramètres de requête ([Pagination](/docs/pagination#shape) liste ceux qui diffèrent) :
 
 - `limit` — taille de page. 50 par défaut, 200 au maximum. Au-delà de 200, la requête échoue à la validation : `422` `validation_error` ([Erreurs](/docs/errors#codes-validation)).
 - `offset` — le nombre d’éléments à ignorer. Le corps de la réponse renvoie la valeur suivante dans `next_offset` ; renvoyez-la dans `offset` pour avancer.

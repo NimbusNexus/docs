@@ -2,7 +2,7 @@
 title: "Transforms"
 description: "Pipelines declarativos que filtram, enxugam e remodelam uma requisição. Monte, versione e teste esses pipelines em um só lugar e depois execute-os pela API ou por referência, a partir do produto que envia."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -71,7 +71,7 @@ Onde um pipeline roda aparece primeiro. A leitura de um pipeline lista os produt
 
 As seis etapas, os templates, o Test, a API de execução e a execução por referência estão em todos os planos, inclusive no Free.
 
-As execuções são contadas, não cobradas. `GET /v1/usage` mostra as do mês. Acima da taxa do plano, que o Test compartilha, uma execução responde `429` `rate_limited` com o tempo de espera. Uma execução em um produto que referencia o pipeline conta no uso desse produto. Uma versão que um produto fixa, ou que foi visto executando nos últimos 30 dias, é mantida além do número do plano.
+As execuções são contadas, não cobradas. `GET /v1/usage` mostra as do mês. Acima da taxa do plano, que o Test compartilha, ou com [execuções ou testes demais do workspace em andamento ao mesmo tempo](/docs/product-transforms/reference#limits), uma execução responde `429` `rate_limited` com o tempo de espera. Uma execução em um produto que referencia o pipeline conta no uso desse produto. Uma versão que um produto fixa é mantida além do número do plano, assim como as cinco versões anteriores que um produto foi visto executando mais recentemente nos últimos 30 dias.
 
 ## Como obter acesso {#access}
 
@@ -93,5 +93,6 @@ Escolha a permissão dela ao criá-la: **Read** lê e executa pipelines, e **Rea
 - [Início rápido](/docs/product-transforms/quickstart) — teste um pipeline, salve-o, execute-o e salve uma nova versão.
 - [Pipelines](/docs/product-transforms/pipelines) — todas as etapas, caminhos, filtros e templates, e os limites de uma execução.
 - [Referência de Transforms](/docs/product-transforms/reference) — todas as rotas e campos, funções, limites e erros.
+- [API de Transforms](/docs/reference/transforms) — todas as operações, com a requisição em curl, TypeScript, Python ou Go.
 - [Execute-o a partir do Webhooks](/docs/product-webhooks/transformations#reference) — associe os slots a segredos e vincule-o a um endpoint.
 - [Playground](/transforms/playground) — execute um pipeline de exemplo sem conta.
