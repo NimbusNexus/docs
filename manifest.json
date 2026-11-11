@@ -2167,6 +2167,104 @@
       ]
     },
     {
+      "id": "product-transforms",
+      "group": "apps",
+      "title": {
+        "en": "Transforms",
+        "de": "Transforms",
+        "es": "Transforms",
+        "fr": "Transforms",
+        "pt": "Transforms",
+        "uk": "Transforms"
+      },
+      "items": [
+        {
+          "path": "product-transforms",
+          "kind": "concept",
+          "title": {
+            "en": "Overview",
+            "de": "Überblick",
+            "es": "Resumen",
+            "fr": "Vue d’ensemble",
+            "pt": "Visão geral",
+            "uk": "Огляд"
+          },
+          "description": {
+            "en": "Declarative pipelines that filter, trim and reshape a request. Build, version and test them in one place, then run them over the API or by reference from the product that sends.",
+            "de": "Deklarative Pipelines, die einen Request filtern, kürzen und umformen. Bauen, versionieren und testen Sie sie an einem Ort, und führen Sie sie dann über die API aus oder per Verweis in dem Produkt, das sendet.",
+            "es": "Pipelines declarativas que filtran, recortan y adaptan una petición. Constrúyelas, versiónalas y pruébalas en un solo lugar, y después ejecútalas por la API o por referencia desde el producto que envía.",
+            "fr": "Des pipelines déclaratifs qui filtrent, allègent et remodèlent une requête. Construisez-les, versionnez-les et testez-les en un seul endroit, puis exécutez-les via l’API ou par référence depuis le produit qui envoie.",
+            "pt": "Pipelines declarativos que filtram, enxugam e remodelam uma requisição. Monte, versione e teste esses pipelines em um só lugar e depois execute-os pela API ou por referência, a partir do produto que envia.",
+            "uk": "Декларативні конвеєри, що фільтрують, скорочують і перетворюють запит. Створюйте, версіонуйте й тестуйте їх в одному місці, а потім запускайте через API або за посиланням із продукту, який надсилає запити."
+          },
+          "published": true
+        },
+        {
+          "path": "product-transforms/quickstart",
+          "kind": "quickstart",
+          "title": {
+            "en": "Quickstart",
+            "de": "Schnellstart",
+            "es": "Inicio rápido",
+            "fr": "Démarrage rapide",
+            "pt": "Início rápido",
+            "uk": "Швидкий старт"
+          },
+          "description": {
+            "en": "Test a pipeline on a request, save it, run it, see a request dropped, and save a new version, over the API.",
+            "de": "Eine Pipeline mit einem Request testen, speichern und ausführen, einen verworfenen Request sehen und eine neue Version speichern, alles über die API.",
+            "es": "Prueba una pipeline con una petición, guárdala, ejecútala, mira cómo se descarta una petición y guarda una versión nueva, por la API.",
+            "fr": "Testez un pipeline sur une requête, enregistrez-le, exécutez-le, voyez une requête abandonnée et enregistrez une nouvelle version, via l’API.",
+            "pt": "Teste um pipeline em uma requisição, salve-o, execute-o, veja uma requisição ser descartada e salve uma nova versão, tudo pela API.",
+            "uk": "Протестуйте конвеєр на запиті, збережіть його, запустіть, подивіться, як запит відкидається, і збережіть нову версію — через API."
+          },
+          "published": true
+        },
+        {
+          "path": "product-transforms/pipelines",
+          "kind": "concept",
+          "title": {
+            "en": "Pipelines",
+            "de": "Pipelines",
+            "es": "Pipelines",
+            "fr": "Pipelines",
+            "pt": "Pipelines",
+            "uk": "Пайплайни"
+          },
+          "description": {
+            "en": "The steps of a pipeline, its paths, values and filters, the templates to start from, and the caps on a run.",
+            "de": "Die Schritte einer Pipeline, ihre Pfade, Werte und Filter, die Vorlagen als Ausgangspunkt und die Obergrenzen einer Ausführung.",
+            "es": "Los pasos de una pipeline, sus rutas, valores y filtros, las plantillas de las que partir y los límites de una ejecución.",
+            "fr": "Les étapes d’un pipeline, ses chemins, ses valeurs et ses filtres, les modèles pour démarrer et les plafonds d’une exécution.",
+            "pt": "As etapas de um pipeline, os caminhos, valores e filtros dele, os templates para começar e os limites de uma execução.",
+            "uk": "Кроки конвеєра, його шляхи, значення й фільтри, шаблони, з яких можна почати, і межі для запуску."
+          },
+          "published": true
+        },
+        {
+          "path": "product-transforms/reference",
+          "kind": "reference",
+          "title": {
+            "en": "Reference",
+            "de": "Referenz",
+            "es": "Referencia",
+            "fr": "Référence",
+            "pt": "Referência",
+            "uk": "Довідник"
+          },
+          "description": {
+            "en": "Every route of the Transforms API, the pipeline and run objects, who may do what, each plan's limits, and the errors.",
+            "de": "Jede Route der Transforms-API, die Objekte für Pipelines und Ausführungen, wer was darf, die Limits jedes Tarifs und die Fehler.",
+            "es": "Todas las rutas de la API de Transforms, los objetos pipeline y ejecución, quién puede hacer qué, los límites de cada plan y los errores.",
+            "fr": "Chaque route de l’API Transforms, les objets pipeline et exécution, qui peut faire quoi, les limites de chaque plan et les erreurs.",
+            "pt": "Todas as rotas da API de Transforms, os objetos de pipeline e de execução, quem pode fazer o quê, os limites de cada plano e os erros.",
+            "uk": "Усі маршрути API Transforms, обʼєкти конвеєра й запуску, хто що може робити, ліміти кожного плану й помилки."
+          },
+          "published": true
+        }
+      ]
+    },
+    {
       "id": "apps-reference",
       "group": "apps",
       "title": {
@@ -2285,6 +2383,28 @@
             "fr": "Toutes les opérations de Request Bins : bins, requêtes enregistrées, plan et consommation.",
             "pt": "Todas as operações de Request Bins: bins, as requisições que eles registram, plano e uso.",
             "uk": "Усі операції Request Bins: bin-и, запити, які вони записують, план і споживання."
+          },
+          "published": true
+        },
+        {
+          "path": "reference/transforms",
+          "kind": "reference",
+          "openapiSpec": "transforms",
+          "title": {
+            "en": "Transforms API",
+            "de": "Transforms-API",
+            "es": "API de Transforms",
+            "fr": "API Transforms",
+            "pt": "API de Transforms",
+            "uk": "API Transforms"
+          },
+          "description": {
+            "en": "Every operation of the Transforms REST API, with the request in curl, TypeScript, Python or Go.",
+            "de": "Jede Operation der REST-API von Transforms, mit dem Request in curl, TypeScript, Python oder Go.",
+            "es": "Todas las operaciones de la API REST de Transforms, con la petición en curl, TypeScript, Python o Go.",
+            "fr": "Toutes les opérations de l’API REST Transforms, avec la requête en curl, TypeScript, Python ou Go.",
+            "pt": "Todas as operações da API REST de Transforms, com a requisição em curl, TypeScript, Python ou Go.",
+            "uk": "Усі операції REST API Transforms із запитом для curl, TypeScript, Python або Go."
           },
           "published": true
         }

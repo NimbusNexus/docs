@@ -2,7 +2,7 @@
 title: "Pagination"
 description: "Comment chaque API pagine ses listes, avec limit et offset ou marker, et comment savoir que vous êtes à la fin."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -12,7 +12,7 @@ NimbusNexus a deux types d’API, et elles ne paginent pas leurs listes de la m�
 
 ## Les API des apps {#shape}
 
-Sur Webhooks, Inboxes et Request Bins, la plupart des listes acceptent deux paramètres de requête :
+Sur Webhooks, Inboxes, Request Bins et Transforms, la plupart des listes acceptent deux paramètres de requête :
 
 - `limit` — taille de page. 50 par défaut, 200 au maximum. Au-delà de 200, la requête échoue à la validation : `422` `validation_error` ([Erreurs](/docs/errors#codes-validation)).
 - `offset` — le nombre d’éléments à ignorer. 0 par défaut, 10,000 au maximum.
@@ -30,10 +30,11 @@ Renvoyez `next_offset` dans `offset` pour obtenir la page suivante. Quand il vau
 
 Un offset compte des positions : un élément créé ou supprimé pendant que vous parcourez une liste peut donc vous faire voir un autre élément deux fois, ou en manquer un. Si cela a de l’importance, comparez les identifiants. Gardez les mêmes filtres pendant tout le parcours, et repartez de l’offset 0 quand vous les changez.
 
-Deux cas diffèrent :
+Trois cas diffèrent :
 
 - **Les recherches** sur Inboxes et Request Bins se paginent plutôt avec `next_until` : voir [Rechercher des messages](/docs/product-inboxes#search) et [Requêtes capturées](/docs/product-bins/reference#requests).
 - **QR Codes** renvoie la plupart de ses listes en une seule réponse. Les scans d’un code (`GET /v1/qr-tracked/codes/{code_id}/scans`) prennent `limit` seul, et les livraisons d’un webhook (`GET /v1/qr-tracked/webhooks/{webhook_id}/deliveries`) se paginent avec `limit` et `cursor`, le curseur suivant se trouvant dans `nextCursor`.
+- **La liste des modèles** sur Transforms (`GET /v1/pipelines/templates`) renvoie tous les modèles dans un simple tableau, sans `limit` ni `offset`.
 
 ## L’API d’infrastructure {#infrastructure}
 

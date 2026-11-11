@@ -1,14 +1,14 @@
 ---
 title: "Erros"
-description: "O formato do erro, os códigos de erro que as APIs de Webhooks, Inboxes e Request Bins enviam e como tratar cada um."
+description: "O formato do erro, os códigos de erro que as APIs de Webhooks, Inboxes, Request Bins e Transforms enviam e como tratar cada um."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-30
+updatedAt: 2026-11-11
 kind: concept
 ---
 
 # Erros
 
-Toda resposta de erro das APIs de Webhooks, Inboxes e Request Bins usa o mesmo formato JSON. Para tratar cada caso, decida com base em `error.code`, ou em `error.next_code` quando o erro trouxer esse campo. Não faça parsing de `message` e não decida só pelo status: um mesmo status pode trazer vários códigos e, em todas as APIs, o `402` traz quatro.
+Toda resposta de erro das APIs de Webhooks, Inboxes, Request Bins e Transforms usa o mesmo formato JSON. Para tratar cada caso, decida com base em `error.code`, ou em `error.next_code` quando o erro trouxer esse campo. Não faça parsing de `message` e não decida só pelo status: um mesmo status pode trazer vários códigos, e o `402` traz quatro no Webhooks, no Inboxes e no Request Bins, e três no Transforms.
 
 > **Atualizado em 16 de outubro de 2026.** No Webhooks, um nome de header personalizado que é um token HTTP válido com um line feed no final agora é recusado como qualquer outro nome que não seja um token HTTP válido: `webhooks.custom_header_name_invalid`, com o `msg` dessa regra e sem `params` ([Validação da requisição](#codes-validation)). Antes, o line feed passava pela verificação de token e o nome era recusado como caractere de controle, com `params.header`: como `webhooks.custom_header_control_character` a partir de 15 de outubro de 2026, e como `value_error` antes disso. A requisição continua sendo um `422` `validation_error`, e nada mais mudou.
 >
@@ -221,6 +221,16 @@ Estes pertencem aos objetos próprios da API de Webhooks (tipos de evento, schem
 | `provider_secret_required` | Rotacionar uma fonte do Stripe ou do GitHub exige o novo segredo desse provedor, e rotacionar uma fonte RabbitMQ exige a nova senha do broker. `details.provider` diz qual: `stripe`, `github` ou `rabbitmq`. |
 | `broker_not_allowed` | Uma fonte RabbitMQ indica um broker ao qual a API não se conecta. |
 
+### Códigos da API de Transforms {#codes-transforms}
+
+O Transforms envia os códigos que o Request Bins envia para as mesmas situações, e a [referência de Transforms](/docs/product-transforms/reference#errors) lista todos eles. Estes são os códigos próprios dele:
+
+| `code` | Status | Descrição |
+|---|---|---|
+| `invalid_pipeline` | 422 | Um pipeline que nunca conseguiria rodar, ao ser salvo ou testado. `details.reason`, `details.path` e `details.step` indicam o primeiro problema ([Pipelines inválidos](/docs/product-transforms/reference#invalid-pipeline)). |
+| `conflict` | 409 | `details.reason` é `pipeline_disabled`, para a execução de um pipeline que você desligou, com `details.id`; `destinations_unconfirmed`, para uma nova versão com uma etapa `auth` ou uma exclusão que não indica todos os produtos que executam o pipeline, com `details.id` e `details.destinations` ([Quem executa um pipeline](/docs/product-transforms/reference#destinations)); ou `slot_in_use`, para a exclusão de um slot que a versão atual de um pipeline indica, com `details.id` e `details.pipelines`, o número de pipelines ([Slots de credencial](/docs/product-transforms/reference#slots)). |
+| `rate_limited` | 429 | Acima das execuções por minuto do plano, ou quando o workspace tem execuções ou testes demais em andamento ao mesmo tempo ([Planos e limites](/docs/product-transforms/reference#limits)). `details.retry_after` diz quantos segundos esperar. |
+
 ### Plano e faturamento {#codes-plan}
 
 Todos estes são `402`. Repetir a mesma requisição nunca adianta: alguém precisa mudar o plano, quitar um pagamento, esperar o próximo período de faturamento ou liberar uma alocação, por exemplo liberando um endereço ou excluindo um endpoint.
@@ -229,7 +239,8 @@ Todos estes são `402`. Repetir a mesma requisição nunca adianta: alguém prec
 |---|---|---|
 | `quota_exceeded` | Ambas | Acima de um limite do plano: uma alocação (Inboxes: endereços; Webhooks: endpoints) ou um teto mensal (Inboxes: mensagens; Webhooks: entregas), em que você espera o próximo período ou faz upgrade. Nas duas APIs, `details.reason` diz qual é o caso, e `details` traz `metric`, o `limit` correspondente e, para uma alocação, a contagem `current`. |
 | `quota_exceeded` | Request Bins | Acima do limite de bins do plano, ao criar um bin. `details.reason` é `allocation`, e `details` traz `metric` (`bins`), o `limit` correspondente e a contagem `current`. O limite mensal de requisições nunca recusa uma chamada de API: depois de ultrapassá-lo, os bins respondem aos remetentes e não registram nada até que o [crédito](/docs/product-bins/reference#credit) compre mais ou o mês seguinte comece. |
-| `not_entitled` | Todas | A funcionalidade não está no seu plano, como a API de leitura no plano gratuito do Inboxes, a leitura de requisições capturadas com uma chave de API no plano Free do Request Bins ou uma fonte RabbitMQ abaixo do Pro no Webhooks. `details.feature` a nomeia. |
+| `quota_exceeded` | Transforms | Acima do limite de pipelines do plano, ao criar um pipeline (`POST /v1/pipelines`), ou do limite de slots de credencial, ao adicionar um slot (`POST /v1/slots`). `details.reason` é `allocation`, e `details` traz `metric` (`pipelines` ou `slots`), o `limit` correspondente e a contagem `current`. |
+| `not_entitled` | Webhooks, Inboxes, Request Bins | A funcionalidade não está no seu plano, como a API de leitura no plano gratuito do Inboxes, a leitura de requisições capturadas com uma chave de API no plano Free do Request Bins ou uma fonte RabbitMQ abaixo do Pro no Webhooks. `details.feature` a nomeia. |
 | `workspace_frozen` | Todas | Há uma cobrança em aberto, então as alterações são recusadas. Quite-a no console da sua conta; o upgrade do plano também é recusado até você fazer isso. |
 | `workspace_suspended` | Todas | O período de carência após uma cobrança em aberto terminou e o serviço parou para este workspace. |
 

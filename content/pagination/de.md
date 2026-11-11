@@ -2,7 +2,7 @@
 title: "Paginierung"
 description: "Wie jede API ihre Listen paginiert, mit limit und offset oder marker, und woran Sie das Ende erkennen."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -12,7 +12,7 @@ NimbusNexus hat zwei Arten von APIs, und sie paginieren Listen unterschiedlich. 
 
 ## Die APIs der Apps {#shape}
 
-Die meisten Listen bei Webhooks, Inboxes und Request Bins nehmen zwei Query-Parameter entgegen:
+Die meisten Listen bei Webhooks, Inboxes, Request Bins und Transforms nehmen zwei Query-Parameter entgegen:
 
 - `limit` — Seitengröße. Standard 50, max. 200. Über 200 schlägt die Validierung des Requests fehl: `422` `validation_error` ([Fehler](/docs/errors#codes-validation)).
 - `offset` — wie viele Einträge übersprungen werden. Standard 0, max. 10.000.
@@ -30,10 +30,11 @@ Geben Sie `next_offset` für die nächste Seite als `offset` zurück. Wenn der W
 
 Ein Offset zählt Positionen: Wird ein Eintrag erstellt oder gelöscht, während Sie eine Liste durchlaufen, sehen Sie möglicherweise einen anderen Eintrag doppelt oder verpassen einen. Wenn das wichtig ist, vergleichen Sie die IDs. Behalten Sie für den gesamten Durchlauf dieselben Filter bei, und beginnen Sie wieder bei Offset 0, wenn Sie sie ändern.
 
-Zwei Fälle weichen davon ab:
+Drei Fälle weichen davon ab:
 
 - **Suchen** bei Inboxes und Request Bins paginieren stattdessen mit `next_until`; siehe [Nachrichten durchsuchen](/docs/product-inboxes#search) und [Erfasste Requests](/docs/product-bins/reference#requests).
 - **QR-Codes** liefert die meisten Listen in einer einzigen Antwort. Die Scans eines Codes (`GET /v1/qr-tracked/codes/{code_id}/scans`) nehmen nur `limit` entgegen, und die Zustellungen eines Webhooks (`GET /v1/qr-tracked/webhooks/{webhook_id}/deliveries`) paginieren mit `limit` und `cursor`, wobei der nächste Cursor in `nextCursor` steht.
+- **Die Vorlagenliste** bei Transforms (`GET /v1/pipelines/templates`) liefert alle Vorlagen als ein einfaches Array, ohne `limit` oder `offset`.
 
 ## Die Infrastruktur-API {#infrastructure}
 

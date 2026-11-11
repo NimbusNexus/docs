@@ -2,7 +2,7 @@
 title: Rate limiting
 description: What each API limits, the headers and errors a limit answers with, and how to back off.
 publishedAt: 2026-05-20
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -48,6 +48,7 @@ The app APIs don't send `X-RateLimit` headers, and they don't limit every reques
 - **Webhooks:** publishing (`POST /v1/events`) runs at your plan's publish rate, per workspace. Redelivering and replaying (`POST /v1/deliveries/{delivery_id}/redeliver`, `POST /v1/deliveries/redeliver`, `POST /v1/deliveries/replay` and `POST /v1/events/{event_id}/replay`) run at the same rate, on a count of their own. Inbound events to `POST /v1/ingest/{source_id}` are limited to 600 a minute per source, then your plan's publish rate ([What the provider sees](/docs/product-webhooks/sources#responses)). Saving and testing scripts is limited to 60 a minute per workspace ([Transformations](/docs/product-webhooks/transformations#errors)).
 - **Inboxes:** each inbox accepts mail up to a per-minute limit set by your plan ([Limits by plan](/docs/product-inboxes#limits)).
 - **Request Bins:** a bin can send 10 forward tests a minute ([Test a forward URL](/docs/product-bins/reference#forward-test)). A bin URL takes 120 requests a minute from one sender and 600 a minute in all ([What a bin URL answers](/docs/product-bins/reference#edge-answers)).
+- **Transforms:** runs and tests share your plan's runs a minute, per workspace, and at most two of a workspace's can be under way at once on each server process ([Plans and limits](/docs/product-transforms/reference#limits)).
 - **QR Codes:** a workspace can send 10 webhook tests a minute.
 
 ## Backoff strategy {#backoff}

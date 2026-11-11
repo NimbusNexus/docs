@@ -1,14 +1,14 @@
 ---
 title: "Помилки"
-description: "Формат помилки, коди помилок, які надсилають API Webhooks, Inboxes і Request Bins, і як обробляти кожен із них."
+description: "Формат помилки, коди помилок, які надсилають API Webhooks, Inboxes, Request Bins і Transforms, і як обробляти кожен із них."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-30
+updatedAt: 2026-11-11
 kind: concept
 ---
 
 # Помилки
 
-Кожна відповідь із помилкою від API Webhooks, Inboxes і Request Bins має той самий формат JSON. Щоб обробити кожен випадок, розгалужуйте обробку за `error.code` або за `error.next_code`, якщо помилка його містить. Не розбирайте `message` і не вирішуйте лише за статусом: один статус може мати кілька кодів, а `402` у кожному API має чотири.
+Кожна відповідь із помилкою від API Webhooks, Inboxes, Request Bins і Transforms має той самий формат JSON. Щоб обробити кожен випадок, розгалужуйте обробку за `error.code` або за `error.next_code`, якщо помилка його містить. Не розбирайте `message` і не вирішуйте лише за статусом: один статус може мати кілька кодів, а `402` має чотири у Webhooks, Inboxes і Request Bins та три в Transforms.
 
 > **Оновлено 2026-10-16.** У Webhooks назва користувацького заголовка, яка є дійсним HTTP-токеном з одним символом переведення рядка в кінці, тепер відхиляється так само, як будь-яка інша назва, що не є дійсним HTTP-токеном: `webhooks.custom_header_name_invalid` з `msg` цього правила й без `params` ([Валідація запиту](#codes-validation)). Раніше символ переведення рядка проходив перевірку токена, і назву відхиляли як керувальний символ, з `params.header`: як `webhooks.custom_header_control_character` з 2026-10-15 і як `value_error` до того. Запит, як і раніше, — `422` `validation_error`, і більше нічого не змінилося.
 >
@@ -221,6 +221,16 @@ Request Bins надсилає три:
 | `provider_secret_required` | Для ротації джерела Stripe чи GitHub потрібен новий секрет від цього провайдера, а для ротації джерела RabbitMQ — новий пароль брокера. `details.provider` указує, який саме: `stripe`, `github` або `rabbitmq`. |
 | `broker_not_allowed` | Джерело RabbitMQ називає брокер, до якого API не підключатиметься. |
 
+### Коди API Transforms {#codes-transforms}
+
+Transforms надсилає ті самі коди, що й Request Bins, для тих самих ситуацій, а [довідник Transforms](/docs/product-transforms/reference#errors) перелічує їх усі. Ось його власні:
+
+| `code` | Статус | Що це |
+|---|---|---|
+| `invalid_pipeline` | 422 | Конвеєр, який ніколи не зміг би виконатися, під час збереження чи тестування. `details.reason`, `details.path` і `details.step` вказують на першу проблему ([Недійсні конвеєри](/docs/product-transforms/reference#invalid-pipeline)). |
+| `conflict` | 409 | `details.reason` дорівнює `pipeline_disabled` — для запуску конвеєра, який ви вимкнули, з `details.id`; `destinations_unconfirmed` — для нової версії з кроком `auth` чи видалення, що не називає кожен продукт, який виконує конвеєр, з `details.id` і `details.destinations` ([Хто виконує конвеєр](/docs/product-transforms/reference#destinations)); або `slot_in_use` — для видалення слота, який називає поточна версія якогось конвеєра, з `details.id` і `details.pipelines`, кількістю конвеєрів ([Слоти облікових даних](/docs/product-transforms/reference#slots)). |
+| `rate_limited` | 429 | Перевищено кількість запусків на хвилину, яку дозволяє план, або в робочого простору одночасно виконується забагато запусків чи тестів ([Плани й ліміти](/docs/product-transforms/reference#limits)). `details.retry_after` показує, скільки секунд зачекати. |
+
 ### План і білінг {#codes-plan}
 
 Усі ці коди — `402`. Повтор того самого запиту ніколи не допомагає: хтось має змінити план, погасити платіж, дочекатися наступного розрахункового періоду або вивільнити місце в межах ліміту, напр. звільнивши адресу чи видаливши ендпоінт.
@@ -229,7 +239,8 @@ Request Bins надсилає три:
 |---|---|---|
 | `quota_exceeded` | Обидва | Перевищено ліміт плану: виділений обсяг (Inboxes: адреси; Webhooks: ендпоінти) або місячну стелю (Inboxes: повідомлення; Webhooks: доставки), коли треба дочекатися наступного періоду або перейти на вищий план. В обох API `details.reason` указує, що саме, а `details` називає `metric`, його `limit` і, для виділеного обсягу, поточну кількість `current`. |
 | `quota_exceeded` | Request Bins | Перевищено ліміт плану на bin-и під час створення bin-а. `details.reason` дорівнює `allocation`, а `details` називає `metric` (`bins`), його `limit` і поточну кількість `current`. Місячний ліміт запитів ніколи не відхиляє виклик API: коли його вичерпано, bin-и відповідають відправникам і нічого не записують, доки за рахунок [кредиту](/docs/product-bins/reference#credit) не буде докуплено запитів або не почнеться наступний місяць. |
-| `not_entitled` | Усі | Функції немає у вашому плані, як-от API читання на безкоштовному плані Inboxes, читання перехоплених запитів з API-ключем на плані Free у Request Bins або джерело RabbitMQ на плані, нижчому за Pro, у Webhooks. `details.feature` називає цю функцію. |
+| `quota_exceeded` | Transforms | Перевищено ліміт плану на конвеєри під час створення конвеєра (`POST /v1/pipelines`) або на слоти облікових даних під час додавання слота (`POST /v1/slots`). `details.reason` дорівнює `allocation`, а `details` називає `metric` (`pipelines` або `slots`), його `limit` і поточну кількість `current`. |
+| `not_entitled` | Webhooks, Inboxes, Request Bins | Функції немає у вашому плані, як-от API читання на безкоштовному плані Inboxes, читання перехоплених запитів з API-ключем на плані Free у Request Bins або джерело RabbitMQ на плані, нижчому за Pro, у Webhooks. `details.feature` називає цю функцію. |
 | `workspace_frozen` | Усі | Є непогашений платіж, тому зміни відхиляються. Погасіть його в консолі акаунта; доти перехід на вищий план теж відхилятиметься. |
 | `workspace_suspended` | Усі | Пільговий період після непогашеного платежу закінчився, і сервіс для цього робочого простору зупинено. |
 

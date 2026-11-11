@@ -12,7 +12,7 @@ Chaque produit NimbusNexus est une API REST : du JSON sur HTTPS, avec votre clé
 
 ## 1 · Obtenir une clé API {#key}
 
-**Apps : Webhooks, Inboxes, QR Codes et Request Bins.** Ouvrez **API keys** dans votre [console de compte]({{ACCOUNT_BASE_URL}}/api-keys) et créez une clé pour le produit que vous voulez appeler. Chaque clé appartient à un seul produit. Choisissez-y sa portée : `admin`, `read` ou, pour Webhooks, également `publish`. Copiez la clé dès qu’elle s’affiche, car elle n’est montrée qu’une fois. Une clé d’app est un JWT : elle commence donc par `eyJ`.
+**Apps : Webhooks, Inboxes, QR Codes, Request Bins et Transforms.** Ouvrez **API keys** dans votre [console de compte]({{ACCOUNT_BASE_URL}}/api-keys) et créez une clé pour le produit que vous voulez appeler. Chaque clé appartient à un seul produit. Choisissez-y sa portée : `admin`, `read` ou, pour Webhooks, également `publish`. Copiez la clé dès qu’elle s’affiche, car elle n’est montrée qu’une fois. Une clé d’app est un JWT : elle commence donc par `eyJ`.
 
 **Infrastructure : VM, stockage, réseau et DNS.** Créez la clé dans la console, sous **Sécurité → Jetons API**, avec la portée **Admin**, et copiez la valeur intitulée **Clé API** ([Démarrage rapide](/docs/quickstart#api-key)). Elle est propre à un projet. [Authentification](/docs/authentication) couvre les rôles, les règles d’accès et le remplacement d’une clé.
 
@@ -44,6 +44,7 @@ Chaque produit a sa propre URL de base :
 | Inboxes | `{{INBOXES_BASE_URL}}/v1` |
 | QR Codes | `{{QR_BASE_URL}}/v1` |
 | Request Bins | `https://bins.nimbusnexus.net/v1` |
+| Transforms | `https://transforms.nimbusnexus.net/v1` |
 | Infrastructure | `{{API_BASE_URL}}/api/v1` |
 
 ## 3 · Faire un premier appel {#first-call}
@@ -129,4 +130,4 @@ L’API d’infrastructure répond différemment, avec `success: false` et un `m
 
 - [Référence de l’API](/docs/reference) : toutes les opérations de tous les produits, avec l’appel dans votre langage.
 - Les [SDK](/docs/setup/sdk) et la [CLI](/docs/setup/cli) : les mêmes appels, avec les réessais, la vérification des signatures et la pagination gérés pour vous.
-- Démarrages rapides des produits : [Webhooks](/docs/product-webhooks/quickstart), [Inboxes](/docs/product-inboxes/quickstart), [Request Bins](/docs/product-bins/quickstart), [votre première VM](/docs/quickstart).
+- Démarrages rapides des produits : [Webhooks](/docs/product-webhooks/quickstart), [Inboxes](/docs/product-inboxes/quickstart), [Request Bins](/docs/product-bins/quickstart), [Transforms](/docs/product-transforms/quickstart), [votre première VM](/docs/quickstart).

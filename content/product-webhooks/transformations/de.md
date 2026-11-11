@@ -2,7 +2,7 @@
 title: "Transformationen"
 description: "Jede Zustellung filtern, kürzen, umformen oder mit Credentials versehen, bevor sie signiert und gesendet wird: mit einer Pipeline aus deklarativen Schritten in jedem Tarif oder mit einem JavaScript-Skript in bezahlten Tarifen."
 publishedAt: 2026-10-30
-updatedAt: 2026-11-03
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -26,7 +26,7 @@ Eine Transformation ändert, was ein Endpoint erhält: Sie läuft für jedes Eve
 | Läuft | Direkt bei der Zustellung, mit festen Obergrenzen; es läuft kein Code von Ihnen | In einer eigenen Sandbox, mit einem Budget für CPU, Speicher und Zeit |
 | Geeignet für | Credentials, Filter, Felder entfernen und hinzufügen, Umformen, Chat-Nachrichten | Logik, die sich mit den Schritten nicht ausdrücken lässt |
 
-Eine Transformation ist das eine oder das andere, und ihre Art wird beim Anlegen festgelegt. Ein Endpoint führt höchstens eine Transformation aus; eine Transformation kann mehreren Endpoints ihres Projekts dienen.
+Eine Transformation ist das eine oder das andere, und ihre Art wird beim Anlegen festgelegt. Ein Endpoint führt höchstens eine Transformation aus; eine Transformation kann mehreren Endpoints ihres Projekts dienen. Eine Pipeline kann auch [in Transforms liegen](#reference) und hier per Referenz laufen.
 
 In Free wird das Anlegen oder Testen eines Skripts mit `402 not_entitled` abgewiesen. Ein Workspace, der seinen bezahlten Tarif verlässt, behält seine Skripte und kann sie weiterhin umbenennen, pausieren, von Endpoints trennen und löschen, aber weder neuen Code speichern noch ein Skript testen oder fortsetzen; Zustellungen an einen Endpoint, der ein Skript ausführt, warten, bis der Tarif wieder Skripte enthält oder Sie das Skript vom Endpoint trennen. Pipelines laufen in jedem Tarif weiter.
 
@@ -304,6 +304,42 @@ curl -sX PATCH {{WEBHOOKS_BASE_URL}}/v1/endpoints/ep_3f9a… \
 
 Ein Skript nimmt `code` anstelle von `pipeline`; beides oder keines von beiden zu senden, wird abgewiesen. Um das Dokument später zu ändern, senden Sie `PATCH /v1/transformations/{id}` mit einer neuen `pipeline`. Hat die neue Version einen `auth`-Schritt und führen Endpoints die Transformation aus, muss der `PATCH` außerdem `confirm_destinations` enthalten: die URL jedes dieser Endpoints, wie sie `destinations` der Transformation auflistet, denn die Credentials gehen an alle. `POST /v1/endpoints` nimmt ebenfalls `transformation_id`, `{"transformation_id": null}` trennt die Transformation wieder vom Endpoint, und eine Transformation aus einem anderen Projekt wird als nicht gefunden abgewiesen. Anlegen, Ändern und Testen von Transformationen und Secrets erfordert einen Key mit dem Scope `admin`; ein Key mit `read` kann sie auflisten und lesen. Eine Person braucht, anders als ein Key, außerdem die Rolle Owner oder Admin, um ein Secret zu hinterlegen oder zu ändern, eine Pipeline zu speichern, deren `auth`-Schritt auf eines verweist, oder eine solche Pipeline mit einem Endpoint zu verknüpfen.
 
+## Eine Pipeline aus Transforms {#reference}
+
+Eine Transformation kann eine Pipeline ausführen, die in [Transforms](/docs/product-transforms) liegt, statt eine eigene zu haben. Ihre Art ist `reference`, in jedem Tarif, und wir speichern, welche Pipeline sie nennt, keine Kopie. Die Pipeline läuft weiterhin hier, neben der Zustellung, und Transforms ist am Senden nicht beteiligt. Auch die Ausführungen zählen hier, in `transformation_runs`. [Testen](#test), [Pausieren](#versions), [was eine Zustellung zeigt](#deliveries) und die [Zählung der Fehlschläge](#failures) funktionieren wie bei jeder Pipeline.
+
+Die Konsole bietet diese Art nicht an. Legen Sie eine über die API im Projekt des Endpoints an und [verknüpfen Sie den Endpoint](#set-up) dann über `transformation_id` mit ihr:
+
+```bash
+curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/transformations \
+  -H "Authorization: Bearer $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Paid invoices to the CRM", "project_id": "prj_…",
+       "pipeline_ref": {"id": "pipe_…", "secrets": {"sec_1f0a…": "sec_9c4e…"}}}'
+```
+
+| Feld von `pipeline_ref` | Bedeutung |
+|---|---|
+| `id` | Die `id` der Pipeline in Transforms. Sie muss zu diesem Workspace gehören. |
+| `version` | Eine Version, die festgeschrieben wird. Ohne sie folgt die Referenz der aktuellen Version, und eine neue erreicht die Zustellungen innerhalb einer Minute. |
+| `secrets` | Bis zu 20 Paare: die ID eines [Slots](/docs/product-transforms#credentials), den die Pipeline nennt, dann die ID eines [Secrets](#credentials) dieses Projekts. Jeder Slot, den die Version nennt, braucht eines, und eine Pipeline ohne `auth`-Schritt braucht keines. |
+
+Transforms speichert keine Credentials, sie kommen also aus dieser Zuordnung: Jeder `auth`-Schritt läuft mit dem Secret dieses Projekts anstelle seines Slots. Für eine Referenz, die ein Secret zuordnet, gelten die Regeln eines `auth`-Schritts: Eine Person braucht die Rolle Owner oder Admin, um sie zu speichern, eine neue Version muss jeden Endpoint in `confirm_destinations` nennen, und das Secret lässt sich nicht löschen, solange die Referenz es zuordnet. Eine Pipeline in Transforms gehört dem ganzen Workspace, daher braucht ihre Auswahl einen Key oder eine Anmeldung für den ganzen Workspace. Ein auf bestimmte Projekte beschränkter Key oder eine solche Anmeldung wird mit `403` `project_confined` abgewiesen, kann Gespeichertes aber weiterhin lesen, umbenennen und verknüpfen.
+
+Um die Pipeline, die Version oder die Secrets zu ändern, senden Sie `PATCH /v1/transformations/{id}` mit einer neuen `pipeline_ref`; das speichert die nächste Version der Transformation. Eine neue Version in Transforms braucht keinen `PATCH`, es sei denn, die Referenz schreibt eine Version fest. Zum Testen senden Sie `pipeline_ref` anstelle von `pipeline` an `POST /v1/transformations/test`: Der Test führt aus, was die Referenz jetzt ausführt, mit maskierten Credentials, auch solange die Pipeline in Transforms deaktiviert ist. Für eine Zustellung ergänzt `GET /v1/deliveries/{id}/transform` das Feld `pipeline_version`, die Version der Pipeline, die gelaufen ist, neben `version`, der Version der Transformation.
+
+Ein Event wird nie untransformiert gesendet. Wenn die Pipeline nicht laufen kann:
+
+| Was passiert ist | Was die Zustellung tut |
+|---|---|
+| Transforms ist nicht erreichbar | Eine bereits abgerufene Version läuft weiter. Gibt es nichts, worauf sie sich stützen kann, wartet die Zustellung, ohne einen Versuch zu verbrauchen, und prüft nach einem Viertel ihrer bisherigen Wartezeit erneut, frühestens nach 5 Minuten und spätestens nach einer Stunde. Sie erscheint als `failed`, mit einem `last_error`, das mit `paused:` beginnt. Nach 7 Tagen Wartezeit oder einen Tag, bevor ihr Event mit Ablauf der [Aufbewahrung](/docs/product-webhooks/deliveries#retention) gelöscht würde, falls das früher ist, geht sie in die Dead-Letter-Queue, mit `pipeline_failed:` und dem Grund, warum sie gewartet hat, ohne der Transformation angerechnet zu werden. |
+| Die Pipeline ist in Transforms deaktiviert | Innerhalb einer Minute warten die Zustellungen auf dieselbe Weise, ob die Referenz eine Version festschreibt oder nicht. Sobald die Pipeline seit einer Minute wieder aktiviert ist, gehen die, die noch warten, bei ihrer nächsten Prüfung raus. |
+| Die Pipeline wurde gelöscht | Die Zustellung schlägt mit `pipeline_failed: reference_missing: …` fehl und geht in die Dead-Letter-Queue. |
+| Eine neuere Version nennt einen Slot, den die Referenz nicht zuordnet | Die Zustellung schlägt genauso mit `secret_missing` fehl und nennt den Slot. Ordnen Sie ihn mit einem `PATCH` zu. |
+| Eine neuere Version enthält etwas, das wir ablehnen, etwa einen Header, den wir selbst senden | Die Zustellung schlägt genauso fehl, mit dem Grund, etwa `managed_header`. Beim Speichern in Transforms werden unsere Header-Regeln nicht geprüft. |
+
+Jeder Fehlschlag wird der Transformation angerechnet, wie bei jeder Pipeline ([Wenn eine Ausführung fehlschlägt](#failures)). Transforms führt `webhookd` unter den Diensten auf, die eine Pipeline ausführen, und eine neue Version mit einem `auth`-Schritt oder das Löschen der Pipeline muss ihn zuerst nennen ([Wer eine Pipeline ausführt](/docs/product-transforms/reference#destinations)).
+
 ## Was eine Zustellung zeigt {#deliveries}
 
 Eine Transformation läuft einmal pro Zustellung, beim ersten Versuch. Was sie erzeugt hat, wird mit der Zustellung gespeichert, und jeder Retry sendet genau diesen Body erneut, neu signiert, mit den Headern des Endpoints, wie sie bei diesem Versuch sind. Die Credentials einer Pipeline werden nie gespeichert: Jeder Versuch fügt sie neu aus dem Wert hinzu, den das Secret in diesem Moment hat. Eine [erneute Zustellung](/docs/product-webhooks/deliveries#replay) führt die aktuelle Version der Transformation erneut aus.
@@ -386,27 +422,33 @@ Eine Pipeline, die nie laufen könnte, wird beim Speichern oder Testen mit `422 
 | `not_json` | Es enthält einen Wert, der kein JSON ist. |
 | `managed_header` | Ein Schritt setzt einen Header, den wir selbst senden: `X-Webhook-*` oder `User-Agent`. |
 | `forbidden_header` | Ein Schritt setzt einen Hop-by-Hop- oder Steuer-Header, etwa `Expect`. |
-| `unknown_secret` | Ein Auth-Schritt nennt ein Secret, das sein Projekt nicht hat. |
+| `unknown_secret` | Ein Auth-Schritt oder die `secrets` einer Referenz nennen ein Secret, das ihr Projekt nicht hat. |
+| `unknown_pipeline` | Eine [Referenz](#reference) nennt eine Pipeline, die dieser Workspace in Transforms nicht hat. |
+| `unknown_pipeline_version` | Eine Referenz schreibt eine Version fest, die Transforms nicht hat. |
+| `unbound_secret` | Die Version, die eine Referenz ausführt, nennt einen Slot, den ihre `secrets` nicht zuordnen. |
 
 Die übrigen Ablehnungen:
 
 | Status | Code | Wann |
 |---|---|---|
-| `422` | `validation_error` | Eine Transformation mit `code` und `pipeline` zugleich oder mit keinem von beiden, oder ein `PATCH` mit dem Feld der anderen Art. |
+| `422` | `validation_error` | Eine Transformation mit mehr als einem von `code`, `pipeline` und `pipeline_ref` oder mit keinem davon, oder ein `PATCH` mit dem Feld einer anderen Art. |
 | `402` | `not_entitled` (`feature: transformations`) | Beim Anlegen eines Skripts, beim Speichern von neuem Code, beim Fortsetzen oder Testen eines Skripts in einem Tarif ohne Skripte. |
 | `422` | `invalid_transformation` | Ein Skript, das sich nicht laden lässt: `syntax_error`, `no_transform`, `code_too_large` oder `load_failed`. |
 | `409` | `conflict` (`transformation_in_use`) | Beim Löschen einer Transformation, die ein Endpoint noch ausführt. Trennen Sie sie zuerst vom Endpoint. |
 | `409` | `conflict` (`secret_in_use`) | Beim Löschen eines Secrets, das die aktuelle Version einer Pipeline nennt. Ändern Sie zuerst die Pipeline. |
 | `409` | `conflict` (`destinations_unconfirmed`) | Bei einem `PATCH`, der einen `auth`-Schritt speichert, ohne in `confirm_destinations` jeden Endpoint zu nennen, der die Transformation ausführt. `details.destinations` listet deren URLs auf, und nichts wird gespeichert. |
 | `403` | `forbidden` (`role`) | Wenn ein Member ein Secret hinterlegt oder ändert, eine Pipeline speichert, deren `auth`-Schritt auf eines verweist, oder eine solche Pipeline mit einem Endpoint verknüpft. |
+| `403` | `forbidden` (`project_confined`) | Ein auf bestimmte Projekte beschränkter Key oder eine solche Anmeldung wählt oder testet eine Pipeline aus Transforms. |
 | `404` | `not_found` (`transformation`, `transformation_version`, `secret`) | Es existiert nicht, die Version wird nicht mehr aufbewahrt, oder ein Endpoint nennt eine Transformation aus einem anderen Projekt. |
 | `429` | `rate_limited` | Mehr als 60 Speichervorgänge und Tests von Skripten pro Minute und Workspace. |
 | `503` | `unavailable` (`transform`) | Die Sandbox konnte das Skript gerade nicht ausführen. Es wurde nichts gespeichert; versuchen Sie es erneut. |
+| `503` | `unavailable` (`transforms`) | Transforms konnte zur Pipeline einer Referenz nicht befragt werden. Es wurde nichts gespeichert; versuchen Sie es erneut. |
 
 ## Nächste Schritte {#next-steps}
 
 - [Slack, Teams und Discord](/docs/product-webhooks/chat-apps) — die Webhook-URL eines Kanals besorgen und Events an ihn senden.
 - [Zustellungen und Retries](/docs/product-webhooks/deliveries) — Status, Retries und erneutes Senden.
 - [Endpoint-Verifizierung](/docs/product-webhooks/endpoint-verification) — die Challenge und Empfänger, die sie nicht beantworten können.
+- [Transforms](/docs/product-transforms) — Pipelines an einem Ort erstellen, versionieren und testen und hier per Referenz ausführen.
 - [Webhooks-API](/docs/reference/webhooks) — jede Route, darunter `/v1/transformations` und `/v1/secrets`.
 - [Überblick über Webhooks](/docs/product-webhooks) — Events, Endpoints und Abos.

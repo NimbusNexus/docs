@@ -2,7 +2,7 @@
 title: "Conventions"
 description: "Les règles que suivent les API — identifiants de ressource, pagination, erreurs, idempotence, opérations longues."
 publishedAt: 2026-05-19
-updatedAt: 2026-11-04
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -18,7 +18,7 @@ Les identifiants restent stables pendant toute la vie de la ressource — jamais
 
 ## Pagination {#pagination}
 
-Sur Webhooks, Inboxes et Request Bins, les endpoints de liste acceptent deux paramètres de requête :
+Sur Webhooks, Inboxes, Request Bins et Transforms, la plupart des endpoints de liste acceptent deux paramètres de requête ([Pagination](/docs/pagination#shape) liste ceux qui diffèrent) :
 
 - `limit` — taille de page. 50 par défaut, 200 au maximum. Au-delà de 200, la requête échoue à la validation : `422` `validation_error` ([Erreurs](/docs/errors#codes-validation)).
 - `offset` — le nombre d’éléments à ignorer. Le corps de la réponse renvoie la valeur suivante dans `next_offset` ; renvoyez-la dans `offset` pour avancer.
@@ -76,7 +76,7 @@ Un échec de validation (`422`) porte `errors` à la place, avec les champs en �
 
 Il n’y a pas de code d’erreur ici : basez-vous sur le statut et n’analysez pas `message`. Chaque réponse porte un header `X-Request-ID` ; indiquez-le quand vous contactez le support.
 
-Chaque réponse d’erreur de Webhooks, d’Inboxes et de Request Bins utilise ce format JSON :
+Chaque réponse d’erreur de Webhooks, d’Inboxes, de Request Bins et de Transforms utilise ce format JSON :
 
 ```json
 {

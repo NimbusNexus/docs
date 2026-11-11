@@ -2,7 +2,7 @@
 title: "Limitation de débit"
 description: "Ce que limite chaque API, les headers et les erreurs renvoyés par une limite, et la bonne stratégie de backoff."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -48,6 +48,7 @@ Les API des apps n’envoient pas de headers `X-RateLimit` et ne limitent pas to
 - **Webhooks :** la publication (`POST /v1/events`) se fait au débit de publication de votre plan, par espace de travail. La relivraison et le rejeu (`POST /v1/deliveries/{delivery_id}/redeliver`, `POST /v1/deliveries/redeliver`, `POST /v1/deliveries/replay` et `POST /v1/events/{event_id}/replay`) se font au même débit, sur un décompte qui leur est propre. Les événements entrants vers `POST /v1/ingest/{source_id}` sont limités à 600 par minute et par source, puis au débit de publication de votre plan ([Ce que voit le fournisseur](/docs/product-webhooks/sources#responses)). L’enregistrement et le test de scripts sont limités à 60 par minute et par espace de travail ([Transformations](/docs/product-webhooks/transformations#errors)).
 - **Inboxes :** chaque boîte accepte du courrier jusqu’à une limite par minute fixée par votre plan ([Limites par plan](/docs/product-inboxes#limits)).
 - **Request Bins :** un bin peut envoyer 10 tests de transfert par minute ([Tester une URL de transfert](/docs/product-bins/reference#forward-test)). Une URL de bin accepte 120 requêtes par minute d’un même expéditeur et 600 par minute au total ([Ce que répond une URL de bin](/docs/product-bins/reference#edge-answers)).
+- **Transforms :** les exécutions et les tests se partagent le nombre d’exécutions par minute de votre plan, par espace de travail, et un espace de travail peut en avoir au plus deux en cours à la fois dans chaque processus serveur ([Plans et limites](/docs/product-transforms/reference#limits)).
 - **QR Codes :** un espace de travail peut envoyer 10 tests de webhook par minute.
 
 ## Stratégie de backoff {#backoff}

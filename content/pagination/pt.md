@@ -2,7 +2,7 @@
 title: "Paginação"
 description: "Como cada API pagina suas listas, com limit e offset ou marker, e como saber que você chegou ao fim."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -12,7 +12,7 @@ A NimbusNexus tem dois tipos de API, e eles paginam as listas de formas diferent
 
 ## As APIs dos apps {#shape}
 
-No Webhooks, no Inboxes e no Request Bins, a maioria dos endpoints de listagem aceita dois parâmetros de query:
+No Webhooks, no Inboxes, no Request Bins e no Transforms, a maioria dos endpoints de listagem aceita dois parâmetros de query:
 
 - `limit` — tamanho de página. Padrão 50, máximo 200. Acima de 200, a requisição falha na validação: `422` `validation_error` ([Erros](/docs/errors#codes-validation)).
 - `offset` — quantos itens pular. Padrão 0, máximo 10.000.
@@ -30,10 +30,11 @@ Envie `next_offset` de volta como `offset` para obter a próxima página. Quando
 
 Um offset conta posições, então um item criado ou excluído enquanto você percorre uma lista pode fazer você ver outro item duas vezes ou perder um. Se isso importar, compare os ids. Mantenha os mesmos filtros durante todo o percurso e recomece do offset 0 quando mudá-los.
 
-Dois casos são diferentes:
+Três casos são diferentes:
 
 - As **buscas** no Inboxes e no Request Bins paginam com `next_until` em vez disso: veja [Busca de mensagens](/docs/product-inboxes#search) e [Requisições capturadas](/docs/product-bins/reference#requests).
 - Em **Códigos QR**, a maioria das listas vem em uma única resposta. A lista de leituras de um código (`GET /v1/qr-tracked/codes/{code_id}/scans`) aceita só `limit`, e a de entregas de um webhook (`GET /v1/qr-tracked/webhooks/{webhook_id}/deliveries`) pagina com `limit` e `cursor`, com o próximo cursor em `nextCursor`.
+- A **lista de templates** do Transforms (`GET /v1/pipelines/templates`) retorna todos os templates em um único array simples, sem `limit` nem `offset`.
 
 ## A API de infraestrutura {#infrastructure}
 

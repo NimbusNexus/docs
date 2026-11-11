@@ -2,7 +2,7 @@
 title: "Rate-Limiting"
 description: "Was jede API begrenzt, mit welchen Headern und Fehlern ein Limit antwortet, und die richtige Backoff-Strategie."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -48,6 +48,7 @@ Die APIs der Apps senden keine Header `X-RateLimit` und begrenzen nicht jeden Re
 - **Webhooks:** Das Veröffentlichen (`POST /v1/events`) läuft mit der Publish-Rate Ihres Tarifs, pro Workspace. Erneutes Zustellen und erneutes Abspielen (`POST /v1/deliveries/{delivery_id}/redeliver`, `POST /v1/deliveries/redeliver`, `POST /v1/deliveries/replay` und `POST /v1/events/{event_id}/replay`) laufen mit derselben Rate, aber mit einer eigenen Zählung. Eingehende Events an `POST /v1/ingest/{source_id}` sind auf 600 pro Minute und Quelle begrenzt, danach auf die Publish-Rate Ihres Tarifs ([Was der Anbieter sieht](/docs/product-webhooks/sources#responses)). Das Speichern und Testen von Skripten ist auf 60 pro Minute und Workspace begrenzt ([Transformationen](/docs/product-webhooks/transformations#errors)).
 - **Inboxes:** Jede Inbox nimmt Mail bis zu einem Limit pro Minute an, das Ihr Tarif festlegt ([Limits nach Tarif](/docs/product-inboxes#limits)).
 - **Request Bins:** Ein Bin kann 10 Tests pro Minute an seine Weiterleitungs-URL senden ([Weiterleitungs-URL testen](/docs/product-bins/reference#forward-test)). Eine Bin-URL nimmt 120 Requests pro Minute von einem Absender an und insgesamt 600 pro Minute ([Was eine Bin-URL antwortet](/docs/product-bins/reference#edge-answers)).
+- **Transforms:** Ausführungen und Tests teilen sich das Limit Ihres Tarifs für Ausführungen pro Minute, pro Workspace, und in jedem Serverprozess können von einem Workspace höchstens zwei gleichzeitig laufen ([Tarife und Limits](/docs/product-transforms/reference#limits)).
 - **QR-Codes:** Ein Workspace kann 10 Webhook-Tests pro Minute senden.
 
 ## Backoff-Strategie {#backoff}

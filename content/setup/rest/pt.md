@@ -12,7 +12,7 @@ Todo produto NimbusNexus é uma API REST: JSON sobre HTTPS, com sua chave de API
 
 ## 1 · Obter uma chave de API {#key}
 
-**Apps: Webhooks, Inboxes, Códigos QR e Request Bins.** Abra **API keys** no [console da sua conta]({{ACCOUNT_BASE_URL}}/api-keys) e crie uma chave para o produto que você quer chamar. Cada chave pertence a um produto. Escolha o escopo dela ali: `admin`, `read` ou, para Webhooks, também `publish`. Copie a chave quando ela aparecer, porque ela é mostrada só uma vez. Uma chave de app é um JWT, então começa com `eyJ`.
+**Apps: Webhooks, Inboxes, Códigos QR, Request Bins e Transforms.** Abra **API keys** no [console da sua conta]({{ACCOUNT_BASE_URL}}/api-keys) e crie uma chave para o produto que você quer chamar. Cada chave pertence a um produto. Escolha o escopo dela ali: `admin`, `read` ou, para Webhooks, também `publish`. Copie a chave quando ela aparecer, porque ela é mostrada só uma vez. Uma chave de app é um JWT, então começa com `eyJ`.
 
 **Infraestrutura: VMs, armazenamento, rede e DNS.** Crie a chave no painel, em **Segurança → Tokens de API**, com o escopo **Administrador**, e copie o valor com o rótulo **Chave de API** ([Início rápido](/docs/quickstart#api-key)). Ela tem escopo de um projeto. [Autenticação](/docs/authentication) cobre funções, regras de acesso e como substituir uma chave.
 
@@ -44,6 +44,7 @@ Cada produto tem a própria URL base:
 | Inboxes | `{{INBOXES_BASE_URL}}/v1` |
 | Códigos QR | `{{QR_BASE_URL}}/v1` |
 | Request Bins | `https://bins.nimbusnexus.net/v1` |
+| Transforms | `https://transforms.nimbusnexus.net/v1` |
 | Infraestrutura | `{{API_BASE_URL}}/api/v1` |
 
 ## 3 · Fazer a primeira chamada {#first-call}
@@ -129,4 +130,4 @@ A API de infraestrutura responde de outra forma, com `success: false` e um `mess
 
 - [Referência da API](/docs/reference): todas as operações de todos os produtos, com a chamada na sua linguagem.
 - [SDKs](/docs/setup/sdk) e a [CLI](/docs/setup/cli): as mesmas chamadas, com retentativas, verificação de assinatura e paginação resolvidas para você.
-- Inícios rápidos dos produtos: [Webhooks](/docs/product-webhooks/quickstart), [Inboxes](/docs/product-inboxes/quickstart), [Request Bins](/docs/product-bins/quickstart), [sua primeira VM](/docs/quickstart).
+- Inícios rápidos dos produtos: [Webhooks](/docs/product-webhooks/quickstart), [Inboxes](/docs/product-inboxes/quickstart), [Request Bins](/docs/product-bins/quickstart), [Transforms](/docs/product-transforms/quickstart), [sua primeira VM](/docs/quickstart).

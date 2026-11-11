@@ -2,7 +2,7 @@
 title: Transformations
 description: Filter, trim, reshape or add credentials to each delivery before it is signed and sent, with a pipeline of declarative steps on every plan or a JavaScript script on paid plans.
 publishedAt: 2026-10-30
-updatedAt: 2026-11-03
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -26,7 +26,7 @@ A transformation changes what an endpoint receives: it runs on each event before
 | Where it runs | Beside the delivery, under fixed caps; no code of yours runs | In a sandbox of its own, with a CPU, memory and time budget |
 | Good for | Credentials, filters, removing and adding fields, reshaping, chat messages | Logic the steps can't express |
 
-A transformation is one or the other, and its kind is fixed when it is created. An endpoint runs at most one transformation; one transformation can serve several endpoints of its project.
+A transformation is one or the other, and its kind is fixed when it is created. An endpoint runs at most one transformation; one transformation can serve several endpoints of its project. A pipeline can also be [kept in Transforms](#reference) and run here by reference.
 
 On Free, creating or testing a script is refused with `402 not_entitled`. A workspace that leaves its paid plan keeps its scripts and can still rename, pause, detach and delete them, but not save new code, test or resume one, and deliveries to an endpoint that runs one wait until the plan includes scripts again or you detach it. Pipelines keep running on any plan.
 
@@ -304,6 +304,42 @@ curl -sX PATCH {{WEBHOOKS_BASE_URL}}/v1/endpoints/ep_3f9a… \
 
 A script takes `code` in place of `pipeline`; sending both, or neither, is refused. Changing the document later is a `PATCH /v1/transformations/{id}` with a new `pipeline`. If the new version has an auth step and endpoints run the transformation, the `PATCH` must also carry `confirm_destinations`: the URL of each of those endpoints, as the transformation's `destinations` lists them, because the credential goes to all of them. `POST /v1/endpoints` takes `transformation_id` too, `{"transformation_id": null}` detaches it, and a transformation from another project is refused as not found. Creating, changing and testing transformations and secrets takes an `admin` key; a `read` key lists and reads them. A person, rather than a key, also needs the owner or admin role to store or change a secret, to save a pipeline whose auth step names one, or to attach such a pipeline to an endpoint.
 
+## A pipeline kept in Transforms {#reference}
+
+A transformation can run a pipeline kept in [Transforms](/docs/product-transforms) instead of holding its own. Its kind is `reference`, on every plan, and we store which pipeline it names, not a copy. The pipeline still runs here, beside the delivery, and Transforms takes no part in sending it. Runs count here too, in `transformation_runs`. [Testing](#test), [pausing](#versions), [what a delivery shows](#deliveries) and the [count of failures](#failures) work as for any pipeline.
+
+The console doesn't offer this kind. Create one through the API, in the endpoint's project, then [point the endpoint at it](#set-up) with `transformation_id`:
+
+```bash
+curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/transformations \
+  -H "Authorization: Bearer $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Paid invoices to the CRM", "project_id": "prj_…",
+       "pipeline_ref": {"id": "pipe_…", "secrets": {"sec_1f0a…": "sec_9c4e…"}}}'
+```
+
+| Field of `pipeline_ref` | What it is |
+|---|---|
+| `id` | The pipeline's `id` in Transforms, which must be in this workspace. |
+| `version` | A version to pin. Without one it follows the current version, and a new one reaches deliveries within a minute. |
+| `secrets` | Up to 20 pairs: the id of a [slot](/docs/product-transforms#credentials) the pipeline names, then the id of a [secret](#credentials) of this project. Every slot the version names needs one, and a pipeline with no `auth` step needs none. |
+
+Transforms holds no credentials, so they come from this map: each `auth` step runs with this project's secret in place of its slot. A reference that maps a secret follows the rules of an `auth` step: a person needs the owner or admin role to save it, a new version has to name every endpoint in `confirm_destinations`, and the secret can't be deleted while the reference maps it. A pipeline in Transforms belongs to the whole workspace, so choosing one takes a key or sign-in that reaches the whole workspace. A key or sign-in limited to certain projects is refused with `403` `project_confined`, and can still read, rename and attach what is already saved.
+
+To change the pipeline, the version or the secrets, send `PATCH /v1/transformations/{id}` with a new `pipeline_ref`, which saves the transformation's next version. A new version in Transforms needs no `PATCH`, unless the reference pins one. To test, send `pipeline_ref` in place of `pipeline` to `POST /v1/transformations/test`: it runs what the reference runs now, with each credential masked, even while the pipeline is disabled in Transforms. For a delivery, `GET /v1/deliveries/{id}/transform` adds `pipeline_version`, the version of the pipeline that ran, beside `version`, the transformation's own.
+
+An event is never sent untransformed. When the pipeline can't run:
+
+| What happened | What the delivery does |
+|---|---|
+| Transforms can't be reached | A version already fetched keeps running. With nothing to go on, the delivery waits without spending an attempt and looks again after a quarter of the time it has waited so far, at least 5 minutes and at most an hour. It shows as `failed`, with a `last_error` that starts `paused:`. After 7 days of waiting, or a day before [retention](/docs/product-webhooks/deliveries#retention) would delete its event if that comes first, it goes to the dead-letter queue with `pipeline_failed:` and the reason it waited, without counting against the transformation. |
+| The pipeline is disabled in Transforms | Within a minute, whether or not the reference pins a version, deliveries wait the same way. Once it has been enabled again for a minute, those still waiting go out at their next look. |
+| The pipeline was deleted | It fails with `pipeline_failed: reference_missing: …` and goes to the dead-letter queue. |
+| A newer version names a slot the reference doesn't map | It fails the same way with `secret_missing`, naming the slot. Map it with a `PATCH`. |
+| A newer version holds what we refuse, such as a header we send ourselves | It fails the same way with the reason, such as `managed_header`. A save in Transforms doesn't check our header rules. |
+
+Each failure counts against the transformation, as for any pipeline ([When a run fails](#failures)). Transforms lists `webhookd` among the services that run a pipeline, and a new version with an `auth` step, or deleting the pipeline, has to name it first ([Who runs a pipeline](/docs/product-transforms/reference#destinations)).
+
 ## What a delivery shows {#deliveries}
 
 A transformation runs once per delivery, at its first attempt. What it made is stored with the delivery, and every retry resends that same body, signed afresh, with the endpoint's headers as they are at that attempt. A pipeline's credentials are never stored: each attempt adds them again from the secret's value at that moment. [Redelivering](/docs/product-webhooks/deliveries#replay) runs the transformation's current version again.
@@ -386,27 +422,33 @@ A pipeline that could never run is refused when it is saved or tested, with `422
 | `not_json` | It holds a value that isn't JSON. |
 | `managed_header` | A step sets a header we send ourselves: `X-Webhook-*` or `User-Agent`. |
 | `forbidden_header` | A step sets a hop-by-hop or control header, such as `Expect`. |
-| `unknown_secret` | An auth step names a secret its project doesn't hold. |
+| `unknown_secret` | An auth step, or a reference's `secrets`, names a secret its project doesn't hold. |
+| `unknown_pipeline` | A [reference](#reference) names a pipeline this workspace doesn't have in Transforms. |
+| `unknown_pipeline_version` | A reference pins a version Transforms doesn't have. |
+| `unbound_secret` | The version a reference runs names a slot its `secrets` doesn't map. |
 
 The other refusals:
 
 | Status | Code | When |
 |---|---|---|
-| `422` | `validation_error` | A transformation sent with both `code` and `pipeline` or with neither, or a `PATCH` with the other kind's. |
+| `422` | `validation_error` | A transformation sent with more than one of `code`, `pipeline` and `pipeline_ref` or with none, or a `PATCH` with another kind's. |
 | `402` | `not_entitled` (`feature: transformations`) | Creating a script, saving new code, resuming a script or testing one on a plan without scripts. |
 | `422` | `invalid_transformation` | A script that doesn't load: `syntax_error`, `no_transform`, `code_too_large` or `load_failed`. |
 | `409` | `conflict` (`transformation_in_use`) | Deleting a transformation an endpoint still runs. Detach it first. |
 | `409` | `conflict` (`secret_in_use`) | Deleting a secret a pipeline's current version names. Change the pipeline first. |
 | `409` | `conflict` (`destinations_unconfirmed`) | A `PATCH` that saves an auth step without naming every endpoint that runs the transformation in `confirm_destinations`. `details.destinations` lists their URLs, and nothing is saved. |
 | `403` | `forbidden` (`role`) | A member storing or changing a secret, saving a pipeline whose auth step names one, or attaching such a pipeline to an endpoint. |
+| `403` | `forbidden` (`project_confined`) | A key or sign-in limited to certain projects choosing or testing a pipeline in Transforms. |
 | `404` | `not_found` (`transformation`, `transformation_version`, `secret`) | It doesn't exist, that version is no longer kept, or an endpoint names a transformation from another project. |
 | `429` | `rate_limited` | Script saves and tests past 60 a minute per workspace. |
 | `503` | `unavailable` (`transform`) | The sandbox couldn't run a script just then. Nothing was saved; try again. |
+| `503` | `unavailable` (`transforms`) | Transforms couldn't be asked about a reference's pipeline. Nothing was saved; try again. |
 
 ## What's next {#next-steps}
 
 - [Slack, Teams and Discord](/docs/product-webhooks/chat-apps) — get a channel's webhook URL and send events to it.
 - [Deliveries and retries](/docs/product-webhooks/deliveries) — states, retries and sending again.
 - [Endpoint verification](/docs/product-webhooks/endpoint-verification) — the challenge, and receivers that can't answer it.
+- [Transforms](/docs/product-transforms) — build, version and test pipelines in one place, and run them here by reference.
 - [Webhooks API](/docs/reference/webhooks) — every route, `/v1/transformations` and `/v1/secrets` among them.
 - [Webhooks overview](/docs/product-webhooks) — events, endpoints and subscriptions.

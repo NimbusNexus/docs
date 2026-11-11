@@ -2,7 +2,7 @@
 title: "Konventionen"
 description: "Muster, denen die APIs folgen — Ressourcen-IDs, Paginierung, Fehler, Idempotenz, lang laufende Operationen."
 publishedAt: 2026-05-19
-updatedAt: 2026-11-04
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -18,7 +18,7 @@ IDs bleiben für die gesamte Lebensdauer der Ressource stabil — sie werden nie
 
 ## Paginierung {#pagination}
 
-Bei Webhooks, Inboxes und Request Bins akzeptieren Listen-Endpoints zwei Query-Parameter:
+Bei Webhooks, Inboxes, Request Bins und Transforms akzeptieren die meisten Listen-Endpoints zwei Query-Parameter ([Paginierung](/docs/pagination#shape) listet die abweichenden auf):
 
 - `limit` — Seitengröße. Standard 50, max. 200. Über 200 schlägt die Validierung des Requests fehl: `422` `validation_error` ([Fehler](/docs/errors#codes-validation)).
 - `offset` — wie viele Einträge übersprungen werden. Der Response-Body liefert den nächsten Wert als `next_offset`; geben Sie ihn als `offset` zurück, um weiterzublättern.
@@ -76,7 +76,7 @@ Ein Validierungsfehler (`422`) trägt stattdessen `errors`, mit den fehlerhaften
 
 Fehlercodes gibt es hier nicht: Verzweigen Sie nach dem Status, und parsen Sie `message` nicht. Jede Antwort trägt einen Header `X-Request-ID`; geben Sie ihn an, wenn Sie den Support kontaktieren.
 
-Jede Fehlerantwort von Webhooks, Inboxes und Request Bins verwendet dieses JSON-Format:
+Jede Fehlerantwort von Webhooks, Inboxes, Request Bins und Transforms verwendet dieses JSON-Format:
 
 ```json
 {

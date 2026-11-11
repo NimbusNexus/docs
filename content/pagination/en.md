@@ -2,7 +2,7 @@
 title: Pagination
 description: How each API pages its lists, with limit and offset or marker, and how to know you've reached the end.
 publishedAt: 2026-05-20
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -12,7 +12,7 @@ NimbusNexus has two kinds of API, and they page lists differently. The app APIs 
 
 ## The app APIs {#shape}
 
-Most lists on Webhooks, Inboxes and Request Bins take two query parameters:
+Most lists on Webhooks, Inboxes, Request Bins and Transforms take two query parameters:
 
 - `limit` — page size. Default 50, max 200. Past 200 the request fails validation: `422` `validation_error` ([Errors](/docs/errors#codes-validation)).
 - `offset` — how many items to skip. Default 0, max 10,000.
@@ -30,10 +30,11 @@ Pass `next_offset` back as `offset` for the next page. When it's `null`, you're 
 
 An offset counts positions, so an item created or deleted while you walk a list can make you see another item twice, or miss one. If that matters, compare ids. Keep the same filters for the whole walk, and start again from offset 0 when you change them.
 
-Two cases differ:
+Three cases differ:
 
 - **Searches** on Inboxes and Request Bins page with `next_until` instead: see [Searching messages](/docs/product-inboxes#search) and [Captured requests](/docs/product-bins/reference#requests).
 - **QR Codes** answers most lists in one response. A code's scans (`GET /v1/qr-tracked/codes/{code_id}/scans`) take `limit` alone, and a webhook's deliveries (`GET /v1/qr-tracked/webhooks/{webhook_id}/deliveries`) page with `limit` and `cursor`, with the next cursor in `nextCursor`.
+- **The templates list** on Transforms (`GET /v1/pipelines/templates`) answers every template as one plain array, with no `limit` or `offset`.
 
 ## The infrastructure API {#infrastructure}
 

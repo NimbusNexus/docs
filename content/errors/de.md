@@ -1,14 +1,14 @@
 ---
 title: "Fehler"
-description: "Das Fehlerformat, die Fehlercodes, die die APIs von Webhooks, Inboxes und Request Bins senden, und wie Sie mit jedem umgehen."
+description: "Das Fehlerformat, die Fehlercodes, die die APIs von Webhooks, Inboxes, Request Bins und Transforms senden, und wie Sie mit jedem umgehen."
 publishedAt: 2026-05-20
-updatedAt: 2026-10-30
+updatedAt: 2026-11-11
 kind: concept
 ---
 
 # Fehler
 
-Jede Fehlerantwort der APIs von Webhooks, Inboxes und Request Bins verwendet dasselbe JSON-Format. Verzweigen Sie nach `error.code` oder nach `error.next_code`, wenn ein Fehler einen solchen Code trägt, um jeden Fall zu behandeln. Parsen Sie `message` nicht, und entscheiden Sie nicht allein nach dem Status: Ein Status kann mehrere Codes tragen, und bei jeder API trägt `402` vier.
+Jede Fehlerantwort der APIs von Webhooks, Inboxes, Request Bins und Transforms verwendet dasselbe JSON-Format. Verzweigen Sie nach `error.code` oder nach `error.next_code`, wenn ein Fehler einen solchen Code trägt, um jeden Fall zu behandeln. Parsen Sie `message` nicht, und entscheiden Sie nicht allein nach dem Status: Ein Status kann mehrere Codes tragen, und `402` trägt bei Webhooks, Inboxes und Request Bins vier, bei Transforms drei.
 
 > **Aktualisiert am 16.10.2026.** Bei Webhooks wird ein Name für einen Custom-Header, der ein gültiges HTTP-Token mit einem Zeilenvorschub am Ende ist, jetzt wie jeder andere Name abgelehnt, der kein gültiges HTTP-Token ist: `webhooks.custom_header_name_invalid`, mit dem `msg` dieser Regel und ohne `params` ([Request-Validierung](#codes-validation)). Vorher kam der Zeilenvorschub durch die Token-Prüfung, und der Name wurde als Steuerzeichen abgelehnt, mit `params.header`: ab dem 15.10.2026 als `webhooks.custom_header_control_character`, davor als `value_error`. Der Request ist weiterhin ein `422` `validation_error`, und sonst hat sich nichts geändert.
 >
@@ -221,6 +221,16 @@ Diese gehören zu den eigenen Objekten der Webhooks-API (Event-Typen, Schemas, Q
 | `provider_secret_required` | Das Rotieren einer Stripe- oder GitHub-Quelle braucht das neue Secret dieses Anbieters, und das Rotieren einer RabbitMQ-Quelle braucht das neue Passwort des Brokers. `details.provider` sagt, welcher Fall vorliegt: `stripe`, `github` oder `rabbitmq`. |
 | `broker_not_allowed` | Eine RabbitMQ-Quelle nennt einen Broker, mit dem sich die API nicht verbindet. |
 
+### Codes der Transforms-API {#codes-transforms}
+
+Transforms sendet für dieselben Situationen die Codes, die Request Bins sendet, und die [Referenz für Transforms](/docs/product-transforms/reference#errors) listet sie alle auf. Diese sind seine eigenen:
+
+| `code` | Status | Bedeutung |
+|---|---|---|
+| `invalid_pipeline` | 422 | Eine Pipeline, die nie laufen könnte, beim Speichern oder Testen. `details.reason`, `details.path` und `details.step` nennen das erste Problem ([Ungültige Pipelines](/docs/product-transforms/reference#invalid-pipeline)). |
+| `conflict` | 409 | `details.reason` ist `pipeline_disabled`, bei der Ausführung einer Pipeline, die Sie ausgeschaltet haben, mit `details.id`; `destinations_unconfirmed`, wenn eine neue Version mit einem `auth`-Schritt oder ein Löschen nicht jedes Produkt nennt, das die Pipeline ausführt, mit `details.id` und `details.destinations` ([Wer eine Pipeline ausführt](/docs/product-transforms/reference#destinations)); oder `slot_in_use`, beim Löschen eines Slots, den die aktuelle Version einer Pipeline nennt, mit `details.id` und `details.pipelines`, der Anzahl der Pipelines ([Credential-Slots](/docs/product-transforms/reference#slots)). |
+| `rate_limited` | 429 | Mehr Ausführungen pro Minute, als der Tarif erlaubt, oder zu viele gleichzeitig laufende Ausführungen oder Tests des Workspaces ([Tarife und Limits](/docs/product-transforms/reference#limits)). `details.retry_after` gibt an, wie viele Sekunden Sie warten sollen. |
+
 ### Tarif und Abrechnung {#codes-plan}
 
 Alle diese Codes sind `402`. Denselben Request zu wiederholen, hilft nie: Jemand muss den Tarif ändern, eine Zahlung begleichen, auf den nächsten Abrechnungszeitraum warten oder eine Zuteilung freimachen, etwa durch Freigeben einer Adresse oder Löschen eines Endpoints.
@@ -229,7 +239,8 @@ Alle diese Codes sind `402`. Denselben Request zu wiederholen, hilft nie: Jemand
 | --- | --- | --- |
 | `quota_exceeded` | Beide | Über einem Limit des Tarifs: einer Zuteilung (Inboxes: Adressen; Webhooks: Endpoints) oder einer monatlichen Obergrenze (Inboxes: Nachrichten; Webhooks: Zustellungen), bei der Sie auf den nächsten Zeitraum warten oder ein Upgrade machen. Bei beiden APIs sagt `details.reason`, welcher Fall vorliegt, und `details` nennt die `metric`, ihr `limit` und bei einer Zuteilung die aktuelle Anzahl `current`. |
 | `quota_exceeded` | Request Bins | Über dem Limit des Tarifs für Bins, beim Anlegen eines Bins. `details.reason` ist `allocation`, und `details` nennt die `metric` (`bins`), ihr `limit` und die aktuelle Anzahl `current`. Das monatliche Request-Limit lehnt nie einen API-Aufruf ab: Ist es überschritten, antworten Bins ihren Absendern und zeichnen nichts auf, bis mit [Guthaben](/docs/product-bins/reference#credit) weitere gekauft werden oder der nächste Monat beginnt. |
-| `not_entitled` | Alle | Die Funktion ist nicht in Ihrem Tarif enthalten, etwa die Lese-API im kostenlosen Tarif von Inboxes, das Lesen erfasster Requests mit einem API-Key im Tarif Free von Request Bins oder eine RabbitMQ-Quelle unterhalb von Pro bei Webhooks. `details.feature` nennt sie. |
+| `quota_exceeded` | Transforms | Über dem Limit des Tarifs für Pipelines, beim Anlegen einer Pipeline (`POST /v1/pipelines`), oder für Credential-Slots, beim Hinzufügen eines Slots (`POST /v1/slots`). `details.reason` ist `allocation`, und `details` nennt die `metric` (`pipelines` oder `slots`), ihr `limit` und die aktuelle Anzahl `current`. |
+| `not_entitled` | Webhooks, Inboxes, Request Bins | Die Funktion ist nicht in Ihrem Tarif enthalten, etwa die Lese-API im kostenlosen Tarif von Inboxes, das Lesen erfasster Requests mit einem API-Key im Tarif Free von Request Bins oder eine RabbitMQ-Quelle unterhalb von Pro bei Webhooks. `details.feature` nennt sie. |
 | `workspace_frozen` | Alle | Eine Zahlung ist offen, daher werden Änderungen abgelehnt. Begleichen Sie sie in Ihrer Kontokonsole; auch ein Upgrade des Tarifs wird abgelehnt, bis Sie das tun. |
 | `workspace_suspended` | Alle | Die Nachfrist nach einer offenen Zahlung ist abgelaufen, und der Dienst wurde für diesen Workspace eingestellt. |
 

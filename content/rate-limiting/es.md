@@ -2,7 +2,7 @@
 title: "Límites de tasa"
 description: "Qué limita cada API, con qué cabeceras y errores responde un límite y cuál es la estrategia de backoff adecuada."
 publishedAt: 2026-05-20
-updatedAt: 2026-11-06
+updatedAt: 2026-11-11
 kind: concept
 ---
 
@@ -48,6 +48,7 @@ Las APIs de las apps no envían cabeceras `X-RateLimit` y no limitan todas las p
 - **Webhooks:** la publicación (`POST /v1/events`) se limita a la tasa de publicación de tu plan, por workspace. Volver a entregar y reenviar (`POST /v1/deliveries/{delivery_id}/redeliver`, `POST /v1/deliveries/redeliver`, `POST /v1/deliveries/replay` y `POST /v1/events/{event_id}/replay`) se limita a la misma tasa, con un recuento propio. Los eventos entrantes a `POST /v1/ingest/{source_id}` están limitados a 600 por minuto por fuente y, después, a la tasa de publicación de tu plan ([Lo que ve el proveedor](/docs/product-webhooks/sources#responses)). Guardar y probar scripts está limitado a 60 por minuto por workspace ([Transformaciones](/docs/product-webhooks/transformations#errors)).
 - **Inboxes:** cada inbox acepta correo hasta un límite por minuto que fija tu plan ([Límites por plan](/docs/product-inboxes#limits)).
 - **Request Bins:** un bin puede enviar 10 pruebas de reenvío por minuto ([Prueba una URL de reenvío](/docs/product-bins/reference#forward-test)). La URL de un bin recibe 120 peticiones por minuto de un mismo emisor y 600 por minuto en total ([Qué responde la URL de un bin](/docs/product-bins/reference#edge-answers)).
+- **Transforms:** las ejecuciones y las pruebas comparten las ejecuciones por minuto de tu plan, por workspace, y en cada proceso del servidor un workspace puede tener como máximo dos en curso a la vez ([Planes y límites](/docs/product-transforms/reference#limits)).
 - **Códigos QR:** un workspace puede enviar 10 pruebas de webhook por minuto.
 
 ## Estrategia de backoff {#backoff}
