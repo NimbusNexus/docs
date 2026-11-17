@@ -27,7 +27,7 @@ Este pipeline mantém as faturas pagas de $1,000 ou mais, remove o e-mail do cli
 }
 ```
 
-`version` é o formato do documento, sempre `1`; não é a versão do pipeline. As etapas rodam na ordem em que estão escritas. Cada uma é um objeto com uma chave de etapa e, opcionalmente, uma `note` de até 200 caracteres, que o console mostra na etapa e que um descarte informa. Um `filter` também pode ter uma `action`.
+`version` é o formato do documento, sempre `1`; não é a versão do pipeline. As etapas rodam na ordem em que estão escritas. Cada uma é um objeto com uma chave de etapa e, opcionalmente, uma `note` de até 200 caracteres, que o console mostra como nome da etapa e que um descarte informa. Um `filter` também pode ter uma `action`.
 
 Uma execução vê uma requisição: um `body`, qualquer valor JSON; `headers`; e `meta`, somente leitura. Na API de execução, os três são o que você enviar. Cada etapa vê o corpo como a anterior o deixou. As etapas são numeradas a partir de 0 na API e nos textos de erro, e a partir de 1 no editor do console.
 

@@ -27,7 +27,7 @@ Diese Pipeline behält bezahlte Rechnungen ab $1,000, entfernt die E-Mail-Adress
 }
 ```
 
-`version` ist das Format des Dokuments, immer `1`, nicht die Version der Pipeline. Die Schritte laufen in der Reihenfolge, in der sie stehen. Jeder ist ein Objekt mit einem Schritt-Schlüssel und optional einer `note` von bis zu 200 Zeichen, die die Konsole am Schritt anzeigt und die beim Verwerfen gemeldet wird. Ein `filter` kann außerdem eine `action` haben.
+`version` ist das Format des Dokuments, immer `1`, nicht die Version der Pipeline. Die Schritte laufen in der Reihenfolge, in der sie stehen. Jeder ist ein Objekt mit einem Schritt-Schlüssel und optional einer `note` von bis zu 200 Zeichen, die die Konsole als Namen des Schritts anzeigt und die beim Verwerfen gemeldet wird. Ein `filter` kann außerdem eine `action` haben.
 
 Eine Ausführung sieht einen Request: einen `body`, einen beliebigen JSON-Wert; `headers`; und schreibgeschütztes `meta`. In der Ausführungs-API sind alle drei das, was Sie senden. Jeder Schritt sieht den Body so, wie der vorige ihn hinterlassen hat. In der API und in Fehlertexten werden Schritte ab 0 gezählt, im Editor der Konsole ab 1.
 

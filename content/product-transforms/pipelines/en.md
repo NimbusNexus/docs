@@ -27,7 +27,7 @@ This pipeline keeps paid invoices of $1,000 or more, removes the customer's emai
 }
 ```
 
-`version` is the document's format, always `1`; it is not the pipeline's version. The steps run in the order written. Each is an object with one step key and, optionally, a `note` of up to 200 characters, which the console shows on the step and a drop reports. A `filter` can also take an `action`.
+`version` is the document's format, always `1`; it is not the pipeline's version. The steps run in the order written. Each is an object with one step key and, optionally, a `note` of up to 200 characters, which the console shows as the step's name and a drop reports. A `filter` can also take an `action`.
 
 A run sees one request: a `body`, any JSON value; `headers`; and read-only `meta`. In the run API all three are whatever you send. Each step sees the body as the one before left it. Steps are numbered from 0 in the API and in error text, and from 1 in the console's editor.
 

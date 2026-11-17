@@ -27,7 +27,7 @@ Esta pipeline mantiene las facturas pagadas de $1,000 o más, quita el email del
 }
 ```
 
-`version` es el formato del documento, siempre `1`; no es la versión de la pipeline. Los pasos se ejecutan en el orden en que están escritos. Cada uno es un objeto con una clave de paso y, opcionalmente, una `note` de hasta 200 caracteres, que la consola muestra en el paso y que un descarte incluye en su respuesta. Un `filter` también puede llevar una `action`.
+`version` es el formato del documento, siempre `1`; no es la versión de la pipeline. Los pasos se ejecutan en el orden en que están escritos. Cada uno es un objeto con una clave de paso y, opcionalmente, una `note` de hasta 200 caracteres, que la consola muestra como nombre del paso y que un descarte incluye en su respuesta. Un `filter` también puede llevar una `action`.
 
 Una ejecución ve una sola petición: un `body`, cualquier valor JSON; `headers`; y `meta`, de solo lectura. En la API de ejecución, los tres son lo que envíes. Cada paso ve el cuerpo tal como lo dejó el anterior. Los pasos se numeran desde 0 en la API y en los textos de error, y desde 1 en el editor de la consola.
 
