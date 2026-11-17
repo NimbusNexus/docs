@@ -278,7 +278,7 @@ Saving a changed pipeline or script makes its next version; saving one identical
 
 In the console, open the endpoint's menu on the **Endpoints** page and choose **Transformation**, or click its entry in the **Transformation** column. Then:
 
-1. Choose **Pipeline** and build it: **Add a step**, start from a template, or paste a whole document under **JSON** and choose **Apply JSON**. Or choose **Script** and write the function.
+1. Choose **Pipeline** and build it: **Add a step**, start from a template, or paste a whole document under **JSON** and choose **Apply JSON**. Or choose **Script** and write the function, or **Reference** to run a [pipeline kept in Transforms](#reference).
 2. [Test it](#test).
 3. Choose **Save**. The endpoint's next deliveries run it.
 
@@ -308,7 +308,16 @@ A script takes `code` in place of `pipeline`; sending both, or neither, is refus
 
 A transformation can run a pipeline kept in [Transforms](/docs/product-transforms) instead of holding its own. Its kind is `reference`, on every plan, and we store which pipeline it names, not a copy. The pipeline still runs here, beside the delivery, and Transforms takes no part in sending it. Runs count here too, in `transformation_runs`. [Testing](#test), [pausing](#versions), [what a delivery shows](#deliveries) and the [count of failures](#failures) work as for any pipeline.
 
-The console doesn't offer this kind. Create one through the API, in the endpoint's project, then [point the endpoint at it](#set-up) with `transformation_id`:
+In the console, choose **Reference** on the endpoint's **Transformation** page. Then:
+
+1. Under **Pipeline ID**, paste the pipeline's `id`, which its page in Transforms shows.
+2. Keep **Newest version**, or choose **A fixed version** and enter it under **Version**.
+3. For each slot the pipeline names, choose **Bind a slot**, enter the slot's id under **Slot ID**, as **Credential slots** in Transforms lists it, and choose a secret of the project under **Secret**, or store one with **New secret…**. A slot left out is named when you save, and added to the form for you to bind.
+4. [Test it](#test), then choose **Save**.
+
+Only an owner or admin binds a slot. When you change a reference that binds a secret, **Save** first lists the URL of every endpoint it runs on, since the secret goes to each.
+
+Through the API, create one in the endpoint's project, then [point the endpoint at it](#set-up) with `transformation_id`:
 
 ```bash
 curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/transformations \
@@ -326,7 +335,7 @@ curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/transformations \
 
 Transforms holds no credentials, so they come from this map: each `auth` step runs with this project's secret in place of its slot. A reference that maps a secret follows the rules of an `auth` step: a person needs the owner or admin role to save it, a new version has to name every endpoint in `confirm_destinations`, and the secret can't be deleted while the reference maps it. A pipeline in Transforms belongs to the whole workspace, so choosing one takes a key or sign-in that reaches the whole workspace. A key or sign-in limited to certain projects is refused with `403` `project_confined`, and can still read, rename and attach what is already saved.
 
-To change the pipeline, the version or the secrets, send `PATCH /v1/transformations/{id}` with a new `pipeline_ref`, which saves the transformation's next version. A new version in Transforms needs no `PATCH`, unless the reference pins one. To test, send `pipeline_ref` in place of `pipeline` to `POST /v1/transformations/test`: it runs what the reference runs now, with each credential masked, even while the pipeline is disabled in Transforms. For a delivery, `GET /v1/deliveries/{id}/transform` adds `pipeline_version`, the version of the pipeline that ran, beside `version`, the transformation's own.
+To change the pipeline, the version or the secrets, change them on the same page and choose **Save**, or send `PATCH /v1/transformations/{id}` with a new `pipeline_ref`. Either saves the transformation's next version. A new version in Transforms needs no change here, unless the reference pins one. To test, use **Test** below the form, or send `pipeline_ref` in place of `pipeline` to `POST /v1/transformations/test`: either runs what the form or the request names, with each credential masked, even while the pipeline is disabled in Transforms. For a delivery, `GET /v1/deliveries/{id}/transform` adds `pipeline_version`, the version of the pipeline that ran, beside `version`, the transformation's own.
 
 An event is never sent untransformed. When the pipeline can't run:
 
@@ -335,7 +344,7 @@ An event is never sent untransformed. When the pipeline can't run:
 | Transforms can't be reached | A version already fetched keeps running. With nothing to go on, the delivery waits without spending an attempt and looks again after a quarter of the time it has waited so far, at least 5 minutes and at most an hour. It shows as `failed`, with a `last_error` that starts `paused:`. After 7 days of waiting, or a day before [retention](/docs/product-webhooks/deliveries#retention) would delete its event if that comes first, it goes to the dead-letter queue with `pipeline_failed:` and the reason it waited, without counting against the transformation. |
 | The pipeline is disabled in Transforms | Within a minute, whether or not the reference pins a version, deliveries wait the same way. Once it has been enabled again for a minute, those still waiting go out at their next look. |
 | The pipeline was deleted | It fails with `pipeline_failed: reference_missing: …` and goes to the dead-letter queue. |
-| A newer version names a slot the reference doesn't map | It fails the same way with `secret_missing`, naming the slot. Map it with a `PATCH`. |
+| A newer version names a slot the reference doesn't map | It fails the same way with `secret_missing`, naming the slot. Bind it in the console, or map it with a `PATCH`. |
 | A newer version holds what we refuse, such as a header we send ourselves | It fails the same way with the reason, such as `managed_header`. A save in Transforms doesn't check our header rules. |
 
 Each failure counts against the transformation, as for any pipeline ([When a run fails](#failures)). Transforms lists `webhookd` among the services that run a pipeline, and a new version with an `auth` step, or deleting the pipeline, has to name it first ([Who runs a pipeline](/docs/product-transforms/reference#destinations)).

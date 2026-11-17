@@ -278,7 +278,7 @@ Salvar um pipeline ou um script alterado cria a próxima versão dele; salvar um
 
 No console, abra o menu do endpoint na página **Endpoints** e escolha **Transformation**, ou clique na entrada dele na coluna **Transformation**. Depois:
 
-1. Escolha **Pipeline** e monte-o: com **Add a step**, a partir de um template, ou colando um documento inteiro em **JSON** e escolhendo **Apply JSON**. Ou escolha **Script** e escreva a função.
+1. Escolha **Pipeline** e monte-o: com **Add a step**, a partir de um template, ou colando um documento inteiro em **JSON** e escolhendo **Apply JSON**. Ou escolha **Script** e escreva a função, ou **Reference** para executar um [pipeline mantido no Transforms](#reference).
 2. [Teste a transformação](#test).
 3. Escolha **Save**. As próximas entregas do endpoint passam por ela.
 
@@ -308,7 +308,16 @@ Um script usa `code` no lugar de `pipeline`; enviar os dois, ou nenhum, é recus
 
 Uma transformação pode executar um pipeline mantido no [Transforms](/docs/product-transforms) em vez de ter o próprio. O tipo dela é `reference`, em todos os planos, e guardamos qual pipeline ela indica, não uma cópia. O pipeline continua sendo executado aqui, junto da entrega, e o Transforms não participa do envio. As execuções também contam aqui, em `transformation_runs`. Os [testes](#test), a [pausa](#versions), [o que uma entrega mostra](#deliveries) e a [contagem de falhas](#failures) funcionam como em qualquer pipeline.
 
-O console não oferece esse tipo. Crie uma pela API, no projeto do endpoint, e depois [aponte o endpoint para ela](#set-up) com `transformation_id`:
+No console, escolha **Reference** na página **Transformation** do endpoint. Depois:
+
+1. Em **Pipeline ID**, cole o `id` do pipeline, que a página dele no Transforms mostra.
+2. Mantenha **Newest version**, ou escolha **A fixed version** e informe-a em **Version**.
+3. Para cada slot que o pipeline indica, escolha **Bind a slot**, digite o id do slot em **Slot ID**, como **Credential slots** o lista no Transforms, e escolha um segredo do projeto em **Secret**, ou armazene um com **New secret…**. Um slot que faltar é indicado ao salvar e adicionado ao formulário para você associá-lo.
+4. [Teste-a](#test) e depois escolha **Save**.
+
+Só uma pessoa com a função de proprietário ou de admin associa um slot. Quando você muda uma referência que associa um segredo, **Save** lista primeiro a URL de cada endpoint em que ela roda, porque o segredo vai para cada um.
+
+Pela API, crie uma no projeto do endpoint e depois [aponte o endpoint para ela](#set-up) com `transformation_id`:
 
 ```bash
 curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/transformations \
@@ -326,7 +335,7 @@ curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/transformations \
 
 O Transforms não guarda credenciais, então elas vêm desta associação: cada etapa `auth` é executada com o segredo deste projeto no lugar do slot dela. Uma referência que associa um segredo segue as regras de uma etapa `auth`: uma pessoa precisa da função de proprietário ou de admin para salvá-la, uma versão nova precisa indicar todos os endpoints em `confirm_destinations`, e o segredo não pode ser excluído enquanto a referência o associar. Um pipeline no Transforms é de todo o workspace, então escolher um exige uma chave ou um login que alcance todo o workspace. Uma chave ou um login limitado a certos projetos é recusado com `403` `project_confined`, mas ainda pode ler, renomear e vincular o que já está salvo.
 
-Para mudar o pipeline, a versão ou os segredos, envie `PATCH /v1/transformations/{id}` com um `pipeline_ref` novo, que salva a próxima versão da transformação. Uma versão nova no Transforms não precisa de `PATCH`, a menos que a referência fixe uma. Para testar, envie `pipeline_ref` no lugar de `pipeline` para `POST /v1/transformations/test`: o teste executa o que a referência executa agora, com cada credencial mascarada, mesmo enquanto o pipeline está desativado no Transforms. Para uma entrega, `GET /v1/deliveries/{id}/transform` adiciona `pipeline_version`, a versão do pipeline que foi executada, ao lado de `version`, a da transformação.
+Para mudar o pipeline, a versão ou os segredos, mude-os na mesma página e escolha **Save**, ou envie `PATCH /v1/transformations/{id}` com um `pipeline_ref` novo. As duas formas salvam a próxima versão da transformação. Uma versão nova no Transforms não precisa de mudança aqui, a menos que a referência fixe uma. Para testar, use **Test** abaixo do formulário, ou envie `pipeline_ref` no lugar de `pipeline` para `POST /v1/transformations/test`: o teste executa o que o formulário ou a requisição indicam, com cada credencial mascarada, mesmo enquanto o pipeline está desativado no Transforms. Para uma entrega, `GET /v1/deliveries/{id}/transform` adiciona `pipeline_version`, a versão do pipeline que foi executada, ao lado de `version`, a da transformação.
 
 Um evento nunca é enviado sem transformação. Quando o pipeline não pode ser executado:
 
@@ -335,7 +344,7 @@ Um evento nunca é enviado sem transformação. Quando o pipeline não pode ser 
 | O Transforms não pode ser alcançado | Uma versão já obtida continua sendo executada. Sem nada em que se basear, a entrega espera sem gastar uma tentativa e verifica de novo depois de um quarto do tempo que já esperou, no mínimo 5 minutos e no máximo uma hora. Ela aparece como `failed`, com um `last_error` começando com `paused:`. Depois de esperar 7 dias, ou um dia antes de a [retenção](/docs/product-webhooks/deliveries#retention) excluir o evento dela se isso vier antes, ela vai para a dead-letter queue com `pipeline_failed:` e o motivo da espera, sem contar para a transformação. |
 | O pipeline está desativado no Transforms | Em até um minuto, com ou sem versão fixada na referência, as entregas esperam da mesma forma. Quando ele já está ativado de novo há um minuto, as que ainda estão esperando saem na próxima verificação. |
 | O pipeline foi excluído | A entrega falha com `pipeline_failed: reference_missing: …` e vai para a dead-letter queue. |
-| Uma versão mais recente indica um slot que a referência não associa | A entrega falha da mesma forma com `secret_missing`, que indica o slot. Associe-o com um `PATCH`. |
+| Uma versão mais recente indica um slot que a referência não associa | A entrega falha da mesma forma com `secret_missing`, que indica o slot. Associe-o no console ou com um `PATCH`. |
 | Uma versão mais recente contém algo que recusamos, como um header que nós mesmos enviamos | A entrega falha da mesma forma, com o motivo, como `managed_header`. Salvar no Transforms não verifica nossas regras de headers. |
 
 Cada falha conta para a transformação, como em qualquer pipeline ([Quando uma execução falha](#failures)). O Transforms lista `webhookd` entre os serviços que executam um pipeline, e uma nova versão com uma etapa `auth`, ou a exclusão do pipeline, precisa indicá-lo antes ([Quem executa um pipeline](/docs/product-transforms/reference#destinations)).
