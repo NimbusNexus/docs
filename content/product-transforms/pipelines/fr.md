@@ -27,7 +27,7 @@ Ce pipeline garde les factures payées de $1,000 ou plus, retire l’e-mail du c
 }
 ```
 
-`version` est le format du document, toujours `1` ; ce n’est pas la version du pipeline. Les étapes s’exécutent dans l’ordre où elles sont écrites. Chacune est un objet avec une clé d’étape et, en option, une `note` de 200 caractères au plus, que la console affiche sur l’étape et que rapporte un abandon. Un `filter` peut aussi prendre une `action`.
+`version` est le format du document, toujours `1` ; ce n’est pas la version du pipeline. Les étapes s’exécutent dans l’ordre où elles sont écrites. Chacune est un objet avec une clé d’étape et, en option, une `note` de 200 caractères au plus, que la console affiche comme nom de l’étape et que rapporte un abandon. Un `filter` peut aussi prendre une `action`.
 
 Une exécution voit une seule requête : un `body`, n’importe quelle valeur JSON ; des `headers` ; et `meta`, en lecture seule. Dans l’API d’exécution, les trois sont ce que vous envoyez. Chaque étape voit le corps tel que la précédente l’a laissé. Les étapes sont numérotées à partir de 0 dans l’API et dans les textes d’erreur, et à partir de 1 dans l’éditeur de la console.
 
