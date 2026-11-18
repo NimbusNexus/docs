@@ -2,7 +2,7 @@
 title: "Pipelines"
 description: "Los pasos de una pipeline, sus rutas, valores y filtros, las plantillas de las que partir y los límites de una ejecución."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-16
+updatedAt: 2026-11-18
 kind: concept
 ---
 
@@ -182,6 +182,8 @@ La galería reúne pipelines ya hechas para empezar. En la consola están en **S
 | `drop_personal` | **Drop personal data** | El evento sin `email`, `phone`, `first_name`, `last_name`, `address`, `billing_address`, `shipping_address`, `date_of_birth` ni `ip_address`, a cualquier profundidad. Un `name` a secas se queda, porque a menudo nombra un plan o un producto. |
 
 Cada plantilla de chat es un paso `map` y un paso `headers` que pone `Content-Type: application/json`, y funciona con cualquier evento. Un tipo que falta aparece como "Event" y un id o una hora que faltan, como "—"; los datos se recortan para caber en los límites de la app, y nada del evento puede dar formato al mensaje, mencionar a nadie ni cerrar antes de tiempo el bloque de código.
+
+Tu workspace también puede guardar hasta 50 plantillas propias, en cualquier plan. Un propietario o administrador guarda una con **Save as template** en la página de una pipeline guardada, lo que copia la versión que se ejecuta, o con [`POST /v1/templates`](/docs/product-transforms/reference#templates). La página **Templates** de la consola las muestra primero, en **Your templates**, y solo tu workspace las ve. Quien puede crear pipelines puede empezar una a partir de ellas y, como con una plantilla ya hecha, obtiene una pipeline propia. Un paso `auth` conserva el slot que nombra, así que guardar una pipeline a partir de esa plantilla requiere un propietario o administrador, como cualquier paso de credencial. Borrar una plantilla es definitivo, y no cambia ninguna pipeline creada a partir de ella.
 
 ## Límites {#limits}
 

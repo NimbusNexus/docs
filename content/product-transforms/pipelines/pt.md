@@ -2,7 +2,7 @@
 title: "Pipelines"
 description: "As etapas de um pipeline, os caminhos, valores e filtros dele, os templates para começar e os limites de uma execução."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-16
+updatedAt: 2026-11-18
 kind: concept
 ---
 
@@ -182,6 +182,8 @@ A galeria reúne pipelines prontos para começar. No console, eles ficam em **St
 | `drop_personal` | **Drop personal data** | O evento sem `email`, `phone`, `first_name`, `last_name`, `address`, `billing_address`, `shipping_address`, `date_of_birth` e `ip_address`, em qualquer profundidade. Um `name` simples fica, porque muitas vezes ele nomeia um plano ou um produto. |
 
 Cada template de chat é uma etapa `map` e uma etapa `headers` que define `Content-Type: application/json`, e funciona com qualquer evento. Um tipo ausente aparece como "Event" e um id ou horário ausente como "—", os dados são cortados para caber nos limites do app, e nada no evento consegue formatar a mensagem, mencionar alguém ou fechar o bloco de código antes da hora.
+
+O seu workspace também pode manter até 50 templates próprios, em qualquer plano. Um proprietário ou admin salva um com **Save as template** na página de um pipeline salvo, o que copia a versão que roda, ou com [`POST /v1/templates`](/docs/product-transforms/reference#templates). A página **Templates** do console mostra esses templates primeiro, em **Your templates**, e só o seu workspace os vê. Quem pode criar pipelines pode começar um a partir deles e, como com um template pronto, ganha um pipeline que é seu. Uma etapa `auth` mantém o slot que indica, então salvar um pipeline a partir desse template exige um proprietário ou admin, como qualquer etapa de credencial. Excluir um template é para sempre, e não muda nenhum pipeline criado a partir dele.
 
 ## Limites {#limits}
 

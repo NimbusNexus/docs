@@ -2,7 +2,7 @@
 title: "Référence Transforms"
 description: "Chaque route de l’API Transforms, les objets pipeline et exécution, qui peut faire quoi, les limites de chaque plan et les erreurs."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-11
+updatedAt: 2026-11-18
 kind: reference
 ---
 
@@ -23,7 +23,11 @@ L’API à `https://transforms.nimbusnexus.net/v1` crée, versionne, teste et ex
 | `GET /v1/pipelines/{id}/versions/{version}` | Une version, avec son document | read |
 | `POST /v1/pipelines/{id}/run` | [Exécute](#run) un pipeline enregistré sur une requête | read |
 | `POST /v1/pipelines/test` | [Teste](#test) un document sur une requête, sans rien enregistrer ni compter | write |
-| `GET /v1/pipelines/templates` | Les [modèles](/docs/product-transforms/pipelines#templates) dont un pipeline peut partir | read |
+| `GET /v1/pipelines/templates` | Les [modèles](/docs/product-transforms/pipelines#templates) tout faits dont un pipeline peut partir | read |
+| `POST /v1/templates` | Enregistre l’un des [modèles de votre espace de travail](#templates) ; `201` avec le modèle | admin |
+| `GET /v1/templates`, `GET /v1/templates/{id}` | Les modèles de l’espace de travail, du plus récent au plus ancien, chacun avec son document, ou l’un d’eux | read |
+| `PATCH /v1/templates/{id}` | Renomme un modèle ou change sa description | admin |
+| `DELETE /v1/templates/{id}` | Supprime un modèle, définitivement ; `204` | admin |
 | `POST /v1/slots` | Ajoute un [emplacement de justificatif](#slots) ; `201` avec l’emplacement | admin |
 | `GET /v1/slots`, `GET /v1/slots/{id}` | Les emplacements de l’espace de travail, du plus récent au plus ancien, ou l’un d’eux | read |
 | `PATCH /v1/slots/{id}` | Renomme un emplacement | admin |
@@ -33,7 +37,7 @@ L’API à `https://transforms.nimbusnexus.net/v1` crée, versionne, teste et ex
 
 **read**, **write** et **admin** sont expliqués dans [Qui peut faire quoi](#authority).
 
-Les listes sont paginées avec `limit` (de 1 à 200, 50 par défaut) et `offset` (de 0 à 10,000). La réponse est `{"items": [...], "next_offset": <offset>}` : renvoyez `next_offset` comme `offset` pour obtenir la page suivante. Il vaut `null` sur la dernière page. `GET /v1/pipelines/templates` fait exception : cette route ne prend ni `limit` ni `offset` et répond avec tous les modèles dans un seul tableau simple.
+Les listes sont paginées avec `limit` (de 1 à 200, 50 par défaut) et `offset` (de 0 à 10,000). La réponse est `{"items": [...], "next_offset": <offset>}` : renvoyez `next_offset` comme `offset` pour obtenir la page suivante. Il vaut `null` sur la dernière page. `GET /v1/pipelines/templates` fait exception : cette route ne prend ni `limit` ni `offset` et répond avec tous les modèles tout faits dans un seul tableau simple.
 
 ## L’objet pipeline {#pipeline}
 
@@ -106,6 +110,30 @@ Un emplacement est ce que nomme une étape `auth` : un identifiant et un libell�
 
 `PATCH /v1/slots/{id}` prend `label`. `DELETE /v1/slots/{id}` répond `204`, ou `409` `conflict` avec `details.reason` `slot_in_use`, `details.id` et `details.pipelines`, le nombre de pipelines, tant que la version actuelle d’un pipeline le nomme. Au-delà des emplacements du plan, en ajouter un répond `402` `quota_exceeded`, avec `details.metric` `slots`.
 
+## Les modèles de votre espace de travail {#templates}
+
+À côté des [modèles tout faits](/docs/product-transforms/pipelines#templates), un espace de travail a ses propres modèles : un nom, une description et un document. Chaque siège et chaque clé les lit, et en enregistrer, en modifier ou en supprimer un exige un propriétaire ou un admin ([Qui peut faire quoi](#authority)). Un modèle est une copie dans les deux sens. Rien ne le relie au pipeline à partir duquel il a été enregistré, et démarrer un pipeline à partir d’un modèle revient à enregistrer une copie de son `pipeline` avec `POST /v1/pipelines`, selon les règles de cette route : une étape `auth` qu’il contient exige un propriétaire ou un admin.
+
+`POST /v1/templates` prend `name`, jusqu’à 200 caractères ; `description`, facultatif et jusqu’à 1,000 ; et exactement l’un de ces champs :
+
+- `pipeline`, un document, vérifié comme à l’enregistrement ;
+- `from_pipeline`, l’identifiant d’un pipeline, pour copier sa version actuelle, ou la version conservée que nomme `version`.
+
+Il répond `201` :
+
+| Champ | Description |
+| --- | --- |
+| `id` | `tpl_` suivi de 24 caractères hexadécimaux. |
+| `name`, `description` | Ce que montre la galerie ; `description` vaut `""` s’il n’y en a pas. |
+| `pipeline` | Le document, tel que `POST /v1/pipelines` le prend. Une étape `auth` y nomme son emplacement par son identifiant. |
+| `slot_ids` | Les emplacements de l’espace de travail que nomment ses étapes `auth`, triés. Un emplacement supprimé depuis en est absent, et un pipeline enregistré à partir du modèle est refusé avec `unknown_slot`. |
+| `created_by` | Qui l’a enregistré. |
+| `created_at`, `updated_at` | Le moment où il a été enregistré, et celui de sa dernière modification. |
+
+Envoyer les deux sources, aucune, ou une `version` sans `from_pipeline` donne un `422` `validation_error` avec le type d’entrée `transforms.template_source`. Un pipeline ou une version que l’espace de travail ne détient pas répond `404` `not_found`, `pipeline` ou `pipeline_version`, et un document qui ne pourrait jamais s’exécuter répond [`422` `invalid_pipeline`](#invalid-pipeline). Un espace de travail détient au plus 50 modèles, quel que soit le plan, et un de plus répond `402` `quota_exceeded`, avec `details.metric` `templates`.
+
+`GET /v1/templates` pagine les modèles de l’espace de travail, du plus récent au plus ancien, chacun avec son `pipeline`. `PATCH /v1/templates/{id}` prend `name` et `description`. Les étapes d’un modèle ne changent jamais : démarrez un pipeline à partir de lui, modifiez-le et enregistrez-le comme nouveau modèle. `DELETE /v1/templates/{id}` répond `204`, et aucun pipeline créé à partir du modèle ne change.
+
 ## Qui exécute un pipeline {#destinations}
 
 Un produit désigne un pipeline par son identifiant et l’exécute dans son propre processus, avec ses propres secrets. Webhooks est le premier : [Transformations](/docs/product-webhooks/transformations#reference). Chaque récupération du pipeline note le service et la version : sa lecture montre donc `destinations` et `consumers`.
@@ -114,7 +142,7 @@ L’enregistrement d’une nouvelle version avec une étape `auth` se répercute
 
 ## Qui peut faire quoi {#authority}
 
-| | Lire les pipelines, les versions, les modèles, les emplacements, le plan et la consommation ; exécuter | Créer, modifier et tester des pipelines | Supprimer un pipeline, enregistrer une étape de justificatif, ou ajouter, renommer ou supprimer un emplacement |
+| | Lire les pipelines, les versions, les modèles, les emplacements, le plan et la consommation ; exécuter | Créer, modifier et tester des pipelines | Supprimer un pipeline ; enregistrer une étape de justificatif ; ajouter, renommer ou supprimer un emplacement ; enregistrer, modifier ou supprimer un modèle |
 | --- | --- | --- | --- |
 | Propriétaire ou admin de l’espace de travail | oui | oui | oui |
 | Membre | oui | oui | non |
@@ -150,15 +178,15 @@ Les erreurs de l’API suivent le format décrit dans [Erreurs](/docs/errors).
 | `400` | `bad_request` | Un corps JSON qui n’est pas de l’UTF-8 valide. |
 | `401` | `unauthorized` | Aucun justificatif d’identité, un justificatif révoqué, ou une connexion à la console qui a pris fin ; `details.reason` précise lequel. |
 | `401` | `invalid_credential` | Une clé qui ne se vérifie pas, a expiré, ou a été créée pour un autre produit. |
-| `402` | `quota_exceeded` | Création d’un pipeline ou ajout d’un emplacement alors que tous ceux du plan sont utilisés ; `details.metric` vaut `pipelines` ou `slots`. |
+| `402` | `quota_exceeded` | Création d’un pipeline ou ajout d’un emplacement alors que tous ceux du plan sont utilisés, ou enregistrement d’un modèle au-delà de 50 ; `details.metric` vaut `pipelines`, `slots` ou `templates`. |
 | `402` | `workspace_frozen`, `workspace_suspended` | Une modification tant qu’un impayé n’est pas réglé, ou tout ce qui n’est ni une lecture ni une suppression après l’arrêt du service. |
 | `403` | `forbidden` | `details.reason` vaut `role`, `project_confined`, `product_not_enabled`, `csrf` ou `no_workspace`. |
-| `404` | `not_found` | Pipeline, version ou emplacement inexistant dans votre espace de travail ; `details.reason` vaut `pipeline`, `pipeline_version` ou `slot`. |
+| `404` | `not_found` | Pipeline, version, emplacement ou modèle inexistant dans votre espace de travail ; `details.reason` vaut `pipeline`, `pipeline_version`, `slot` ou `template`. |
 | `405` | `method_not_allowed` | Le chemin existe, mais pas pour cette méthode. |
 | `409` | `conflict` | `details.reason` vaut `pipeline_disabled` ([Exécuter un pipeline](#run)), `destinations_unconfirmed` ([Qui exécute un pipeline](#destinations)) ou `slot_in_use` ([Emplacements de justificatifs](#slots)). |
 | `413` | `payload_too_large` | Un corps de requête de plus de 1 MiB. |
 | `422` | `invalid_pipeline` | Un pipeline qui ne pourrait jamais s’exécuter, à l’enregistrement ou au test. |
-| `422` | `validation_error` | Un paramètre ou un champ n’a pas passé la validation. Un caractère NUL dans le chemin, la query string ou un corps JSON donne le type d’entrée `transforms.nul_character`. |
+| `422` | `validation_error` | Un paramètre ou un champ n’a pas passé la validation. Un caractère NUL dans le chemin, la query string ou un corps JSON donne le type d’entrée `transforms.nul_character`, et un modèle enregistré à partir des deux sources ou d’aucune, `transforms.template_source` ([Les modèles de votre espace de travail](#templates)). |
 | `429` | `rate_limited` | Au-delà des exécutions par minute du plan, ou avec trop d’exécutions ou de tests de l’espace de travail en cours à la fois ([Plans et limites](#limits)) ; `details.retry_after` indique quand réessayer. |
 | `500` | `internal_error` | Une panne de notre côté. |
 

@@ -2,7 +2,7 @@
 title: "Referencia de Transforms"
 description: "Todas las rutas de la API de Transforms, los objetos pipeline y ejecución, quién puede hacer qué, los límites de cada plan y los errores."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-11
+updatedAt: 2026-11-18
 kind: reference
 ---
 
@@ -23,7 +23,11 @@ La API en `https://transforms.nimbusnexus.net/v1` crea, versiona, prueba y ejecu
 | `GET /v1/pipelines/{id}/versions/{version}` | Una versión, con su documento | read |
 | `POST /v1/pipelines/{id}/run` | [Ejecuta](#run) una pipeline guardada con una petición | read |
 | `POST /v1/pipelines/test` | [Prueba](#test) un documento con una petición, y no guarda ni cuenta nada | write |
-| `GET /v1/pipelines/templates` | Las [plantillas](/docs/product-transforms/pipelines#templates) de las que partir | read |
+| `GET /v1/pipelines/templates` | Las [plantillas](/docs/product-transforms/pipelines#templates) ya hechas de las que partir | read |
+| `POST /v1/templates` | Guarda una de [las plantillas de tu workspace](#templates); `201` con la plantilla | admin |
+| `GET /v1/templates`, `GET /v1/templates/{id}` | Las plantillas del workspace, de la más reciente a la más antigua, cada una con su documento, o una de ellas | read |
+| `PATCH /v1/templates/{id}` | Cambia el nombre de una plantilla o su descripción | admin |
+| `DELETE /v1/templates/{id}` | Borra una plantilla, definitivamente; `204` | admin |
 | `POST /v1/slots` | Añade un [slot de credenciales](#slots); `201` con el slot | admin |
 | `GET /v1/slots`, `GET /v1/slots/{id}` | Los slots del workspace, del más reciente al más antiguo, o uno de ellos | read |
 | `PATCH /v1/slots/{id}` | Cambia el nombre de un slot | admin |
@@ -33,7 +37,7 @@ La API en `https://transforms.nimbusnexus.net/v1` crea, versiona, prueba y ejecu
 
 **read**, **write** y **admin** se explican en [Quién puede hacer qué](#authority).
 
-Las listas se paginan con `limit` (de 1 a 200, 50 por defecto) y `offset` (de 0 a 10,000). La respuesta es `{"items": [...], "next_offset": <offset>}`: devuelve `next_offset` como `offset` para obtener la página siguiente. Es `null` en la última página. `GET /v1/pipelines/templates` es la excepción: no acepta `limit` ni `offset` y responde con todas las plantillas en un solo array simple.
+Las listas se paginan con `limit` (de 1 a 200, 50 por defecto) y `offset` (de 0 a 10,000). La respuesta es `{"items": [...], "next_offset": <offset>}`: devuelve `next_offset` como `offset` para obtener la página siguiente. Es `null` en la última página. `GET /v1/pipelines/templates` es la excepción: no acepta `limit` ni `offset` y responde con todas las plantillas ya hechas en un solo array simple.
 
 ## El objeto pipeline {#pipeline}
 
@@ -106,6 +110,30 @@ Un slot es lo que nombra un paso `auth`: un id y una etiqueta, sin ningún valor
 
 `PATCH /v1/slots/{id}` acepta `label`. `DELETE /v1/slots/{id}` responde `204`, o `409` `conflict` con `details.reason` `slot_in_use`, `details.id` y `details.pipelines`, el número de pipelines, mientras lo nombre la versión actual de una pipeline. Por encima de los slots del plan, añadir uno responde `402` `quota_exceeded`, con `details.metric` `slots`.
 
+## Las plantillas de tu workspace {#templates}
+
+Además de las [plantillas ya hechas](/docs/product-transforms/pipelines#templates), un workspace tiene plantillas propias: un nombre, una descripción y un documento. Cualquier puesto o clave las lee, y guardar, cambiar o borrar una requiere un propietario o administrador ([Quién puede hacer qué](#authority)). Una plantilla es una copia en los dos sentidos. Nada la vincula a la pipeline desde la que se guardó, y empezar una pipeline a partir de ella es guardar una copia de su `pipeline` con `POST /v1/pipelines`, con las reglas de esa ruta: un paso `auth` en ella requiere un propietario o administrador.
+
+`POST /v1/templates` acepta `name`, de hasta 200 caracteres; `description`, opcional y de hasta 1,000; y exactamente uno de estos:
+
+- `pipeline`, un documento, que se comprueba igual que al guardarlo;
+- `from_pipeline`, el id de una pipeline, para copiar su versión actual o la versión guardada que nombre `version`.
+
+Responde `201`:
+
+| Campo | Qué es |
+| --- | --- |
+| `id` | `tpl_` y 24 caracteres hexadecimales. |
+| `name`, `description` | Lo que muestra la galería; `description` es `""` si no hay ninguna. |
+| `pipeline` | El documento, tal como lo acepta `POST /v1/pipelines`. Un paso `auth` nombra su slot por su id. |
+| `slot_ids` | Los slots del workspace que nombran sus pasos `auth`, ordenados. Un slot borrado desde entonces no aparece, y una pipeline guardada a partir de la plantilla se rechaza con `unknown_slot`. |
+| `created_by` | Quién la guardó. |
+| `created_at`, `updated_at` | Cuándo se guardó, y cuándo cambió por última vez. |
+
+Enviar las dos fuentes, ninguna, o una `version` sin `from_pipeline` es un `422` `validation_error` con el tipo de entrada `transforms.template_source`. Una pipeline o una versión que el workspace no tiene responde `404` `not_found`, `pipeline` o `pipeline_version`, y un documento que nunca podría ejecutarse responde [`422` `invalid_pipeline`](#invalid-pipeline). Un workspace tiene como máximo 50 plantillas en cualquier plan, y una más responde `402` `quota_exceeded`, con `details.metric` `templates`.
+
+`GET /v1/templates` pagina las plantillas del workspace, de la más reciente a la más antigua, cada una con su `pipeline`. `PATCH /v1/templates/{id}` acepta `name` y `description`. Los pasos de una plantilla nunca cambian: empieza una pipeline a partir de ella, cámbiala y guárdala como una plantilla nueva. `DELETE /v1/templates/{id}` responde `204`, y no cambia ninguna pipeline creada a partir de la plantilla.
+
 ## Quién ejecuta una pipeline {#destinations}
 
 Un producto hace referencia a una pipeline por su id y la ejecuta en su propio proceso, con sus propios secretos. Webhooks es el primero: [Transformaciones](/docs/product-webhooks/transformations#reference). Cada vez que un producto obtiene la pipeline se anotan el servicio y la versión, así que al leer una pipeline se ven `destinations` y `consumers`.
@@ -114,7 +142,7 @@ Guardar una versión nueva con un paso `auth` llega a todos los productos que ej
 
 ## Quién puede hacer qué {#authority}
 
-| | Leer pipelines, versiones, plantillas, slots, plan y consumo; ejecutar | Crear, cambiar y probar pipelines | Borrar una pipeline, guardar un paso de credencial, o añadir, renombrar o borrar un slot |
+| | Leer pipelines, versiones, plantillas, slots, plan y consumo; ejecutar | Crear, cambiar y probar pipelines | Borrar una pipeline; guardar un paso de credencial; añadir, renombrar o borrar un slot; guardar, cambiar o borrar una plantilla |
 | --- | --- | --- | --- |
 | Propietario o administrador del workspace | sí | sí | sí |
 | Miembro | sí | sí | no |
@@ -150,15 +178,15 @@ Los errores de la API usan el formato descrito en [Errores](/docs/errors).
 | `400` | `bad_request` | Un cuerpo JSON que no es UTF-8 válido. |
 | `401` | `unauthorized` | Sin credencial, una credencial revocada o una sesión de consola que ha terminado; `details.reason` indica cuál. |
 | `401` | `invalid_credential` | Una clave que no se verifica, ha caducado o se creó para otro producto. |
-| `402` | `quota_exceeded` | Crear una pipeline o añadir un slot cuando todas las pipelines o todos los slots del plan están en uso; `details.metric` es `pipelines` o `slots`. |
+| `402` | `quota_exceeded` | Crear una pipeline o añadir un slot cuando todas las pipelines o todos los slots del plan están en uso, o guardar una plantilla más allá de 50; `details.metric` es `pipelines`, `slots` o `templates`. |
 | `402` | `workspace_frozen`, `workspace_suspended` | Un cambio mientras hay un cargo sin saldar, o cualquier cosa que no sea una lectura o un borrado después de que se haya interrumpido el servicio. |
 | `403` | `forbidden` | `details.reason` es `role`, `project_confined`, `product_not_enabled`, `csrf` o `no_workspace`. |
-| `404` | `not_found` | No existe esa pipeline, esa versión o ese slot en tu workspace; `details.reason` es `pipeline`, `pipeline_version` o `slot`. |
+| `404` | `not_found` | No existe esa pipeline, esa versión, ese slot o esa plantilla en tu workspace; `details.reason` es `pipeline`, `pipeline_version`, `slot` o `template`. |
 | `405` | `method_not_allowed` | La ruta existe, pero no para este método. |
 | `409` | `conflict` | `details.reason` es `pipeline_disabled` ([Ejecuta una pipeline](#run)), `destinations_unconfirmed` ([Quién ejecuta una pipeline](#destinations)) o `slot_in_use` ([Slots de credenciales](#slots)). |
 | `413` | `payload_too_large` | Un cuerpo de petición de más de 1 MiB. |
 | `422` | `invalid_pipeline` | Una pipeline que nunca podría ejecutarse, al guardarla o al probarla. |
-| `422` | `validation_error` | Un parámetro o un campo no ha superado la validación. Un carácter NUL en la ruta, la query o un cuerpo JSON es el tipo de entrada `transforms.nul_character`. |
+| `422` | `validation_error` | Un parámetro o un campo no ha superado la validación. Un carácter NUL en la ruta, la query o un cuerpo JSON es el tipo de entrada `transforms.nul_character`, y una plantilla guardada con las dos fuentes o con ninguna, `transforms.template_source` ([Las plantillas de tu workspace](#templates)). |
 | `429` | `rate_limited` | Se han superado las ejecuciones por minuto del plan, o hay demasiadas ejecuciones o pruebas del workspace en curso a la vez ([Planes y límites](#limits)); `details.retry_after` indica cuándo volver a intentarlo. |
 | `500` | `internal_error` | Algo ha fallado por nuestra parte. |
 

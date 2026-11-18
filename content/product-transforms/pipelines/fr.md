@@ -2,7 +2,7 @@
 title: "Pipelines"
 description: "Les étapes d’un pipeline, ses chemins, ses valeurs et ses filtres, les modèles pour démarrer et les plafonds d’une exécution."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-16
+updatedAt: 2026-11-18
 kind: concept
 ---
 
@@ -182,6 +182,8 @@ La galerie propose des pipelines tout faits pour démarrer. Dans la console, ils
 | `drop_personal` | **Drop personal data** | L’événement sans `email`, `phone`, `first_name`, `last_name`, `address`, `billing_address`, `shipping_address`, `date_of_birth` ni `ip_address`, à n’importe quelle profondeur. Un simple `name` reste, car il désigne souvent un plan ou un produit. |
 
 Chaque modèle de chat est une étape `map` suivie d’une étape `headers` qui définit `Content-Type: application/json`, et il fonctionne avec n’importe quel événement. Un type absent s’affiche « Event » et un identifiant ou une heure absents « — », les données sont coupées pour tenir dans les limites de l’app, et rien dans l’événement ne peut mettre en forme le message, mentionner quelqu’un ni fermer le bloc de code avant la fin.
+
+Votre espace de travail peut aussi conserver jusqu’à 50 modèles qui lui sont propres, quel que soit le plan. Un propriétaire ou un admin en enregistre un avec **Save as template** sur la page d’un pipeline enregistré, ce qui copie la version qui s’exécute, ou avec [`POST /v1/templates`](/docs/product-transforms/reference#templates). La page **Templates** de la console les montre en premier, sous **Your templates**, et seul votre espace de travail les voit. Quiconque peut créer des pipelines peut en démarrer un à partir d’eux et, comme avec un modèle tout fait, obtient un pipeline qui lui appartient. Une étape `auth` garde l’emplacement qu’elle nomme : enregistrer un pipeline à partir d’un tel modèle exige donc un propriétaire ou un admin, comme toute étape de justificatif. Supprimer un modèle est définitif, et ne change aucun pipeline créé à partir de lui.
 
 ## Limites {#limits}
 

@@ -2,7 +2,7 @@
 title: Pipelines
 description: The steps of a pipeline, its paths, values and filters, the templates to start from, and the caps on a run.
 publishedAt: 2026-11-06
-updatedAt: 2026-11-16
+updatedAt: 2026-11-18
 kind: concept
 ---
 
@@ -182,6 +182,8 @@ The gallery holds ready-made pipelines to start from. In the console they sit un
 | `drop_personal` | **Drop personal data** | The event without `email`, `phone`, `first_name`, `last_name`, `address`, `billing_address`, `shipping_address`, `date_of_birth` and `ip_address`, at any depth. A plain `name` stays, since it often names a plan or a product. |
 
 Each chat template is a `map` step and a `headers` step that sets `Content-Type: application/json`, and it works on any event. A missing type reads "Event" and a missing id or time "—", the data is cut to fit the app's limits, and nothing in the event can format the message, mention anyone or end the code block early.
+
+Your workspace can also keep up to 50 templates of its own, on every plan. An owner or admin saves one with **Save as template** on a saved pipeline's page, which copies the version that runs, or with [`POST /v1/templates`](/docs/product-transforms/reference#templates). The console's **Templates** page shows them first, under **Your templates**, and only your workspace sees them. Anyone who may create pipelines starts one from them, and like a ready-made template, it makes a pipeline of your own. An auth step keeps the slot it names, so saving a pipeline from that template takes an owner or admin, as any credential step does. Deleting a template is for good, and changes no pipeline started from it.
 
 ## Limits {#limits}
 

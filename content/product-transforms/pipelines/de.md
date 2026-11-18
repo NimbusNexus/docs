@@ -2,7 +2,7 @@
 title: "Pipelines"
 description: "Die Schritte einer Pipeline, ihre Pfade, Werte und Filter, die Vorlagen als Ausgangspunkt und die Obergrenzen einer Ausführung."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-16
+updatedAt: 2026-11-18
 kind: concept
 ---
 
@@ -182,6 +182,8 @@ Die Galerie enthält fertige Pipelines als Ausgangspunkt. In der Konsole stehen 
 | `drop_personal` | **Drop personal data** | Das Event ohne `email`, `phone`, `first_name`, `last_name`, `address`, `billing_address`, `shipping_address`, `date_of_birth` und `ip_address`, in beliebiger Tiefe. Ein einfaches `name` bleibt, weil es oft einen Tarif oder ein Produkt benennt. |
 
 Jede Chat-Vorlage besteht aus einem `map`-Schritt und einem `headers`-Schritt, der `Content-Type: application/json` setzt, und funktioniert mit jedem Event. Ein fehlender Typ erscheint als „Event“ und eine fehlende ID oder Uhrzeit als „—“, die Daten werden auf die Limits der App gekürzt, und nichts im Event kann die Nachricht formatieren, jemanden erwähnen oder den Codeblock vorzeitig beenden.
+
+Ihr Workspace kann außerdem bis zu 50 eigene Vorlagen behalten, in jedem Tarif. Ein Owner oder Admin speichert eine mit **Save as template** auf der Seite einer gespeicherten Pipeline, was die Version kopiert, die läuft, oder mit [`POST /v1/templates`](/docs/product-transforms/reference#templates). Die Seite **Templates** der Konsole zeigt sie zuerst, unter **Your templates**, und nur Ihr Workspace sieht sie. Wer Pipelines anlegen darf, kann aus ihnen eine neue beginnen, und wie bei einer fertigen Vorlage entsteht eine Pipeline, die Ihnen gehört. Ein `auth`-Schritt behält den Slot, den er nennt; eine Pipeline aus einer solchen Vorlage zu speichern erfordert daher einen Owner oder Admin, wie jeder Credential-Schritt. Eine Vorlage zu löschen ist endgültig und ändert keine Pipeline, die aus ihr entstanden ist.
 
 ## Limits {#limits}
 
