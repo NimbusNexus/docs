@@ -278,7 +278,7 @@ Enregistrer un pipeline ou un script modifié crée sa version suivante ; en enr
 
 Dans la console, ouvrez le menu de l’endpoint sur la page **Endpoints** et choisissez **Transformation**, ou cliquez sur son entrée dans la colonne **Transformation**. Ensuite :
 
-1. Choisissez **Pipeline** et construisez-le : avec **Add a step**, à partir d’un modèle, ou en collant un document entier sous **JSON** puis en choisissant **Apply JSON**. Ou choisissez **Script** et écrivez la fonction.
+1. Choisissez **Pipeline** et construisez-le : avec **Add a step**, à partir d’un modèle, ou en collant un document entier sous **JSON** puis en choisissant **Apply JSON**. Ou choisissez **Script** et écrivez la fonction, ou **Reference** pour exécuter un [pipeline conservé dans Transforms](#reference).
 2. [Testez la transformation](#test).
 3. Choisissez **Save**. Les prochaines livraisons de l’endpoint passent par elle.
 
@@ -308,7 +308,16 @@ Un script prend `code` à la place de `pipeline` ; envoyer les deux, ou aucun, e
 
 Une transformation peut exécuter un pipeline conservé dans [Transforms](/docs/product-transforms) au lieu d’avoir le sien. Son type est `reference`, sur tous les plans, et nous enregistrons quel pipeline elle désigne, pas une copie. Le pipeline s’exécute toujours ici, à côté de la livraison, et Transforms ne participe pas à l’envoi. Les exécutions comptent aussi ici, dans `transformation_runs`. Les [tests](#test), la [mise en pause](#versions), [ce que montre une livraison](#deliveries) et le [décompte des échecs](#failures) fonctionnent comme pour n’importe quel pipeline.
 
-La console ne propose pas ce type. Créez-en une via l’API, dans le projet de l’endpoint, puis [faites pointer l’endpoint vers elle](#set-up) avec `transformation_id` :
+Dans la console, choisissez **Reference** sur la page **Transformation** de l’endpoint. Puis :
+
+1. Sous **Pipeline ID**, collez l’`id` du pipeline, que sa page dans Transforms affiche.
+2. Gardez **Newest version**, ou choisissez **A fixed version** et saisissez-la sous **Version**.
+3. Pour chaque emplacement que nomme le pipeline, choisissez **Bind a slot**, saisissez l’id de l’emplacement sous **Slot ID**, tel que **Credential slots** le liste dans Transforms, et choisissez un secret du projet sous **Secret**, ou stockez-en un avec **New secret…**. Un emplacement oublié est nommé à l’enregistrement et ajouté au formulaire pour que vous l’associiez.
+4. [Testez-la](#test), puis choisissez **Save**.
+
+Seule une personne qui a le rôle de propriétaire ou d’admin associe un emplacement. Quand vous modifiez une référence qui associe un secret, **Save** liste d’abord l’URL de chaque endpoint sur lequel elle s’exécute, car le secret va à chacun.
+
+Via l’API, créez-en une dans le projet de l’endpoint, puis [faites pointer l’endpoint vers elle](#set-up) avec `transformation_id` :
 
 ```bash
 curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/transformations \
@@ -326,7 +335,7 @@ curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/transformations \
 
 Transforms ne détient aucun justificatif : ils viennent donc de cette association. Chaque étape `auth` s’exécute avec le secret de ce projet à la place de son emplacement. Une référence qui associe un secret suit les règles d’une étape `auth` : une personne a besoin du rôle de propriétaire ou d’admin pour l’enregistrer, une nouvelle version doit nommer tous les endpoints dans `confirm_destinations`, et le secret ne peut pas être supprimé tant que la référence l’associe. Un pipeline dans Transforms appartient à tout l’espace de travail : le choisir demande donc une clé ou une connexion qui couvre tout l’espace de travail. Une clé ou une connexion limitée à certains projets est refusée avec `403` `project_confined`, mais peut encore lire, renommer et attacher ce qui est déjà enregistré.
 
-Pour changer de pipeline, de version ou de secrets, envoyez `PATCH /v1/transformations/{id}` avec un nouveau `pipeline_ref`, ce qui enregistre la version suivante de la transformation. Une nouvelle version dans Transforms ne demande aucun `PATCH`, sauf si la référence en fige une. Pour tester, envoyez `pipeline_ref` à la place de `pipeline` à `POST /v1/transformations/test` : le test exécute ce que la référence exécute maintenant, avec chaque justificatif masqué, même pendant que le pipeline est désactivé dans Transforms. Pour une livraison, `GET /v1/deliveries/{id}/transform` ajoute `pipeline_version`, la version du pipeline qui s’est exécutée, à côté de `version`, celle de la transformation.
+Pour changer de pipeline, de version ou de secrets, modifiez-les sur la même page et choisissez **Save**, ou envoyez `PATCH /v1/transformations/{id}` avec un nouveau `pipeline_ref`. Dans les deux cas, la version suivante de la transformation est enregistrée. Une nouvelle version dans Transforms ne demande ici aucun changement, sauf si la référence en fige une. Pour tester, utilisez **Test** sous le formulaire, ou envoyez `pipeline_ref` à la place de `pipeline` à `POST /v1/transformations/test` : le test exécute ce que nomment le formulaire ou la requête, avec chaque justificatif masqué, même pendant que le pipeline est désactivé dans Transforms. Pour une livraison, `GET /v1/deliveries/{id}/transform` ajoute `pipeline_version`, la version du pipeline qui s’est exécutée, à côté de `version`, celle de la transformation.
 
 Un événement n’est jamais envoyé sans transformation. Quand le pipeline ne peut pas s’exécuter :
 
@@ -335,7 +344,7 @@ Un événement n’est jamais envoyé sans transformation. Quand le pipeline ne 
 | Transforms est injoignable | Une version déjà récupérée continue de s’exécuter. Sans rien sur quoi s’appuyer, la livraison attend sans consommer de tentative et regarde à nouveau après un quart du temps qu’elle a déjà attendu, au moins 5 minutes et au plus une heure. Elle apparaît comme `failed`, avec un `last_error` qui commence par `paused:`. Au bout de 7 jours d’attente, ou un jour avant que son événement ne soit supprimé à la fin de la [rétention](/docs/product-webhooks/deliveries#retention) si cela arrive plus tôt, elle part dans la dead-letter queue avec `pipeline_failed:` et la raison de son attente, sans être imputée à la transformation. |
 | Le pipeline est désactivé dans Transforms | En moins d’une minute, que la référence fige une version ou non, les livraisons attendent de la même façon. Une fois qu’il est réactivé depuis une minute, celles qui attendent encore partent dès qu’elles regardent à nouveau. |
 | Le pipeline a été supprimé | La livraison échoue avec `pipeline_failed: reference_missing: …` et part dans la dead-letter queue. |
-| Une version plus récente nomme un emplacement que la référence n’associe pas | La livraison échoue de la même façon avec `secret_missing`, qui nomme l’emplacement. Associez-le avec un `PATCH`. |
+| Une version plus récente nomme un emplacement que la référence n’associe pas | La livraison échoue de la même façon avec `secret_missing`, qui nomme l’emplacement. Associez-le dans la console ou avec un `PATCH`. |
 | Une version plus récente contient ce que nous refusons, comme un header que nous envoyons nous-mêmes | La livraison échoue de la même façon, avec la raison, comme `managed_header`. Un enregistrement dans Transforms ne vérifie pas nos règles de headers. |
 
 Chaque échec est imputé à la transformation, comme pour tout pipeline ([Quand une exécution échoue](#failures)). Transforms liste `webhookd` parmi les services qui exécutent un pipeline, et une nouvelle version avec une étape `auth`, ou la suppression du pipeline, doit d’abord le nommer ([Qui exécute un pipeline](/docs/product-transforms/reference#destinations)).
