@@ -2,7 +2,7 @@
 title: "Pipelines"
 description: "Los pasos de una pipeline, sus rutas, valores y filtros, las plantillas de las que partir y los límites de una ejecución."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-11
+updatedAt: 2026-11-16
 kind: concept
 ---
 
@@ -118,6 +118,18 @@ Indica que una credencial va en la petición, y nombra el slot del que sale:
 `secret` es el id de un [slot](/docs/product-transforms/reference#slots) del workspace. Nunca es un valor: un valor pegado ahí se rechaza con `invalid_secret`, y el rechazo no lo repite. El producto que ejecuta la pipeline por referencia asigna el slot a un secreto propio ([Credenciales](/docs/product-transforms#credentials)). Test y la API de ejecución muestran la cabecera o el parámetro con el valor enmascarado.
 
 Los pasos `auth` van después de todos los demás, así que ningún paso puede leer, copiar ni comprobar una credencial.
+
+Para cada forma en que un receptor acepta una credencial, el paso que la envía y lo que Test y la API de ejecución muestran que añade:
+
+| El receptor espera | El paso | Test muestra |
+|---|---|---|
+| `Authorization: Bearer <token>` | `{ "auth": { "type": "bearer", "secret": "sec_…" } }` | `Authorization: Bearer ••••` |
+| Autenticación básica, con un nombre de usuario y una contraseña | `{ "auth": { "type": "basic", "username": "billing", "secret": "sec_…" } }` | `Authorization: Basic ••••` |
+| `X-Api-Key: <key>` | `{ "auth": { "type": "api_key", "in": "header", "name": "X-Api-Key", "secret": "sec_…" } }` | `X-Api-Key: ••••` |
+| `Authorization: Token <token>` | `{ "auth": { "type": "api_key", "in": "header", "name": "Authorization", "prefix": "Token ", "secret": "sec_…" } }` | `Authorization: Token ••••` |
+| `?api_key=<key>` en su URL | `{ "auth": { "type": "api_key", "in": "query", "name": "api_key", "secret": "sec_…" } }` | `"api_key": "••••"` en `query` |
+
+En la consola, un paso **Credential** pide los mismos campos: **Credential type** es `type`, **Credential slot** es `secret`, **Username** es `username`, y **Send it in**, **Header name** o **Parameter name** y **Prefix** son `in`, `name` y `prefix`. [Una cabecera Authorization desde un slot](/docs/product-transforms#credentials-example) sigue uno de estos pasos desde que se añade el slot hasta la petición que envía un producto.
 
 ## Rutas y valores {#values}
 

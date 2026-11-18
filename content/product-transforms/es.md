@@ -2,7 +2,7 @@
 title: "Transforms"
 description: "Pipelines declarativas que filtran, recortan y adaptan una petición. Constrúyelas, versiónalas y pruébalas en un solo lugar, y después ejecútalas por la API o por referencia desde el producto que envía."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-11
+updatedAt: 2026-11-16
 kind: concept
 ---
 
@@ -58,6 +58,67 @@ Para enviar una, ejecuta la pipeline [por referencia](/docs/product-webhooks/tra
 Test y la API de ejecución muestran lo que añadiría el paso, con el valor enmascarado: `Authorization: Bearer ••••`. No pueden enviar una credencial, porque Transforms no tiene ninguna que enviar.
 
 Primero se ve dónde se ejecuta una pipeline. Al leerla se listan los productos que la ejecutan por referencia y la versión que ejecuta cada uno. Para guardar una versión nueva con un paso `auth`, o para borrar la pipeline, hay que nombrar a cada uno de ellos en `confirm_destinations`; si no, se rechaza con `409` `conflict`, `destinations_unconfirmed` ([Quién ejecuta una pipeline](/docs/product-transforms/reference#destinations)).
+
+### Ejemplo: una cabecera Authorization desde un slot {#credentials-example}
+
+Tu CRM solo acepta eventos con `Authorization: Bearer <token>`, y Webhooks los entrega. La pipeline y su slot se guardan en Transforms. El token se guarda en Webhooks, que es quien lo envía.
+
+**1. Añade un slot.** En la consola, abre **Credential slots**, elige **New slot** y ponle la etiqueta `CRM token`. Con la API:
+
+```bash
+curl -X POST https://transforms.nimbusnexus.net/v1/slots \
+  -H "Authorization: Bearer $TRANSFORMS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"label": "CRM token"}'
+```
+
+```json
+{ "id": "sec_1f0a…", "label": "CRM token", "pipeline_count": 0, "created_at": "…", "updated_at": "…" }
+```
+
+**2. Nómbralo en un paso `auth`.** En el editor de la pipeline, elige **Add a step** y luego **Credential**. Deja **Bearer token** como **Credential type**, elige `CRM token` en **Credential slot** y guarda. El documento contiene el id del slot y nada más:
+
+```json
+{
+  "version": 1,
+  "steps": [
+    { "filter": { "type": "invoice.paid" } },
+    { "drop": ["data.customer.email"] },
+    { "auth": { "type": "bearer", "secret": "sec_1f0a…" } }
+  ]
+}
+```
+
+Test y la API de ejecución responden con `"Authorization": "Bearer ••••"` en `headers`: la cabecera que añade el paso, con el valor enmascarado.
+
+**3. Asigna el slot a un secreto en Webhooks.** Guarda el token como [secreto](/docs/product-webhooks/transformations#credentials) de Webhooks, leyéndolo de una variable de entorno:
+
+```bash
+curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/secrets \
+  -H "Authorization: Bearer $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"project_id\": \"prj_…\", \"name\": \"CRM token\", \"value\": \"$CRM_TOKEN\"}"
+```
+
+```json
+{ "id": "sec_9c4e…", "project_id": "prj_…", "name": "CRM token", "transformation_count": 0, "created_at": "…", "updated_at": "…" }
+```
+
+Después crea una transformación que ejecute la pipeline [por referencia](/docs/product-webhooks/transformations#reference). Su `secrets` asigna el id del slot, `sec_1f0a…`, al id del secreto, `sec_9c4e…`:
+
+```bash
+curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/transformations \
+  -H "Authorization: Bearer $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Paid invoices to the CRM", "project_id": "prj_…",
+       "pipeline_ref": {"id": "pipe_…", "secrets": {"sec_1f0a…": "sec_9c4e…"}}}'
+```
+
+Por último, [apunta el endpoint del CRM a la transformación](/docs/product-webhooks/transformations#set-up).
+
+**4. Lo que recibe el CRM.** Cada entrega lleva `Authorization: Bearer` y el token guardado en Webhooks. Para rotar el token, sustituye el valor del secreto en Webhooks: el siguiente intento envía el nuevo, y la pipeline no cambia. Una versión posterior de la pipeline que nombre otro slot falla con `secret_missing` hasta que la transformación asigne también ese slot.
+
+La autenticación básica, una clave de API en una cabecera, un esquema `Token` y una clave como parámetro de consulta tienen cada uno su paso en [`auth`](/docs/product-transforms/pipelines#step-auth).
 
 ## Planes y límites {#limits}
 

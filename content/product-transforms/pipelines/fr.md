@@ -2,7 +2,7 @@
 title: "Pipelines"
 description: "Les étapes d’un pipeline, ses chemins, ses valeurs et ses filtres, les modèles pour démarrer et les plafonds d’une exécution."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-11
+updatedAt: 2026-11-16
 kind: concept
 ---
 
@@ -118,6 +118,18 @@ Indique que la requête doit porter un justificatif d’identité, et nomme l’
 `secret` est l’identifiant d’un [emplacement](/docs/product-transforms/reference#slots) que détient l’espace de travail. Ce n’est jamais une valeur : une valeur collée là est refusée avec `invalid_secret`, et le refus ne la répète pas. Le produit qui exécute le pipeline par référence associe l’emplacement à son propre secret ([Justificatifs d’identité](/docs/product-transforms#credentials)). Test et l’API d’exécution montrent le header ou le paramètre avec la valeur masquée.
 
 Les étapes de justificatif viennent après toutes les autres, si bien qu’aucune étape ne peut lire, copier ni tester un justificatif.
+
+Pour chaque façon dont un destinataire accepte un justificatif, l’étape qui l’envoie, et ce que Test et l’API d’exécution montrent qu’elle ajoute :
+
+| Le destinataire attend | L’étape | Test montre |
+|---|---|---|
+| `Authorization: Bearer <token>` | `{ "auth": { "type": "bearer", "secret": "sec_…" } }` | `Authorization: Bearer ••••` |
+| Une authentification basique, à partir d’un nom d’utilisateur et d’un mot de passe | `{ "auth": { "type": "basic", "username": "billing", "secret": "sec_…" } }` | `Authorization: Basic ••••` |
+| `X-Api-Key: <key>` | `{ "auth": { "type": "api_key", "in": "header", "name": "X-Api-Key", "secret": "sec_…" } }` | `X-Api-Key: ••••` |
+| `Authorization: Token <token>` | `{ "auth": { "type": "api_key", "in": "header", "name": "Authorization", "prefix": "Token ", "secret": "sec_…" } }` | `Authorization: Token ••••` |
+| `?api_key=<key>` sur son URL | `{ "auth": { "type": "api_key", "in": "query", "name": "api_key", "secret": "sec_…" } }` | `"api_key": "••••"` dans `query` |
+
+Dans la console, une étape **Credential** demande les mêmes champs : **Credential type** est `type`, **Credential slot** est `secret`, **Username** est `username`, et **Send it in**, **Header name** ou **Parameter name**, et **Prefix** sont `in`, `name` et `prefix`. [Un header Authorization depuis un emplacement](/docs/product-transforms#credentials-example) suit une telle étape depuis l’ajout de l’emplacement jusqu’à la requête qu’envoie un produit.
 
 ## Chemins et valeurs {#values}
 

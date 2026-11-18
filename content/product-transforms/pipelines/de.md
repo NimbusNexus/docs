@@ -2,7 +2,7 @@
 title: "Pipelines"
 description: "Die Schritte einer Pipeline, ihre Pfade, Werte und Filter, die Vorlagen als Ausgangspunkt und die Obergrenzen einer Ausführung."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-11
+updatedAt: 2026-11-16
 kind: concept
 ---
 
@@ -118,6 +118,18 @@ Gibt an, dass dem Request ein Credential hinzugefügt wird, und nennt den zugeh�
 `secret` ist die ID eines [Slots](/docs/product-transforms/reference#slots) des Workspaces. Es ist nie ein Wert: Ein dort eingefügter Wert wird mit `invalid_secret` abgewiesen, und die Ablehnung wiederholt ihn nicht. Das Produkt, das die Pipeline per Referenz ausführt, ordnet dem Slot ein eigenes Secret zu ([Credentials](/docs/product-transforms#credentials)). Der Test und die Ausführungs-API zeigen den Header oder Parameter mit maskiertem Wert.
 
 Auth-Schritte stehen nach allen anderen Schritten, sodass kein Schritt ein Credential lesen, kopieren oder prüfen kann.
+
+Für jede Art, wie ein Empfänger ein Credential annimmt, der Schritt, der es sendet, und was der Test und die Ausführungs-API als hinzugefügt zeigen:
+
+| Der Empfänger erwartet | Der Schritt | Der Test zeigt |
+|---|---|---|
+| `Authorization: Bearer <token>` | `{ "auth": { "type": "bearer", "secret": "sec_…" } }` | `Authorization: Bearer ••••` |
+| Basic Auth, aus einem Benutzernamen und einem Passwort | `{ "auth": { "type": "basic", "username": "billing", "secret": "sec_…" } }` | `Authorization: Basic ••••` |
+| `X-Api-Key: <key>` | `{ "auth": { "type": "api_key", "in": "header", "name": "X-Api-Key", "secret": "sec_…" } }` | `X-Api-Key: ••••` |
+| `Authorization: Token <token>` | `{ "auth": { "type": "api_key", "in": "header", "name": "Authorization", "prefix": "Token ", "secret": "sec_…" } }` | `Authorization: Token ••••` |
+| `?api_key=<key>` an seiner URL | `{ "auth": { "type": "api_key", "in": "query", "name": "api_key", "secret": "sec_…" } }` | `"api_key": "••••"` in `query` |
+
+In der Konsole fragt ein **Credential**-Schritt dieselben Felder ab: **Credential type** ist `type`, **Credential slot** ist `secret`, **Username** ist `username`, und **Send it in**, **Header name** oder **Parameter name** sowie **Prefix** sind `in`, `name` und `prefix`. [Ein Authorization-Header aus einem Slot](/docs/product-transforms#credentials-example) verfolgt einen solchen Schritt vom Hinzufügen des Slots bis zum Request, den ein Produkt sendet.
 
 ## Pfade und Werte {#values}
 

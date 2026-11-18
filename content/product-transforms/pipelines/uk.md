@@ -2,7 +2,7 @@
 title: "Конвеєри"
 description: "Кроки конвеєра, його шляхи, значення й фільтри, шаблони, з яких можна почати, і межі для запуску."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-11
+updatedAt: 2026-11-16
 kind: concept
 ---
 
@@ -118,6 +118,18 @@ kind: concept
 `secret` — це ідентифікатор [слота](/docs/product-transforms/reference#slots), який є в робочому просторі. Це ніколи не значення: вставлене туди значення відхиляється з `invalid_secret`, і відмова його не повторює. Продукт, який виконує конвеєр за посиланням, зіставляє слот із власним секретом ([Облікові дані](/docs/product-transforms#credentials)). Тестування й API запуску показують заголовок чи параметр із замаскованим значенням.
 
 Кроки `auth` стоять після всіх інших кроків, тож жоден крок не може прочитати, скопіювати чи перевірити облікові дані.
+
+Для кожного способу, яким отримувач приймає облікові дані, — крок, що їх надсилає, і те, що тестування й API запуску показують як додане:
+
+| Отримувач очікує | Крок | Тестування показує |
+|---|---|---|
+| `Authorization: Bearer <token>` | `{ "auth": { "type": "bearer", "secret": "sec_…" } }` | `Authorization: Bearer ••••` |
+| Basic-автентифікацію з імені користувача й пароля | `{ "auth": { "type": "basic", "username": "billing", "secret": "sec_…" } }` | `Authorization: Basic ••••` |
+| `X-Api-Key: <key>` | `{ "auth": { "type": "api_key", "in": "header", "name": "X-Api-Key", "secret": "sec_…" } }` | `X-Api-Key: ••••` |
+| `Authorization: Token <token>` | `{ "auth": { "type": "api_key", "in": "header", "name": "Authorization", "prefix": "Token ", "secret": "sec_…" } }` | `Authorization: Token ••••` |
+| `?api_key=<key>` у своїй URL-адресі | `{ "auth": { "type": "api_key", "in": "query", "name": "api_key", "secret": "sec_…" } }` | `"api_key": "••••"` у `query` |
+
+У консолі крок **Credential** запитує ті самі поля: **Credential type** — це `type`, **Credential slot** — `secret`, **Username** — `username`, а **Send it in**, **Header name** чи **Parameter name** та **Prefix** — це `in`, `name` і `prefix`. [Заголовок Authorization зі слота](/docs/product-transforms#credentials-example) простежує такий крок від додавання слота до запиту, який надсилає продукт.
 
 ## Шляхи та значення {#values}
 

@@ -2,7 +2,7 @@
 title: "Transforms"
 description: "Декларативні конвеєри, що фільтрують, скорочують і перетворюють запит. Створюйте, версіонуйте й тестуйте їх в одному місці, а потім запускайте через API або за посиланням із продукту, який надсилає запити."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-11
+updatedAt: 2026-11-16
 kind: concept
 ---
 
@@ -58,6 +58,67 @@ Transforms не зберігає облікових даних. Крок `auth` 
 Тестування й API запуску показують, що додав би крок, із замаскованим значенням: `Authorization: Bearer ••••`. Надіслати облікові дані вони не можуть, бо в Transforms немає чого надсилати.
 
 Те, де виконується конвеєр, видно наперед. Під час читання конвеєра перелічуються продукти, які виконують його за посиланням, і версія, яку виконує кожен із них. Збереження нової версії з кроком `auth` або видалення конвеєра має назвати кожен із них у `confirm_destinations`, інакше запит відхиляється з `409` `conflict`, `destinations_unconfirmed` ([Хто виконує конвеєр](/docs/product-transforms/reference#destinations)).
+
+### Приклад: заголовок Authorization зі слота {#credentials-example}
+
+Ваша CRM приймає події лише з `Authorization: Bearer <token>`, а доставляє їх Webhooks. Конвеєр і його слот зберігаються в Transforms. Токен зберігається у Webhooks, який його й надсилає.
+
+**1. Додайте слот.** У консолі відкрийте **Credential slots**, виберіть **New slot** і дайте йому мітку `CRM token`. Через API:
+
+```bash
+curl -X POST https://transforms.nimbusnexus.net/v1/slots \
+  -H "Authorization: Bearer $TRANSFORMS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"label": "CRM token"}'
+```
+
+```json
+{ "id": "sec_1f0a…", "label": "CRM token", "pipeline_count": 0, "created_at": "…", "updated_at": "…" }
+```
+
+**2. Назвіть його в кроці `auth`.** У редакторі конвеєра виберіть **Add a step**, потім **Credential**. Залиште **Bearer token** як **Credential type**, виберіть `CRM token` у полі **Credential slot** і збережіть. Документ містить лише ідентифікатор слота:
+
+```json
+{
+  "version": 1,
+  "steps": [
+    { "filter": { "type": "invoice.paid" } },
+    { "drop": ["data.customer.email"] },
+    { "auth": { "type": "bearer", "secret": "sec_1f0a…" } }
+  ]
+}
+```
+
+Тестування й API запуску відповідають `"Authorization": "Bearer ••••"` у `headers`: це заголовок, який додає крок, із замаскованим значенням.
+
+**3. Зіставте слот із секретом у Webhooks.** Збережіть токен як [секрет](/docs/product-webhooks/transformations#credentials) Webhooks, прочитавши його зі змінної середовища:
+
+```bash
+curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/secrets \
+  -H "Authorization: Bearer $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"project_id\": \"prj_…\", \"name\": \"CRM token\", \"value\": \"$CRM_TOKEN\"}"
+```
+
+```json
+{ "id": "sec_9c4e…", "project_id": "prj_…", "name": "CRM token", "transformation_count": 0, "created_at": "…", "updated_at": "…" }
+```
+
+Потім створіть трансформацію, яка виконує конвеєр [за посиланням](/docs/product-webhooks/transformations#reference). Її `secrets` зіставляє ідентифікатор слота, `sec_1f0a…`, з ідентифікатором секрету, `sec_9c4e…`:
+
+```bash
+curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/transformations \
+  -H "Authorization: Bearer $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Paid invoices to the CRM", "project_id": "prj_…",
+       "pipeline_ref": {"id": "pipe_…", "secrets": {"sec_1f0a…": "sec_9c4e…"}}}'
+```
+
+Далі [спрямуйте ендпоінт CRM на цю трансформацію](/docs/product-webhooks/transformations#set-up).
+
+**4. Що отримує CRM.** Кожна доставка містить `Authorization: Bearer` і токен, збережений у Webhooks. Щоб замінити токен, замініть значення секрету у Webhooks: наступна спроба надішле нове значення, а конвеєр не зміниться. Пізніша версія конвеєра, яка називає інший слот, завершується помилкою `secret_missing`, доки трансформація не зіставить і цей слот.
+
+Basic-автентифікація, API-ключ у заголовку, схема `Token` і ключ як параметр запиту мають кожен свій крок у [`auth`](/docs/product-transforms/pipelines#step-auth).
 
 ## Плани й ліміти {#limits}
 

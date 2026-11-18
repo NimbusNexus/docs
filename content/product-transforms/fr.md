@@ -2,7 +2,7 @@
 title: "Transforms"
 description: "Des pipelines déclaratifs qui filtrent, allègent et remodèlent une requête. Construisez-les, versionnez-les et testez-les en un seul endroit, puis exécutez-les via l’API ou par référence depuis le produit qui envoie."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-11
+updatedAt: 2026-11-16
 kind: concept
 ---
 
@@ -58,6 +58,67 @@ Pour en envoyer un, exécutez le pipeline [par référence](/docs/product-webhoo
 Test et l’API d’exécution montrent ce qu’ajouterait l’étape, avec la valeur masquée : `Authorization: Bearer ••••`. Ils ne peuvent pas envoyer de justificatif, car Transforms n’en a aucun à envoyer.
 
 Vous voyez d’abord où s’exécute un pipeline. La lecture d’un pipeline liste les produits qui l’exécutent par référence et la version que chacun exécute. L’enregistrement d’une nouvelle version avec une étape `auth`, ou la suppression du pipeline, doit nommer chacun d’eux dans `confirm_destinations` ; sinon, la requête est refusée avec `409` `conflict`, `destinations_unconfirmed` ([Qui exécute un pipeline](/docs/product-transforms/reference#destinations)).
+
+### Exemple : un header Authorization depuis un emplacement {#credentials-example}
+
+Votre CRM n’accepte les événements qu’avec `Authorization: Bearer <token>`, et Webhooks les livre. Le pipeline et son emplacement sont conservés dans Transforms. Le jeton est conservé dans Webhooks, qui l’envoie.
+
+**1. Ajoutez un emplacement.** Dans la console, ouvrez **Credential slots**, choisissez **New slot** et donnez-lui le libellé `CRM token`. Par l’API :
+
+```bash
+curl -X POST https://transforms.nimbusnexus.net/v1/slots \
+  -H "Authorization: Bearer $TRANSFORMS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"label": "CRM token"}'
+```
+
+```json
+{ "id": "sec_1f0a…", "label": "CRM token", "pipeline_count": 0, "created_at": "…", "updated_at": "…" }
+```
+
+**2. Nommez-le dans une étape `auth`.** Dans l’éditeur du pipeline, choisissez **Add a step**, puis **Credential**. Gardez **Bearer token** comme **Credential type**, choisissez `CRM token` sous **Credential slot**, et enregistrez. Le document contient l’identifiant de l’emplacement et rien d’autre :
+
+```json
+{
+  "version": 1,
+  "steps": [
+    { "filter": { "type": "invoice.paid" } },
+    { "drop": ["data.customer.email"] },
+    { "auth": { "type": "bearer", "secret": "sec_1f0a…" } }
+  ]
+}
+```
+
+Test et l’API d’exécution répondent avec `"Authorization": "Bearer ••••"` dans `headers` : le header qu’ajoute l’étape, avec la valeur masquée.
+
+**3. Associez l’emplacement à un secret dans Webhooks.** Stockez le jeton comme [secret](/docs/product-webhooks/transformations#credentials) Webhooks, en le lisant depuis une variable d’environnement :
+
+```bash
+curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/secrets \
+  -H "Authorization: Bearer $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"project_id\": \"prj_…\", \"name\": \"CRM token\", \"value\": \"$CRM_TOKEN\"}"
+```
+
+```json
+{ "id": "sec_9c4e…", "project_id": "prj_…", "name": "CRM token", "transformation_count": 0, "created_at": "…", "updated_at": "…" }
+```
+
+Créez ensuite une transformation qui exécute le pipeline [par référence](/docs/product-webhooks/transformations#reference). Son `secrets` associe l’identifiant de l’emplacement, `sec_1f0a…`, à celui du secret, `sec_9c4e…` :
+
+```bash
+curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/transformations \
+  -H "Authorization: Bearer $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Paid invoices to the CRM", "project_id": "prj_…",
+       "pipeline_ref": {"id": "pipe_…", "secrets": {"sec_1f0a…": "sec_9c4e…"}}}'
+```
+
+Puis [faites pointer l’endpoint du CRM vers la transformation](/docs/product-webhooks/transformations#set-up).
+
+**4. Ce que reçoit le CRM.** Chaque livraison porte `Authorization: Bearer` et le jeton stocké dans Webhooks. Pour faire tourner le jeton, remplacez la valeur du secret dans Webhooks : la tentative suivante envoie la nouvelle, et le pipeline ne change pas. Une version ultérieure du pipeline qui nomme un autre emplacement échoue avec `secret_missing` tant que la transformation n’associe pas aussi cet emplacement.
+
+L’authentification basique, une clé d’API dans un header, un schéma `Token` et une clé dans la chaîne de requête ont chacun leur étape dans [`auth`](/docs/product-transforms/pipelines#step-auth).
 
 ## Plans et limites {#limits}
 

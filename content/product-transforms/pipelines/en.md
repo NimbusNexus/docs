@@ -2,7 +2,7 @@
 title: Pipelines
 description: The steps of a pipeline, its paths, values and filters, the templates to start from, and the caps on a run.
 publishedAt: 2026-11-06
-updatedAt: 2026-11-11
+updatedAt: 2026-11-16
 kind: concept
 ---
 
@@ -118,6 +118,18 @@ Says that a credential goes on the request, and names the slot it comes from:
 `secret` is the id of a [slot](/docs/product-transforms/reference#slots) the workspace holds. It is never a value: a value pasted there is refused with `invalid_secret`, and the refusal doesn't quote it back. The product that runs the pipeline by reference maps the slot to its own secret ([Credentials](/docs/product-transforms#credentials)). Test and the run API show the header or parameter with the value masked.
 
 Auth steps come after every other step, so no step can read, copy or test a credential.
+
+For each way a receiver takes a credential, the step that sends it, and what Test and the run API show it add:
+
+| The receiver wants | The step | Test shows |
+|---|---|---|
+| `Authorization: Bearer <token>` | `{ "auth": { "type": "bearer", "secret": "sec_…" } }` | `Authorization: Bearer ••••` |
+| Basic auth, from a username and a password | `{ "auth": { "type": "basic", "username": "billing", "secret": "sec_…" } }` | `Authorization: Basic ••••` |
+| `X-Api-Key: <key>` | `{ "auth": { "type": "api_key", "in": "header", "name": "X-Api-Key", "secret": "sec_…" } }` | `X-Api-Key: ••••` |
+| `Authorization: Token <token>` | `{ "auth": { "type": "api_key", "in": "header", "name": "Authorization", "prefix": "Token ", "secret": "sec_…" } }` | `Authorization: Token ••••` |
+| `?api_key=<key>` on its URL | `{ "auth": { "type": "api_key", "in": "query", "name": "api_key", "secret": "sec_…" } }` | `"api_key": "••••"` in `query` |
+
+In the console, a **Credential** step asks for the same fields: **Credential type** is `type`, **Credential slot** is `secret`, **Username** is `username`, and **Send it in**, **Header name** or **Parameter name**, and **Prefix** are `in`, `name` and `prefix`. [An Authorization header from a slot](/docs/product-transforms#credentials-example) follows one from adding the slot to the request a product sends.
 
 ## Paths and values {#values}
 

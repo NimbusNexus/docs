@@ -2,7 +2,7 @@
 title: Transforms
 description: Declarative pipelines that filter, trim and reshape a request. Build, version and test them in one place, then run them over the API or by reference from the product that sends.
 publishedAt: 2026-11-06
-updatedAt: 2026-11-11
+updatedAt: 2026-11-16
 kind: concept
 ---
 
@@ -58,6 +58,67 @@ To send one, run the pipeline [by reference](/docs/product-webhooks/transformati
 Test and the run API show what the step would add, with the value masked: `Authorization: Bearer ••••`. They can't send a credential, because Transforms has none to send.
 
 Where a pipeline runs shows first. A read of a pipeline lists the products that run it by reference and the version each runs. Saving a new version with an `auth` step, or deleting the pipeline, has to name each of them in `confirm_destinations`, or it is refused with `409` `conflict`, `destinations_unconfirmed` ([Who runs a pipeline](/docs/product-transforms/reference#destinations)).
+
+### Example: an Authorization header from a slot {#credentials-example}
+
+Your CRM takes events only with `Authorization: Bearer <token>`, and Webhooks delivers them. The pipeline and its slot are kept in Transforms. The token is kept in Webhooks, which sends it.
+
+**1. Add a slot.** In the console, open **Credential slots**, choose **New slot** and label it `CRM token`. Over the API:
+
+```bash
+curl -X POST https://transforms.nimbusnexus.net/v1/slots \
+  -H "Authorization: Bearer $TRANSFORMS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"label": "CRM token"}'
+```
+
+```json
+{ "id": "sec_1f0a…", "label": "CRM token", "pipeline_count": 0, "created_at": "…", "updated_at": "…" }
+```
+
+**2. Name it in an `auth` step.** In the pipeline's editor, choose **Add a step**, then **Credential**. Keep **Bearer token** as the **Credential type**, choose `CRM token` under **Credential slot**, and save. The document holds the slot's id and nothing else:
+
+```json
+{
+  "version": 1,
+  "steps": [
+    { "filter": { "type": "invoice.paid" } },
+    { "drop": ["data.customer.email"] },
+    { "auth": { "type": "bearer", "secret": "sec_1f0a…" } }
+  ]
+}
+```
+
+Test and the run API answer with `"Authorization": "Bearer ••••"` in `headers`: the header the step adds, with the value masked.
+
+**3. Map the slot to a secret in Webhooks.** Store the token as a Webhooks [secret](/docs/product-webhooks/transformations#credentials), reading it from an environment variable:
+
+```bash
+curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/secrets \
+  -H "Authorization: Bearer $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"project_id\": \"prj_…\", \"name\": \"CRM token\", \"value\": \"$CRM_TOKEN\"}"
+```
+
+```json
+{ "id": "sec_9c4e…", "project_id": "prj_…", "name": "CRM token", "transformation_count": 0, "created_at": "…", "updated_at": "…" }
+```
+
+Then create a transformation that runs the pipeline [by reference](/docs/product-webhooks/transformations#reference). Its `secrets` maps the slot's id, `sec_1f0a…`, to the secret's id, `sec_9c4e…`:
+
+```bash
+curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/transformations \
+  -H "Authorization: Bearer $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Paid invoices to the CRM", "project_id": "prj_…",
+       "pipeline_ref": {"id": "pipe_…", "secrets": {"sec_1f0a…": "sec_9c4e…"}}}'
+```
+
+Then [point the CRM's endpoint at the transformation](/docs/product-webhooks/transformations#set-up).
+
+**4. What the CRM receives.** Each delivery carries `Authorization: Bearer` and the token stored in Webhooks. To rotate the token, replace the secret's value in Webhooks: the next attempt sends the new one, and the pipeline doesn't change. A later version of the pipeline that names another slot fails with `secret_missing` until the transformation maps that slot too.
+
+Basic auth, an API key in a header, a `Token` scheme and a key in the query string each have their step in [`auth`](/docs/product-transforms/pipelines#step-auth).
 
 ## Plans and limits {#limits}
 

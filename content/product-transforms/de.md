@@ -2,7 +2,7 @@
 title: "Transforms"
 description: "Deklarative Pipelines, die einen Request filtern, kürzen und umformen. Bauen, versionieren und testen Sie sie an einem Ort, und führen Sie sie dann über die API aus oder per Referenz in dem Produkt, das sendet."
 publishedAt: 2026-11-06
-updatedAt: 2026-11-11
+updatedAt: 2026-11-16
 kind: concept
 ---
 
@@ -58,6 +58,67 @@ Um eines zu senden, führen Sie die Pipeline [per Referenz](/docs/product-webhoo
 Der Test und die Ausführungs-API zeigen, was der Schritt hinzufügen würde, mit maskiertem Wert: `Authorization: Bearer ••••`. Sie können kein Credential senden, denn Transforms hat keines, das es senden könnte.
 
 Wo eine Pipeline läuft, sehen Sie im Voraus. Beim Lesen einer Pipeline werden die Produkte aufgelistet, die sie per Referenz ausführen, und die Version, die jedes davon ausführt. Wenn Sie eine neue Version mit einem `auth`-Schritt speichern oder die Pipeline löschen, müssen Sie jedes davon in `confirm_destinations` nennen, sonst wird der Aufruf mit `409` `conflict`, `destinations_unconfirmed` abgewiesen ([Wer eine Pipeline ausführt](/docs/product-transforms/reference#destinations)).
+
+### Beispiel: ein Authorization-Header aus einem Slot {#credentials-example}
+
+Ihr CRM nimmt Events nur mit `Authorization: Bearer <token>` an, und Webhooks stellt sie zu. Die Pipeline und ihr Slot liegen in Transforms. Das Token liegt in Webhooks, das es auch sendet.
+
+**1. Einen Slot hinzufügen.** Öffnen Sie in der Konsole **Credential slots**, wählen Sie **New slot** und geben Sie ihm die Bezeichnung `CRM token`. Über die API:
+
+```bash
+curl -X POST https://transforms.nimbusnexus.net/v1/slots \
+  -H "Authorization: Bearer $TRANSFORMS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"label": "CRM token"}'
+```
+
+```json
+{ "id": "sec_1f0a…", "label": "CRM token", "pipeline_count": 0, "created_at": "…", "updated_at": "…" }
+```
+
+**2. Den Slot in einem `auth`-Schritt nennen.** Wählen Sie im Editor der Pipeline **Add a step** und dann **Credential**. Behalten Sie **Bearer token** als **Credential type** bei, wählen Sie unter **Credential slot** `CRM token` und speichern Sie. Das Dokument enthält die ID des Slots und sonst nichts:
+
+```json
+{
+  "version": 1,
+  "steps": [
+    { "filter": { "type": "invoice.paid" } },
+    { "drop": ["data.customer.email"] },
+    { "auth": { "type": "bearer", "secret": "sec_1f0a…" } }
+  ]
+}
+```
+
+Der Test und die Ausführungs-API antworten mit `"Authorization": "Bearer ••••"` in `headers`: dem Header, den der Schritt hinzufügt, mit maskiertem Wert.
+
+**3. Den Slot in Webhooks einem Secret zuordnen.** Speichern Sie das Token als [Secret](/docs/product-webhooks/transformations#credentials) in Webhooks und lesen Sie es dabei aus einer Umgebungsvariablen:
+
+```bash
+curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/secrets \
+  -H "Authorization: Bearer $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"project_id\": \"prj_…\", \"name\": \"CRM token\", \"value\": \"$CRM_TOKEN\"}"
+```
+
+```json
+{ "id": "sec_9c4e…", "project_id": "prj_…", "name": "CRM token", "transformation_count": 0, "created_at": "…", "updated_at": "…" }
+```
+
+Erstellen Sie dann eine Transformation, die die Pipeline [per Referenz](/docs/product-webhooks/transformations#reference) ausführt. Ihr `secrets` ordnet der ID des Slots, `sec_1f0a…`, die ID des Secrets zu, `sec_9c4e…`:
+
+```bash
+curl -sX POST {{WEBHOOKS_BASE_URL}}/v1/transformations \
+  -H "Authorization: Bearer $NIMBUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Paid invoices to the CRM", "project_id": "prj_…",
+       "pipeline_ref": {"id": "pipe_…", "secrets": {"sec_1f0a…": "sec_9c4e…"}}}'
+```
+
+Richten Sie anschließend [den Endpoint des CRM auf die Transformation aus](/docs/product-webhooks/transformations#set-up).
+
+**4. Was das CRM erhält.** Jede Zustellung trägt `Authorization: Bearer` und das in Webhooks gespeicherte Token. Um das Token zu rotieren, ersetzen Sie den Wert des Secrets in Webhooks: Der nächste Versuch sendet den neuen Wert, und die Pipeline ändert sich nicht. Eine spätere Version der Pipeline, die einen weiteren Slot nennt, schlägt mit `secret_missing` fehl, bis die Transformation auch diesen Slot zuordnet.
+
+Basic Auth, ein API-Key in einem Header, ein `Token`-Schema und ein Key im Query-String haben jeweils ihren Schritt unter [`auth`](/docs/product-transforms/pipelines#step-auth).
 
 ## Tarife und Limits {#limits}
 
